@@ -1,0 +1,33 @@
+{
+  "name": "ng-virtual-grid",
+  "version": "19.0.0-beta-1",
+  "author": {
+    "name": "Evgenii Grebennikov",
+    "email": "djonnyx@gmail.com"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/djonnyx/ng-virtual-grid/tree/main/projects/ng-virtual-grid",
+  "keywords": [
+    "ng",
+    "angular",
+    "virtual",
+    "virtualized",
+    "grid",
+    "table",
+    "list",
+    "cell",
+    "group",
+    "grouped",
+    "scroll",
+    "scrolling",
+    "scroller"
+  ],
+  "peerDependencies": {
+    "@angular/common": "^19.2.0",
+    "@angular/core": "^19.2.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "sideEffects": false
+}
