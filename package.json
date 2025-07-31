@@ -1,6 +1,6 @@
 {
   "name": "virtual-grid",
-  "version": "19.0.0-beta-1",
+  "version": "19.0.0-beta-2",
   "author": {
     "name": "Evgenii Grebennikov",
     "email": "djonnyx@gmail.com"
@@ -22,7 +22,6 @@
     "@angular/platform-browser": "^19.2.0",
     "@angular/platform-browser-dynamic": "^19.2.0",
     "@angular/router": "^19.2.0",
-    "ng-virtual-list": "^19.4.1-beta-5",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"

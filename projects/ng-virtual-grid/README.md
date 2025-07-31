@@ -78,11 +78,11 @@ Inputs
 | Property | Type | Description |
 |---|---|---|
 | id | number | Readonly. Returns the unique identifier of the component. | 
-| items | [IVirtualListCollection](https://github.com/DjonnyX/ng-virtual-list/blob/19.x/projects/ng-virtual-list/src/lib/models/collection.model.ts) | Collection of list items.  The collection of elements must be immutable. |
+| items | [IVirtualGridCollection](https://github.com/DjonnyX/ng-virtual-list/blob/19.x/projects/ng-virtual-list/src/lib/models/collection.model.ts) | Collection of list items.  The collection of elements must be immutable. |
 | itemSize | number? = 24 | If direction = 'vertical', then the height of a typical element. If direction = 'horizontal', then the width of a typical element. Ignored if the dynamicSize property is true. |
 | itemsOffset | number? = 2 | Number of elements outside the scope of visibility. Default value is 2. |
 | itemRenderer | TemplateRef | Rendering element template. |
-| stickyMap | [IVirtualListStickyMap?](https://github.com/DjonnyX/ng-virtual-list/blob/19.x/projects/ng-virtual-list/src/lib/models/sticky-map.model.ts) | Dictionary zIndex by id of the list element. If the value is not set or equal to 0, then a simple element is displayed, if the value is greater than 0, then the sticky position mode is enabled for the element. 1 - position start, 2 - position end. |
+| stickyMap | [IVirtualGridStickyMap?](https://github.com/DjonnyX/ng-virtual-list/blob/19.x/projects/ng-virtual-list/src/lib/models/sticky-map.model.ts) | Dictionary zIndex by id of the list element. If the value is not set or equal to 0, then a simple element is displayed, if the value is greater than 0, then the sticky position mode is enabled for the element. 1 - position start, 2 - position end. |
 | snap | boolean? = false | Determines whether elements will snap. Default value is "false". |
 | dynamicSize | boolean? = false | If true then the items in the list can have different sizes and the itemSize property is ignored. If false then the items in the list have a fixed size specified by the itemSize property. The default value is false. |
 | enabledBufferOptimization | boolean? = true | Experimental! Enables buffer optimization. Can only be used if items in the collection are not added or updated. |

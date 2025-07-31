@@ -1,11 +1,11 @@
 import { Component, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgVirtualGridComponent } from '../../projects/ng-virtual-grid/src/public-api';
-import { IVirtualListStickyMap, Id } from 'ng-virtual-list';
 import { LOGO } from './const';
-import { IVirtualGridCollection, IVirtualGridColumnCollection, VirtualGridRow } from '../../projects/ng-virtual-grid/src/lib/models';
+import { IVirtualGridCollection, IVirtualGridColumnCollection, IVirtualGridStickyMap, VirtualGridRow } from '../../projects/ng-virtual-grid/src/lib/models';
+import { Id } from '../../projects/ng-virtual-grid/src/lib/types';
 
-const MAX_ITEMS = 10, COLUMNS = 20;
+const ROWS = 100, COLUMNS = 100;
 
 interface IRowData {
   type: 'group-header' | 'item';
@@ -45,10 +45,10 @@ const generateText = () => {
 };
 
 const GROUP_DYNAMIC_ITEMS: IVirtualGridCollection<IRowData, IColumnData> = [],
-  GROUP_DYNAMIC_ITEMS_STICKY_MAP: IVirtualListStickyMap = {};
+  GROUP_DYNAMIC_ITEMS_STICKY_MAP: IVirtualGridStickyMap = {};
 
 let index = 0;
-for (let i = 0, l = MAX_ITEMS; i < l; i++) {
+for (let i = 0, l = ROWS; i < l; i++) {
   const columns: IVirtualGridColumnCollection<IColumnData> = [];
   const rowId = index;
   index++;

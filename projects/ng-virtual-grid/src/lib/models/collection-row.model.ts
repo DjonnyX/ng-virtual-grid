@@ -1,4 +1,4 @@
-import { Id } from "ng-virtual-list";
+import { Id } from "../types";
 import { IVirtualGridColumnCollection } from "./collection-columns.model";
 
 /**

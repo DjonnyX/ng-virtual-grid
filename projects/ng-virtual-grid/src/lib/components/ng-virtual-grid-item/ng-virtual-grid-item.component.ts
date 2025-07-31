@@ -1,11 +1,17 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { BaseVirtualListItemComponent, Component$1, NgVirtualListItemComponent } from 'ng-virtual-list';
-import { POSITION_ABSOLUTE, POSITION_STICKY, PX, SIZE_100_PERSENT, SIZE_AUTO, TRANSLATE_3D, ZEROS_TRANSLATE_3D } from '../../const';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, TemplateRef, viewChild } from '@angular/core';
+import { IRenderVirtualListItem } from '../../models/render-item.model';
+import { ISize } from '../../types';
+import {
+  DEFAULT_ZINDEX, DISPLAY_BLOCK, DISPLAY_NONE, HIDDEN_ZINDEX, POSITION_ABSOLUTE, POSITION_STICKY, PX, SIZE_100_PERSENT,
+  SIZE_AUTO, TRANSLATE_3D, VISIBILITY_HIDDEN, VISIBILITY_VISIBLE, ZEROS_TRANSLATE_3D,
+} from '../../const';
+import { BaseVirtualListItemComponent } from '../../models/base-virtual-list-item-component';
+import { Component$1 } from '../../models/component.model';
 
 /**
- * Virtual list grid item component
- * @link https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/components/ng-virtual-grid-item/ng-virtual-grid-item.component.ts
+ * Virtual list item component
+ * @link https://github.com/DjonnyX/ng-virtual-list/blob/20.x/projects/ng-virtual-list/src/lib/components/ng-virtual-list-item.component.ts
  * @author Evgenii Grebennikov
  * @email djonnyx@gmail.com
  */
@@ -19,12 +25,69 @@ import { POSITION_ABSOLUTE, POSITION_STICKY, PX, SIZE_100_PERSENT, SIZE_AUTO, TR
   },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class NgVirtualGridItemComponent extends NgVirtualListItemComponent implements BaseVirtualListItemComponent {
-  constructor() {
-    super();
+export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
+  private static __nextId: number = 0;
+
+  private _id!: number;
+  get id() {
+    return this._id;
   }
 
-  protected override  update() {
+  regular: boolean = false;
+
+  data = signal<IRenderVirtualListItem | undefined>(undefined);
+  private _data: IRenderVirtualListItem | undefined = undefined;
+  set item(v: IRenderVirtualListItem | undefined) {
+    if (this._data === v) {
+      return;
+    }
+
+    const data = this._data = v;
+
+    this.update();
+
+    this.data.set(v);
+  }
+
+  private _regularLength: string = SIZE_100_PERSENT;
+  set regularLength(v: string) {
+    if (this._regularLength === v) {
+      return;
+    }
+
+    this._regularLength = v;
+
+    this.update();
+  }
+
+  get item() {
+    return this._data;
+  }
+
+  get itemId() {
+    return this._data?.id;
+  }
+
+  itemRenderer = signal<TemplateRef<any> | undefined>(undefined);
+
+  set renderer(v: TemplateRef<any> | undefined) {
+    this.itemRenderer.set(v);
+  }
+
+  private _elementRef: ElementRef<HTMLElement> = inject(ElementRef<HTMLElement>);
+  get element() {
+    return this._elementRef.nativeElement;
+  }
+
+  private _listItemRef = viewChild<ElementRef<HTMLLIElement>>('listItem')
+
+  constructor() {
+    super();
+    this._id = NgVirtualGridItemComponent.__nextId = NgVirtualGridItemComponent.__nextId === Number.MAX_SAFE_INTEGER
+      ? 0 : NgVirtualGridItemComponent.__nextId + 1;
+  }
+
+  private update() {
     const data = this._data, regular = this.regular, length = this._regularLength;
     if (data) {
       const styles = this._elementRef.nativeElement.style;
@@ -51,6 +114,50 @@ export class NgVirtualGridItemComponent extends NgVirtualListItemComponent imple
         liElement.style.height = `${data.measures.height}${PX}`;
       }
     }
+  }
+
+  getBounds(): ISize {
+    const el: HTMLElement = this._elementRef.nativeElement,
+      { width, height } = el.getBoundingClientRect();
+    return { width, height };
+  }
+
+  show() {
+    const styles = this._elementRef.nativeElement.style;
+    if (this.regular) {
+      if (styles.display === DISPLAY_BLOCK) {
+        return;
+      }
+
+      styles.display = DISPLAY_BLOCK;
+    } else {
+      if (styles.visibility === VISIBILITY_VISIBLE) {
+        return;
+      }
+
+      styles.visibility = VISIBILITY_VISIBLE;
+    }
+    styles.zIndex = this._data?.config?.zIndex ?? DEFAULT_ZINDEX;
+  }
+
+  hide() {
+    const styles = this._elementRef.nativeElement.style;
+    if (this.regular) {
+      if (styles.display === DISPLAY_NONE) {
+        return;
+      }
+
+      styles.display = DISPLAY_NONE;
+    } else {
+      if (styles.visibility === VISIBILITY_HIDDEN) {
+        return;
+      }
+
+      styles.visibility = VISIBILITY_HIDDEN;
+    }
+    styles.position = POSITION_ABSOLUTE;
+    styles.transform = ZEROS_TRANSLATE_3D;
+    styles.zIndex = HIDDEN_ZINDEX;
   }
 }
 
