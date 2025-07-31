@@ -6,8 +6,13 @@
     overflow: hidden;
 }
 
-:host(.vertical) .ngvg__scroller {
-    overflow: hidden auto;
+:host(.horizontal) {
+    /* default */
+    height: 400px;
+}
+
+:host(.horizontal) .ngvg__grid {
+    display: inline-flex;
 }
 
 :host(.vertical) {

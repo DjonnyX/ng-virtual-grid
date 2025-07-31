@@ -167,6 +167,7 @@ input {
 }
 
 .grid {
+    width: 100%;
     border-radius: 3px;
     box-shadow: 1px 2px 8px 4px rgba(0, 0, 0, 0.075);
     border: 1px solid #383844;
@@ -183,7 +184,8 @@ input {
             height: 16px;
         }
 
-        &::-webkit-scrollbar-track {
+        &::-webkit-scrollbar-track,
+        &::-webkit-scrollbar-corner {
             background-color: #1a1a1e;
         }
 
@@ -201,18 +203,25 @@ input {
         }
     }
 
-    &__container {
+    &__item-container {
         height: 100%;
         width: 100%;
         padding: 6px 12px;
-        background-color: #1a1a1e;
+        background-color: #424247;
         border-bottom: 1px solid #27272e;
+        border-right: 1px solid #27272e;
         box-sizing: border-box;
         display: flex;
         align-items: center;
+        padding: 8px;
 
-        &>* {
+        &>span {
+            width: auto;
+            display: flex;
+            word-wrap: break-word;
+            word-break: break-all;
             height: auto;
+            overflow: hidden;
         }
     }
 

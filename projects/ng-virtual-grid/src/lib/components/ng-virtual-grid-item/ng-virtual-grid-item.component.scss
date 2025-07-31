@@ -5,7 +5,6 @@
     top: 0;
     box-sizing: border-box;
     overflow: hidden;
-    will-change: scroll-position;
 }
 
 .ngvg-item__container {
@@ -14,5 +13,5 @@
     overflow: hidden;
     background-color: #ffffff;
     width: inherit;
-    height: inherit;
+    height: 100%;
 }

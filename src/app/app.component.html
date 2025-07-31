@@ -4,22 +4,22 @@
     <p class="l">Maximum performance for extremely large grids</p>
     <p class="l">Animation of elements is supported.</p>
     <p class="l m">&#64;author: djonnyx&#64;gmail.com</p>
-    <img class="logo" [src]="logo"/>
+    <img class="logo" [src]="logo" />
     <div class="version"><span>v 19.0.0-beta-1</span></div>
   </div>
 
   <div class="vl-section">
     <div class="vl-section__container">
       <h2>Virtual grid</h2>
-      <ng-virtual-grid class="grid" [items]="items" [itemRenderer]="itemRenderer" [itemsOffset]="50"
-        [itemSize]="40"></ng-virtual-grid>
+      <ng-virtual-grid class="grid" [items]="groupDynamicItems" [itemRenderer]="itemRenderer" [bufferSize]="1" [maxBufferSize]="1"
+        [itemSize]="200"></ng-virtual-grid>
     </div>
   </div>
 
   <ng-template #itemRenderer let-data="data">
     @if (data) {
-    <div class="list__container">
-      <span>{{data.name}}</span>
+    <div class="grid__item-container">
+      <span>{{data.value}}</span>
     </div>
     }
   </ng-template>

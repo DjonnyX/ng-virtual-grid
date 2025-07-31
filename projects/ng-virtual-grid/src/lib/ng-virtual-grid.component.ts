@@ -1,11 +1,16 @@
 import {
-  ChangeDetectionStrategy, Component, input, InputSignal, ViewEncapsulation,
+  ChangeDetectionStrategy, Component, input, ViewEncapsulation,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
-  BaseVirtualListItemComponent, Component$1, Direction, Directions, NgVirtualListComponent, SnappingMethod, SnappingMethods,
+  BaseVirtualListItemComponent,
+  Component$1,
+  Direction, Directions, NgVirtualListComponent, SnappingMethod, SnappingMethods,
 } from 'ng-virtual-list';
-import { TNgVirtualGridItemComponent } from './components/ng-virtual-grid-item.component';
+import { GridTrackBox } from './utils/grid-track-box';
+import { DEFAULT_COLUMN_SIZE, DEFAULT_MIN_COLUMN_SIZE } from './const';
+import { TNgVirtualGridItemComponent } from './components/ng-virtual-grid-item/ng-virtual-grid-item.component';
+import { tap } from 'rxjs';
 
 /**
  * Virtual grid component.
@@ -38,22 +43,59 @@ export class NgVirtualGridComponent extends NgVirtualListComponent {
    */
   override snappingMethod = input<SnappingMethod>('normal', { ...this._snappingMethodOptions });
 
+  private _columnSizeOptions = {
+    transform: (v: number | undefined) => {
+      if (v === undefined) {
+        return DEFAULT_COLUMN_SIZE;
+      }
+      if (v < DEFAULT_MIN_COLUMN_SIZE) {
+        return DEFAULT_MIN_COLUMN_SIZE;
+      }
+      return v;
+    }
+  } as any;
+  columnSize = input<number>(DEFAULT_COLUMN_SIZE, { ...this._columnSizeOptions });
+
   private _directionOptions = {
     transform: (v: Direction | undefined) => {
-      if (v !== 'vertical' || v !== Directions.VERTICAL) {
+      if (v !== 'horizontal' || v !== Directions.HORIZONTAL) {
         throw Error('NgVirtualGrid only supports the "vertical" direction value');
       }
-      return 'normal';
+      return v;
     }
   } as any;
   /** @internal */
   /**
-   * Snapping method. Only supports the 'vertical' value.
+   * Snapping method. Only supports the 'horizontal' value.
    */
-  override direction = input<Direction>('vertical', { ...this._directionOptions });
+  override direction = input<Direction>('horizontal', { ...this._directionOptions });
 
+  /**
+   * Base class of the element component
+   */
   protected override _itemComponentClass: Component$1<BaseVirtualListItemComponent> = TNgVirtualGridItemComponent;
+
+  /**
+   * Base class trackBox
+   */
+  protected override _trackBoxClass: Component$1<GridTrackBox> = GridTrackBox;
+
+  /**
+   * Dictionary of element sizes by their id
+   */
+  protected override _trackBox: GridTrackBox = new this._trackBoxClass(this.trackBy());
+
   constructor() {
     super();
+
+    this.$initialized.pipe(
+      tap(() => {
+        this._trackBox.displayComponents = this._displayComponents;
+      }),
+    ).subscribe();
+  }
+
+  protected override getIsVertical(d?: Direction) {
+    return false;
   }
 }
