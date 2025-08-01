@@ -393,6 +393,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                 scrollSize: opt.scrollSizeX,
                 previousTotalSize: this._previousTotalSize,
                 crudDetected: this._crudDetected,
+                itemSize: opt.rowSize,
                 deletedItemsMap,
                 isVertical: false,
                 bufferSize: this._bufferSizeX,
