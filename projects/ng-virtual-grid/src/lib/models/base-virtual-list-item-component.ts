@@ -11,8 +11,6 @@ import { IRenderVirtualListItem } from './render-item.model';
 export abstract class BaseVirtualListItemComponent {
     abstract get id(): number;
     abstract data: WritableSignal<IRenderVirtualListItem | undefined>;
-    abstract regular: boolean;
-    abstract set regularLength(v: string)
     abstract set item(v: IRenderVirtualListItem | null | undefined);
     abstract get item(): IRenderVirtualListItem | null | undefined;
     abstract get itemId(): Id | undefined;

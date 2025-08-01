@@ -1,26 +1,24 @@
-import { Directions, SnappingMethods } from "../enums";
+import { SnappingMethods } from "../enums";
 
 export const DEFAULT_COLUMN_SIZE = 200;
 
 export const DEFAULT_MIN_COLUMN_SIZE = 10;
 
-export const DEFAULT_ITEM_SIZE = 240;
+export const DEFAULT_ITEM_SIZE = 80;
+
+export const DEFAULT_ROW_SIZE = 24;
 
 export const DEFAULT_BUFFER_SIZE = 2;
 
-export const DEFAULT_MAX_BUFFER_SIZE = 100;
+export const DEFAULT_MAX_BUFFER_SIZE = 2;
 
-export const DEFAULT_LIST_SIZE = 400;
+export const DEFAULT_GRID_SIZE = 400;
 
 export const DEFAULT_SNAP = false;
 
 export const DEFAULT_ENABLED_BUFFER_OPTIMIZATION = false;
 
-export const DEFAULT_DYNAMIC_SIZE = false;
-
 export const TRACK_BY_PROPERTY_NAME = 'id';
-
-export const DEFAULT_DIRECTION = Directions.HORIZONTAL;
 
 export const DISPLAY_OBJECTS_LENGTH_MESUREMENT_ERROR = 1;
 
@@ -81,7 +79,3 @@ export const PX = 'px';
 export const SCROLL = 'scroll';
 
 export const SCROLL_END = 'scrollend';
-
-export const CLASS_LIST_VERTICAL = 'vertical';
-
-export const CLASS_LIST_HORIZONTAL = 'horizontal';

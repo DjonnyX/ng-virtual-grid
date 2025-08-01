@@ -5,21 +5,22 @@
     <p class="l">Animation of elements is supported.</p>
     <p class="l m">&#64;author: djonnyx&#64;gmail.com</p>
     <img class="logo" [src]="logo" />
-    <div class="version"><span>v 19.0.0-beta-2</span></div>
+    <div class="version"><span>v 19.0.0-beta-3</span></div>
   </div>
 
   <div class="vl-section">
     <div class="vl-section__container">
       <h2>Virtual grid</h2>
-      <ng-virtual-grid class="grid" [items]="groupDynamicItems" [itemRenderer]="itemRenderer" [itemSize]="300"></ng-virtual-grid>
+      <ng-virtual-grid class="grid" [items]="groupDynamicItems" [itemRenderer]="itemRenderer" [itemSize]="300"
+        [rowSize]="40" [bufferSize]="10" [maxBufferSize]="100"></ng-virtual-grid>
     </div>
   </div>
 
   <ng-template #itemRenderer let-data="data">
     @if (data) {
-    <div class="grid__item-container">
-      <span>{{data.value}}</span>
-    </div>
+      <div class="grid__item-container">
+        <span>{{data.value}}</span>
+      </div>
     }
   </ng-template>
 </div>

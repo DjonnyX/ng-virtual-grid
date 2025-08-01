@@ -27,10 +27,6 @@ export interface IRenderVirtualListItemConfig {
      */
     isVertical: boolean;
     /**
-     * Specifies that the element adapts to the size of its content.
-     */
-    dynamic: boolean;
-    /**
      * Returns true if the snapping method is advanced
      */
     isSnappingMethodAdvanced: boolean;

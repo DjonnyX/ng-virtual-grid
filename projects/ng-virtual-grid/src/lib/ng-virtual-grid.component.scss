@@ -4,19 +4,6 @@
     /* default */
     width: 400px;
     overflow: hidden;
-}
-
-:host(.horizontal) {
-    /* default */
-    height: 400px;
-}
-
-:host(.horizontal) .ngvg__grid {
-    display: inline-flex;
-}
-
-:host(.vertical) {
-    /* default */
     height: 320px;
 }
 

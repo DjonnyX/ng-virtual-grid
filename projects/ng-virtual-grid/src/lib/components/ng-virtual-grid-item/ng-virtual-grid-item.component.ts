@@ -33,8 +33,6 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
     return this._id;
   }
 
-  regular: boolean = false;
-
   data = signal<IRenderVirtualListItem | undefined>(undefined);
   private _data: IRenderVirtualListItem | undefined = undefined;
   set item(v: IRenderVirtualListItem | undefined) {
@@ -42,22 +40,11 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
       return;
     }
 
-    const data = this._data = v;
+    this._data = v;
 
     this.update();
 
     this.data.set(v);
-  }
-
-  private _regularLength: string = SIZE_100_PERSENT;
-  set regularLength(v: string) {
-    if (this._regularLength === v) {
-      return;
-    }
-
-    this._regularLength = v;
-
-    this.update();
   }
 
   get item() {
@@ -88,7 +75,7 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
   }
 
   private update() {
-    const data = this._data, regular = this.regular, length = this._regularLength;
+    const data = this._data;
     if (data) {
       const styles = this._elementRef.nativeElement.style;
       styles.zIndex = data.config.zIndex;
@@ -99,14 +86,10 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
         }
       } else {
         styles.position = POSITION_ABSOLUTE;
-        if (regular) {
-          styles.transform = `${TRANSLATE_3D}(${data.config.isVertical ? 0 : data.measures.delta}${PX}, ${data.config.isVertical ? data.measures.delta : 0}${PX} , 0)`;
-        } else {
-          styles.transform = `${TRANSLATE_3D}(${data.measures.x}${PX}, ${data.measures.y}${PX} , 0)`;
-        }
+        styles.transform = `${TRANSLATE_3D}(${data.measures.x}${PX}, ${data.measures.y}${PX} , 0)`;
       }
-      styles.height = data.config.isVertical ? data.config.dynamic ? SIZE_AUTO : `${data.measures.height}${PX}` : regular ? length : SIZE_AUTO;
-      styles.width = data.config.isVertical ? regular ? length : SIZE_AUTO : data.config.dynamic ? SIZE_AUTO : `${data.measures.width}${PX}`;
+      styles.height = SIZE_AUTO;
+      styles.width = SIZE_AUTO;
 
       const listItem = this._listItemRef();
       if (listItem) {
@@ -124,37 +107,22 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
 
   show() {
     const styles = this._elementRef.nativeElement.style;
-    if (this.regular) {
-      if (styles.display === DISPLAY_BLOCK) {
-        return;
-      }
 
-      styles.display = DISPLAY_BLOCK;
-    } else {
-      if (styles.visibility === VISIBILITY_VISIBLE) {
-        return;
-      }
-
-      styles.visibility = VISIBILITY_VISIBLE;
+    if (styles.visibility === VISIBILITY_VISIBLE) {
+      return;
     }
+
+    styles.visibility = VISIBILITY_VISIBLE;
     styles.zIndex = this._data?.config?.zIndex ?? DEFAULT_ZINDEX;
   }
 
   hide() {
     const styles = this._elementRef.nativeElement.style;
-    if (this.regular) {
-      if (styles.display === DISPLAY_NONE) {
-        return;
-      }
-
-      styles.display = DISPLAY_NONE;
-    } else {
-      if (styles.visibility === VISIBILITY_HIDDEN) {
-        return;
-      }
-
-      styles.visibility = VISIBILITY_HIDDEN;
+    if (styles.visibility === VISIBILITY_HIDDEN) {
+      return;
     }
+
+    styles.visibility = VISIBILITY_HIDDEN;
     styles.position = POSITION_ABSOLUTE;
     styles.transform = ZEROS_TRANSLATE_3D;
     styles.zIndex = HIDDEN_ZINDEX;

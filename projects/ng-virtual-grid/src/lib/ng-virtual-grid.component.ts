@@ -8,10 +8,11 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { combineLatest, distinctUntilChanged, filter, map, Observable, of, switchMap, tap } from 'rxjs';
 import { NgVirtualGridItemComponent } from './components/ng-virtual-grid-item/ng-virtual-grid-item.component';
 import {
-  BEHAVIOR_AUTO, BEHAVIOR_INSTANT, CLASS_LIST_HORIZONTAL, CLASS_LIST_VERTICAL, DEFAULT_DIRECTION, DEFAULT_DYNAMIC_SIZE,
-  DEFAULT_ENABLED_BUFFER_OPTIMIZATION, DEFAULT_ITEM_SIZE, DEFAULT_BUFFER_SIZE, DEFAULT_LIST_SIZE, DEFAULT_SNAP, DEFAULT_SNAPPING_METHOD,
+  BEHAVIOR_AUTO, BEHAVIOR_INSTANT,
+  DEFAULT_ENABLED_BUFFER_OPTIMIZATION, DEFAULT_ITEM_SIZE, DEFAULT_BUFFER_SIZE, DEFAULT_GRID_SIZE, DEFAULT_SNAP, DEFAULT_SNAPPING_METHOD,
   HEIGHT_PROP_NAME, LEFT_PROP_NAME, MAX_SCROLL_TO_ITERATIONS, PX, SCROLL, SCROLL_END, TOP_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME,
   DEFAULT_MAX_BUFFER_SIZE,
+  DEFAULT_ROW_SIZE,
 } from './const';
 import { IScrollEvent, IVirtualGridCollection, IVirtualGridStickyMap } from './models';
 import { Id, ISize } from './types';
@@ -23,7 +24,6 @@ import { isSnappingMethodAdvenced } from './utils/snapping-method';
 import { FIREFOX_SCROLLBAR_OVERLAP_SIZE, IS_FIREFOX } from './utils/browser';
 import { BaseVirtualListItemComponent } from './models/base-virtual-list-item-component';
 import { Component$1 } from './models/component.model';
-import { isDirection } from './utils/isDirection';
 
 /**
  * Virtual list component.
@@ -121,30 +121,22 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
    * If direction = 'vertical', then the height of a typical element. If direction = 'horizontal', then the width of a typical element.
    * Ignored if the dynamicSize property is true.
    */
-  itemSize = input<number>(DEFAULT_ITEM_SIZE, { ...this._itemSizeOptions });
+  itemSize = input<number>(DEFAULT_ROW_SIZE, { ...this._itemSizeOptions });
 
-  /**
-   * If true then the items in the list can have different sizes and the itemSize property is ignored.
-   * If false then the items in the list have a fixed size specified by the itemSize property. The default value is false.
-   */
-  dynamicSize = input(DEFAULT_DYNAMIC_SIZE);
-
-  /**
-   * Determines the direction in which elements are placed. Default value is "vertical".
-   */
-  direction = input<Direction>(DEFAULT_DIRECTION);
-
-  private _itemOffsetTransform = {
+  private _rowSizeOptions = {
     transform: (v: number | undefined) => {
-      throw Error('"itemOffset" parameter is deprecated. Use "bufferSize" and "maxBufferSize".');
-    }
+      if (v === undefined) {
+        return DEFAULT_ROW_SIZE;
+      }
+      const val = Number(v);
+      return Number.isNaN(val) || val <= 0 ? DEFAULT_ROW_SIZE : val;
+    },
   } as any;
 
   /**
-   * Number of elements outside the scope of visibility. Default value is 2.
-   * @deprecated "itemOffset" parameter is deprecated. Use "bufferSize" and "maxBufferSize".
+   * Typical row size. Default value is 24.
    */
-  itemsOffset = input<number>(DEFAULT_BUFFER_SIZE, { ...this._itemOffsetTransform });
+  rowSize = input<number>(DEFAULT_ROW_SIZE, { ...this._rowSizeOptions });
 
   /**
    * Number of elements outside the scope of visibility. Default value is 2.
@@ -168,8 +160,6 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
    */
   maxBufferSize = input<number>(DEFAULT_MAX_BUFFER_SIZE, { ...this._maxBufferSizeTransform });
 
-  private _isVertical = this.getIsVertical();
-
   private _displayComponents: Array<ComponentRef<BaseVirtualListItemComponent>> = [];
 
   private _snapedDisplayComponent: ComponentRef<BaseVirtualListItemComponent> | undefined;
@@ -191,7 +181,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
     if (bounds) {
       this._bounds.set({ width: bounds.width, height: bounds.height });
     } else {
-      this._bounds.set({ width: DEFAULT_LIST_SIZE, height: DEFAULT_LIST_SIZE });
+      this._bounds.set({ width: DEFAULT_GRID_SIZE, height: DEFAULT_GRID_SIZE });
     }
   }
 
@@ -264,6 +254,9 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
     ),
       $scrollSizeX = toObservable(this._scrollSizeX),
       $scrollSizeY = toObservable(this._scrollSizeY),
+      $rowSize = toObservable(this.rowSize).pipe(
+        map(v => v <= 0 ? DEFAULT_ROW_SIZE : v),
+      ),
       $itemSize = toObservable(this.itemSize).pipe(
         map(v => v <= 0 ? DEFAULT_ITEM_SIZE : v),
       ),
@@ -277,38 +270,18 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
         map(v => !v ? {} : v),
       ),
       $snap = toObservable(this.snap),
-      $isVertical = toObservable(this.direction).pipe(
-        map(v => this.getIsVertical(v || DEFAULT_DIRECTION)),
-      ),
-      $dynamicSize = toObservable(this.dynamicSize),
       $enabledBufferOptimization = toObservable(this.enabledBufferOptimization),
       $cacheVersion = toObservable(this._cacheVersion);
 
-    $isVertical.pipe(
-      takeUntilDestroyed(),
-      tap(v => {
-        this._isVertical = v;
-        const el: HTMLElement = this._elementRef.nativeElement;
-        toggleClassName(el, v ? CLASS_LIST_VERTICAL : CLASS_LIST_HORIZONTAL, v ? CLASS_LIST_HORIZONTAL : CLASS_LIST_VERTICAL);
-      }),
-    ).subscribe();
-
-    $dynamicSize.pipe(
-      takeUntilDestroyed(),
-      tap(dynamicSize => {
-        this.listenCacheChangesIfNeed(dynamicSize);
-      })
-    ).subscribe();
-
-    combineLatest([this.$initialized, $bounds, $items, $stickyMap, $scrollSizeX, $scrollSizeY, $itemSize,
-      $bufferSize, $maxBufferSize, $snap, $isVertical, $dynamicSize, $enabledBufferOptimization, $cacheVersion,
+    combineLatest([this.$initialized, $bounds, $items, $stickyMap, $scrollSizeX, $scrollSizeY, $itemSize, $rowSize,
+      $bufferSize, $maxBufferSize, $snap, $enabledBufferOptimization, $cacheVersion,
     ]).pipe(
       takeUntilDestroyed(),
       distinctUntilChanged(),
       filter(([initialized]) => !!initialized),
       switchMap(([,
-        bounds, items, stickyMap, scrollSizeX, scrollSizeY, itemSize,
-        bufferSize, maxBufferSize, snap, isVertical, dynamicSize, enabledBufferOptimization, cacheVersion,
+        bounds, items, stickyMap, scrollSizeX, scrollSizeY, itemSize, rowSize,
+        bufferSize, maxBufferSize, snap, enabledBufferOptimization, cacheVersion,
       ]) => {
         const container = this._container();
 
@@ -316,7 +289,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
           let actualScrollSizeX = container.nativeElement.scrollLeft ?? 0, actualScrollSizeY = container.nativeElement.scrollTop ?? 0;
           const { width, height } = bounds,
             opts: IUpdateCollectionOptions<any, IVirtualGridCollection> = {
-              bounds: { width, height }, dynamicSize, isVertical, itemSize,
+              bounds: { width, height }, itemSize, rowSize,
               bufferSize, maxBufferSize, scrollSizeX: actualScrollSizeX, scrollSizeY: actualScrollSizeY, snap, enabledBufferOptimization,
             },
             { displayItems, totalSize, totalHeight } = this._trackBox.updateCollection(items, stickyMap, opts);
@@ -369,6 +342,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   }
 
   private onInit() {
+    this.listenCacheChangesIfNeed(true);
     this._initialized.set(true);
   }
 
@@ -382,11 +356,6 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
         this._trackBox.removeEventListener(TRACK_BOX_CHANGE_EVENT_NAME, this._onTrackBoxChangeHandler);
       }
     }
-  }
-
-  private getIsVertical(d?: Direction) {
-    const dir = d || this.direction();
-    return isDirection(dir, Directions.VERTICAL);
   }
 
   private createDisplayComponentsIfNeed(displayItems: IRenderVirtualListCollection | null) {
@@ -477,7 +446,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
     //       container.nativeElement.removeEventListener(SCROLL, this._onScrollHandler);
     //     }
 
-    //     const { width, height } = this._bounds() || { width: DEFAULT_LIST_SIZE, height: DEFAULT_LIST_SIZE },
+    //     const { width, height } = this._bounds() || { width: DEFAULT_GRID_SIZE, height: DEFAULT_GRID_SIZE },
     //       stickyMap = this.stickyMap(), items = this.items(), isVertical = this._isVertical, deltaX = this._trackBox.deltaX,
     //       deltaY = this._trackBox.deltaY,
     //       opts: IGetItemPositionOptions<any, IVirtualGridCollection> = {
