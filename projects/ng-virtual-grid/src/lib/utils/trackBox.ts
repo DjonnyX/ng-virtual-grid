@@ -259,7 +259,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                 this._map.set(item.id, { width: itemSize, height: rowSize, method: ItemDisplayMethods.NOT_CHANGED });
                 collection.push(item, ...subCollection);
             }
-            this.updateCache(this._previousCollection, collection, itemSize);
+            this.updateCache(this._previousCollection, collection, rowSize, itemSize);
             this._previousCollection = collection;
         } else {
             this._previousCollection = null;
@@ -270,7 +270,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
      * Update the cache of items from the list
      */
     protected updateCache<I extends { id: Id; }, C extends Array<I>>(previousCollection: C | null | undefined, currentCollection: C | null | undefined,
-        itemSize: number): void {
+        rowSize: number, itemSize: number): void {
         let crudDetected = false;
 
         if (!currentCollection || currentCollection.length === 0) {
@@ -292,7 +292,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                 for (let i = 0, l = currentCollection.length; i < l; i++) {
                     crudDetected = true;
                     const item = currentCollection[i], id = item.id;
-                    this._map.set(id, { width: itemSize, height: itemSize, method: ItemDisplayMethods.CREATE });
+                    this._map.set(id, { width: itemSize, height: rowSize, method: ItemDisplayMethods.CREATE });
                 }
             }
             return;
@@ -312,13 +312,13 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                     if (item === collectionDict[id]) {
                         // not changed
                         notChangedMap[item.id] = item;
-                        this._map.set(id, { ...(this._map.get(id) || { width: itemSize, height: itemSize }), method: ItemDisplayMethods.NOT_CHANGED });
+                        this._map.set(id, { ...(this._map.get(id) || { width: itemSize, height: rowSize }), method: ItemDisplayMethods.NOT_CHANGED });
                         continue;
                     } else {
                         // updated
                         crudDetected = true;
                         updatedMap[item.id] = item;
-                        this._map.set(id, { ...(this._map.get(id) || { width: itemSize, height: itemSize }), method: ItemDisplayMethods.UPDATE });
+                        this._map.set(id, { ...(this._map.get(id) || { width: itemSize, height: rowSize }), method: ItemDisplayMethods.UPDATE });
                         continue;
                     }
                 }
@@ -336,7 +336,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             if (item && !deletedMap.hasOwnProperty(id) && !updatedMap.hasOwnProperty(id) && !notChangedMap.hasOwnProperty(id)) {
                 // added
                 crudDetected = true;
-                this._map.set(id, { width: itemSize, height: itemSize, method: ItemDisplayMethods.CREATE });
+                this._map.set(id, { width: itemSize, height: rowSize, method: ItemDisplayMethods.CREATE });
             }
         }
         this._crudDetected = crudDetected;

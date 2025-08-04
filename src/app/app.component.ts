@@ -5,7 +5,7 @@ import { LOGO } from './const';
 import { IVirtualGridCollection, IVirtualGridColumnCollection, IVirtualGridStickyMap, VirtualGridRow } from '../../projects/ng-virtual-grid/src/lib/models';
 import { Id } from '../../projects/ng-virtual-grid/src/lib/types';
 
-const ROWS = 100, COLUMNS = 2;
+const ROWS = 1000, COLUMNS = 200;
 
 interface IRowData { }
 
