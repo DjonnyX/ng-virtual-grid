@@ -27,11 +27,7 @@ const generateWord = () => {
   return `${result.join('')}`;
 };
 
-let num = 1;
 const generateText = () => {
-  // const n = num;
-  // num ++;
-  // return String(n);
   const length = 1 + Math.floor(Math.random() * 8), result = [];
   while (result.length < length) {
     result.push(generateWord());
@@ -45,8 +41,18 @@ const generateText = () => {
   return `${result.join(' ')}.`;
 };
 
+let num = 1;
+const generateNumber = () => {
+  const n = num;
+  num ++;
+  return String(n);
+}
+
 const GROUP_DYNAMIC_ITEMS: IVirtualGridCollection<IRowData, IColumnData> = [],
   GROUP_DYNAMIC_ITEMS_STICKY_MAP: IVirtualGridStickyMap = {};
+
+const GROUP_ITEMS: IVirtualGridCollection<IRowData, IColumnData> = [],
+  GROUP_ITEMS_STICKY_MAP: IVirtualGridStickyMap = {};
 
 let index = 0;
 for (let i = 0, l = ROWS; i < l; i++) {
@@ -63,6 +69,21 @@ for (let i = 0, l = ROWS; i < l; i++) {
   GROUP_DYNAMIC_ITEMS.push({ id: rowId, columns });
 }
 
+let index1 = 0;
+for (let i = 0, l = ROWS; i < l; i++) {
+  const columns: IVirtualGridColumnCollection<IColumnData> = [];
+  const rowId = index1;
+  index1++;
+  const type = i === 0 || Math.random() > .895 ? 'group-header' : 'item';
+  for (let j = 0, l1 = COLUMNS; j < l1; j++) {
+    index1++;
+    const id = index1;
+    GROUP_ITEMS_STICKY_MAP[id] = type === 'group-header' ? 1 : 0;
+    columns.push({ id: id, value: generateNumber() });
+  }
+  GROUP_ITEMS.push({ id: rowId, columns });
+}
+
 @Component({
   selector: 'app-root',
   imports: [FormsModule, NgVirtualGridComponent],
@@ -75,6 +96,9 @@ export class AppComponent {
   protected _listContainerRef = viewChild('virtualList', { read: NgVirtualGridComponent });
 
   protected _dynamicListContainerRef = viewChild('dynamicList', { read: NgVirtualGridComponent });
+
+  groupItems = GROUP_ITEMS;
+  groupItemsStickyMap = GROUP_ITEMS_STICKY_MAP;
 
   groupDynamicItems = GROUP_DYNAMIC_ITEMS;
   groupDynamicItemsStickyMap = GROUP_DYNAMIC_ITEMS_STICKY_MAP;
