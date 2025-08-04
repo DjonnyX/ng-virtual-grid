@@ -309,9 +309,9 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
 
           this.tracking();
 
-          const deltaX = this._trackBox.deltaX;
+          const deltaX = this._trackBox.deltaX, deltaY = this._trackBox.deltaY;
           actualScrollSizeX = actualScrollSizeX + deltaX;
-          actualScrollSizeY = actualScrollSizeY + deltaX;
+          actualScrollSizeY = actualScrollSizeY + deltaY;
 
           this._trackBox.clearDelta();
 

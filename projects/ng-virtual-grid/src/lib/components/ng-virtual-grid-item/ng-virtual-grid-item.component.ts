@@ -8,6 +8,7 @@ import {
 } from '../../const';
 import { BaseVirtualListItemComponent } from '../../models/base-virtual-list-item-component';
 import { Component$1 } from '../../models/component.model';
+import { ReasizeBoundsDirective, ResizeEvent } from '../../directives/reasize-bounds.directive';
 
 /**
  * Virtual list item component
@@ -17,7 +18,7 @@ import { Component$1 } from '../../models/component.model';
  */
 @Component({
   selector: 'ng-virtual-grid-item',
-  imports: [CommonModule],
+  imports: [CommonModule, ReasizeBoundsDirective],
   templateUrl: './ng-virtual-grid-item.component.html',
   styleUrl: './ng-virtual-grid-item.component.scss',
   host: {
@@ -59,6 +60,10 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
     return this._data!.rowId;
   }
 
+  get columnId() {
+    return this._data!.columnId;
+  }
+
   itemRenderer = signal<TemplateRef<any> | undefined>(undefined);
 
   set renderer(v: TemplateRef<any> | undefined) {
@@ -93,7 +98,7 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
         styles.transform = `${TRANSLATE_3D}(${data.measures.x}${PX}, ${data.measures.y}${PX} , 0)`;
       }
       styles.height = SIZE_AUTO;
-        styles.width = `${data.measures.width}${PX}`;
+      styles.width = `${data.measures.width}${PX}`;
 
       const listItem = this._listItemRef();
       if (listItem) {
@@ -104,9 +109,13 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
   }
 
   getBounds(): ISize {
-    const el: HTMLElement = this._elementRef.nativeElement,
-      { width, height } = el.getBoundingClientRect();
-    return { width, height };
+    const list = this._listItemRef();
+    if (list) {
+      const el: HTMLElement = list.nativeElement,
+        { width, height } = el.getBoundingClientRect();
+      return { width, height };
+    }
+    return { width: 0, height: 0 };
   }
 
   show() {
@@ -130,6 +139,10 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
     styles.position = POSITION_ABSOLUTE;
     styles.transform = ZEROS_TRANSLATE_3D;
     styles.zIndex = HIDDEN_ZINDEX;
+  }
+
+  protected onResizeHandler(event: ResizeEvent) {
+    // console.log(this.rowId, this.columnId, event.dx, event.dy);
   }
 }
 
