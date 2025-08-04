@@ -5,7 +5,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { combineLatest, distinctUntilChanged, filter, map, Observable, of, switchMap, tap } from 'rxjs';
+import { combineLatest, debounceTime, distinctUntilChanged, filter, map, Observable, of, switchMap, tap } from 'rxjs';
 import { NgVirtualGridItemComponent } from './components/ng-virtual-grid-item/ng-virtual-grid-item.component';
 import {
   BEHAVIOR_AUTO, BEHAVIOR_INSTANT,
@@ -69,7 +69,6 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
 
   private _itemsOptions = {
     transform: (v: IVirtualGridCollection | undefined) => {
-      this._trackBox.resetCollection(v, this.itemSize());
       return v;
     },
   } as any;
@@ -242,6 +241,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
 
     $trackBy.pipe(
       takeUntilDestroyed(),
+      debounceTime(50),
       tap(v => {
         this._trackBox.trackingPropertyName = v;
       }),
@@ -272,6 +272,14 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       $snap = toObservable(this.snap),
       $enabledBufferOptimization = toObservable(this.enabledBufferOptimization),
       $cacheVersion = toObservable(this._cacheVersion);
+
+    combineLatest([$items, $rowSize, $itemSize]).pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      tap(([items, rowSize, itemSize]) => {
+        this._trackBox.resetCollection(items, rowSize, itemSize);
+      }),
+    ).subscribe();
 
     combineLatest([this.$initialized, $bounds, $items, $stickyMap, $scrollSizeX, $scrollSizeY, $itemSize, $rowSize,
       $bufferSize, $maxBufferSize, $snap, $enabledBufferOptimization, $cacheVersion,

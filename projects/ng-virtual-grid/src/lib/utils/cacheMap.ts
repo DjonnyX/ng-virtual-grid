@@ -95,8 +95,6 @@ export class CacheMap<I = string | number, B = any, E = CacheMapEvents, L = Cach
         return this._scrollDirectionX;
     }
 
-
-
     protected _deltaDirectionY: ScrollDirection = 0;
     set deltaDirectionY(v: ScrollDirection) {
         this._deltaDirectionY = v;

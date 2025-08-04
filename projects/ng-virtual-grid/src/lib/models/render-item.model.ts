@@ -15,6 +15,10 @@ export interface IRenderVirtualListItem {
      */
     id: Id;
     /**
+     * Unique identifier of the row
+     */
+    rowId?: Id;
+    /**
      * Element metrics.
      */
     measures: IRect & {

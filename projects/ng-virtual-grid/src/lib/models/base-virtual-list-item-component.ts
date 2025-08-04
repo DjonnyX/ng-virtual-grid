@@ -10,6 +10,7 @@ import { IRenderVirtualListItem } from './render-item.model';
  */
 export abstract class BaseVirtualListItemComponent {
     abstract get id(): number;
+    abstract get rowId(): Id | undefined;
     abstract data: WritableSignal<IRenderVirtualListItem | undefined>;
     abstract set item(v: IRenderVirtualListItem | null | undefined);
     abstract get item(): IRenderVirtualListItem | null | undefined;

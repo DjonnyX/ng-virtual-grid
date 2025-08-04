@@ -1,3 +1,5 @@
+import { Id } from "../types";
+
 /**
  * Object with configuration parameters for IRenderVirtualListItem
  * @link https://github.com/DjonnyX/ng-virtual-list/blob/20.x/projects/ng-virtual-list/src/lib/models/render-item-config.model.ts

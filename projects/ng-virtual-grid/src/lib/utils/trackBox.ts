@@ -43,6 +43,7 @@ export interface IMetrics {
     typicalItemSize: number;
     isFromItemIdFound: boolean;
     rowSize: number;
+    rowId: Id;
     startY?: number;
 }
 
@@ -51,7 +52,7 @@ export interface IRecalculateMetricsOptions<I extends { id: Id }, C extends Arra
     collection: C;
     isVertical: boolean;
     itemSize: number;
-    rowSize: number;
+    rowSize: number; // del
     bufferSize: number;
     maxBufferSize: number;
     scrollSize: number;
@@ -61,6 +62,7 @@ export interface IRecalculateMetricsOptions<I extends { id: Id }, C extends Arra
     previousTotalSize: number;
     crudDetected: boolean;
     deletedItemsMap: { [index: number]: ISize; };
+    rowId?: Id;
     y?: number;
 }
 
@@ -240,14 +242,23 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
     /**
      * Scans the collection for deleted items and flushes the deleted item cache.
      */
-    resetCollection<I extends { id: Id; }, C extends Array<I>>(currentCollection: C | null | undefined, itemSize: number): void {
+    resetCollection<I extends { id: Id; columns: Array<I & { rowId?: Id; }>; }, C extends Array<I>>(currentCollection: C | null | undefined,
+        rowSize: number, itemSize: number): void {
         if (currentCollection !== undefined && currentCollection !== null && currentCollection === this._previousCollection) {
             console.warn('Attention! The collection must be immutable.');
             return;
         }
 
         if (currentCollection) {
-            const collection = currentCollection.flat();
+            const collection: Array<I> = [];
+            for (let i = 0, l = currentCollection.length; i < l; i++) {
+                const item = currentCollection[i], subCollection = item.columns.map(v => ({
+                    ...v,
+                    rowId: item.id,
+                }));
+                this._map.set(item.id, { width: itemSize, height: rowSize, method: ItemDisplayMethods.NOT_CHANGED });
+                collection.push(item, ...subCollection);
+            }
             this.updateCache(this._previousCollection, collection, itemSize);
             this._previousCollection = collection;
         } else {
@@ -357,7 +368,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
     /**
      * Updates the collection of display objects
      */
-    updateCollection<I extends { id: Id }, C extends Array<I>>(items: C, stickyMap: IVirtualGridStickyMap,
+    updateCollection<I extends { id: Id, rowId?: Id }, C extends Array<I>>(items: C, stickyMap: IVirtualGridStickyMap,
         options: IUpdateCollectionOptions<I, C>): IUpdateCollectionReturns {
         const opt = { stickyMap, ...options }, crudDetected = this._crudDetected, deletedItemsMap = this._deletedItemsMap;
 
@@ -370,42 +381,45 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
         let maxDelta = -1, columnsTotalSize = 0, displayItemCollection = Array<any>();
 
-        const metrics = this.recalculateMetrics({
+        const rowMetrics = this.recalculateMetrics({
             ...opt,
             collection: items,
             scrollSize: opt.scrollSizeY,
             previousTotalSize: this._previousTotalSize,
             crudDetected: this._crudDetected,
+            itemSize: opt.rowSize,
             deletedItemsMap,
             isVertical: true,
             bufferSize: this._bufferSizeY,
             y: 0,
         });
 
-        const rowDisplayItems = this.generateDisplayCollection(items, stickyMap, { ...metrics } as any);
+        // console.log('reupdate')
+
+        const rowDisplayItems = this.generateDisplayCollection(items, stickyMap, { ...rowMetrics } as any);
 
         for (let i = 0, l = rowDisplayItems.length; i < l; i++) {
             const item = rowDisplayItems[i], columnsCollection = (item.data as VirtualGridRow).columns;
             let deltaX = 0;
+            // console.log(item.id, this.get(item.id)?.height ?? rowMetrics.rowSize)
             const metrics = this.recalculateMetrics({
                 ...opt,
                 collection: columnsCollection,
                 scrollSize: opt.scrollSizeX,
                 previousTotalSize: this._previousTotalSize,
                 crudDetected: this._crudDetected,
-                itemSize: opt.rowSize,
                 deletedItemsMap,
                 isVertical: false,
                 bufferSize: this._bufferSizeX,
+                rowSize: this.get(item.id)?.height ?? rowMetrics.rowSize,
                 y: item.measures.y,
             });
 
-            deltaX = currentDelta + metrics.delta;
-            maxDelta = Math.max(Math.abs(maxDelta), Math.abs(deltaX)) * Math.sign(deltaX);
-
-            columnsTotalSize = Math.max(metrics.totalSize, columnsTotalSize);
-
             if (i === 0) {
+                deltaX = currentDelta + metrics.delta;
+                maxDelta = Math.max(Math.abs(maxDelta), Math.abs(deltaX)) * Math.sign(deltaX);
+                columnsTotalSize = metrics.totalSize;
+
                 const { scrollSize, bufferSize } = this.updateAdaptiveBufferParams(metrics, l, deltaX, this._previousScrollSizeX, '_bufferSizeX', '_bufferSizeSequenceX');
                 this._previousScrollSizeX = scrollSize;
                 this._bufferSizeX = bufferSize;
@@ -413,20 +427,16 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
             this._previousTotalSize = Math.max(metrics.totalSize, this._previousTotalSize);
 
-            const displayItems = this.generateDisplayCollection(columnsCollection, stickyMap, { ...metrics });
+            const displayItems = this.generateDisplayCollection(columnsCollection, stickyMap, { ...metrics, rowId: item.id });
 
             displayItemCollection.push(displayItems);
-
-            const rowSize = metrics.rowSize;
-
-            this._map.set(item.id, { height: rowSize, width: metrics.totalSize });
         }
 
         this._deltaX += maxDelta;
 
-        this._deltaY += metrics.delta;
+        this._deltaY += rowMetrics.delta;
 
-        const { scrollSize, bufferSize } = this.updateAdaptiveBufferParams(metrics, rowDisplayItems.length, metrics.delta, this._previousScrollSizeY, '_bufferSizeY', '_bufferSizeSequenceY');
+        const { scrollSize, bufferSize } = this.updateAdaptiveBufferParams(rowMetrics, rowDisplayItems.length, rowMetrics.delta, this._previousScrollSizeY, '_bufferSizeY', '_bufferSizeSequenceY');
         this._previousScrollSizeY = scrollSize;
         this._bufferSizeY = bufferSize;
 
@@ -453,7 +463,8 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         // }
 
         // const displayItems = this.generateDisplayCollection(items, stickyMap, { ...metrics, });
-        return { displayItems: displayItemCollection.flat(), totalSize: columnsTotalSize, totalHeight: metrics.totalSize, delta: metrics.delta, crudDetected };
+
+        return { displayItems: displayItemCollection.flat(), totalSize: columnsTotalSize, totalHeight: rowMetrics.totalSize, delta: rowMetrics.delta, crudDetected };
     }
 
     /**
@@ -498,8 +509,8 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
     /**
      * Calculates the position of an element based on the given scrollSize
      */
-    protected getElementFromStart<I extends { id: Id }, C extends Array<I>>(scrollSize: number, collection: C, map: CMap<Id, ISize>, typicalItemSize: number,
-        isVertical: boolean): I | undefined {
+    protected getElementFromStart<I extends { id: Id }, C extends Array<I>>(scrollSize: number, collection: C, map: CMap<Id, ISize>,
+        typicalItemSize: number, isVertical: boolean): I | undefined {
         const sizeProperty = isVertical ? HEIGHT_PROP_NAME : WIDTH_PROP_NAME;
         let offset = 0;
         for (let i = 0, l = collection.length; i < l; i++) {
@@ -550,7 +561,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
     protected recalculateMetrics<I extends { id: Id }, C extends Array<I>>(options: IRecalculateMetricsOptions<I, C>): IMetrics {
         const { fromItemId, bounds, collection, isVertical, itemSize, rowSize: typicalRowSize,
             bufferSize: actualBufferSize, scrollSize, snap, stickyMap, enabledBufferOptimization,
-            previousTotalSize, deletedItemsMap, y: startY } = options as IRecalculateMetricsOptions<I, C> & {
+            previousTotalSize, deletedItemsMap, y: startY, rowId } = options as IRecalculateMetricsOptions<I, C> & {
                 stickyMap: IVirtualGridStickyMap,
             };
 
@@ -608,7 +619,8 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         for (let i = 0, l = collection.length; i < l; i++) {
             const ii = i + 1, collectionItem = collection[i], id = collectionItem.id;
 
-            let componentSize = typicalItemSize, componentSizeDelta = 0, itemDisplayMethod: ItemDisplayMethods = ItemDisplayMethods.NOT_CHANGED;
+            let componentSize = isVertical ? typicalRowSize : typicalItemSize, componentSizeDelta = 0,
+                itemDisplayMethod: ItemDisplayMethods = ItemDisplayMethods.NOT_CHANGED;
             if (map.has(id)) {
                 const bounds = map.get(id) || { width: typicalItemSize, height: typicalItemSize };
                 componentSize = bounds[sizeProperty];
@@ -626,10 +638,6 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                         map.set(id, { ...bounds, method: ItemDisplayMethods.NOT_CHANGED });
                         break;
                     }
-                }
-
-                if (!isVertical) {
-                    rowSize = Math.max(bounds.height, rowSize);
                 }
             }
 
@@ -784,6 +792,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             typicalItemSize,
             isFromItemIdFound,
             rowSize,
+            rowId: rowId!,
             startY,
         };
         return metrics;
@@ -805,7 +814,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         this.bumpVersion();
     }
 
-    protected generateDisplayCollection<I extends { id: Id }, C extends Array<I>>(items: C, stickyMap: IVirtualGridStickyMap,
+    protected generateDisplayCollection<I extends { id: Id, rowId?: Id }, C extends Array<I>>(items: C, stickyMap: IVirtualGridStickyMap,
         metrics: IMetrics): IRenderVirtualListCollection {
         const {
             width,
@@ -826,6 +835,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             typicalItemSize,
             rowSize,
             startY,
+            rowId,
         } = metrics,
             displayItems: IRenderVirtualListCollection = [];
         if (items.length) {
@@ -842,7 +852,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                     if (!items[i]) {
                         continue;
                     }
-                    const id = items[i].id, sticky = stickyMap[id], size = this.get(id)?.[sizeProperty] || typicalItemSize;
+                    const id = items[i].id, rowId = items[i].rowId, sticky = stickyMap[id], size = this.get(id)?.[sizeProperty] || typicalItemSize;
                     if (sticky === 1) {
                         const measures = {
                             x: isVertical ? 0 : actualSnippedPosition,
@@ -862,7 +872,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
                         const itemData: I = items[i];
 
-                        stickyItem = { id, measures, data: itemData, config };
+                        stickyItem = { id, rowId, measures, data: itemData, config };
                         stickyItemIndex = i;
                         stickyItemSize = size;
 
@@ -898,7 +908,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
                         const itemData: I = items[i];
 
-                        endStickyItem = { id, measures, data: itemData, config };
+                        endStickyItem = { id, rowId, measures, data: itemData, config };
                         endStickyItemIndex = i;
                         endStickyItemSize = size;
 
@@ -944,7 +954,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
                     const itemData: I = items[i];
 
-                    const item: IRenderVirtualListItem = { id, measures, data: itemData, config };
+                    const item: IRenderVirtualListItem = { id, rowId, measures, data: itemData, config };
                     if (!nextSticky && stickyItemIndex < i && stickyMap[id] === 1 && (pos <= scrollSize + size + stickyItemSize)) {
                         item.measures.x = isVertical ? 0 : snapped ? actualSnippedPosition : pos;
                         item.measures.y = isVertical ? snapped ? actualSnippedPosition : pos : 0;
@@ -1031,13 +1041,24 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             return;
         }
 
+        const rowDict: { [id: Id]: number } = {};
         for (let i = 0, l = this._displayComponents.length; i < l; i++) {
-            const component = this._displayComponents[i], itemId = component.instance.itemId;
+            const component: ComponentRef<C> = this._displayComponents[i], rowId = component.instance.rowId, itemId = component.instance.itemId;
             if (itemId === undefined) {
                 continue;
             }
             const bounds = component.instance.getBounds();
-            this.set(itemId, bounds);
+            this._map.set(itemId, { ...this.get(itemId), ...bounds } as any);
+            if (rowId !== undefined) {
+                if (!rowDict.hasOwnProperty(rowId)) {
+                    rowDict[rowId] = 0;
+                }
+                rowDict[rowId] = Math.max(rowDict[rowId], bounds.height);
+            }
+        }
+        for (let id in rowDict) {
+            const rowBounds = this.get(id);
+            this._map.set(id, { ...rowBounds, height: rowDict[id] } as any);
         }
     }
 

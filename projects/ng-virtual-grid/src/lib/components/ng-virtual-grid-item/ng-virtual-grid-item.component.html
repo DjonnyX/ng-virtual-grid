@@ -6,7 +6,7 @@
         'snapped-out': item.config.snappedOut}">
         @if (renderer) {
             <ng-container [ngTemplateOutlet]="renderer"
-                [ngTemplateOutletContext]="{data: item.data || {}, config: item.config}" />
+                [ngTemplateOutletContext]="{data: item.data, config: item.config, measures: item.measures}" />
         }
     </li>
 }

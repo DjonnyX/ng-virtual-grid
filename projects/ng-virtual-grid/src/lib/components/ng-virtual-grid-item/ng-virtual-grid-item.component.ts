@@ -55,6 +55,10 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
     return this._data?.id;
   }
 
+  get rowId() {
+    return this._data!.rowId;
+  }
+
   itemRenderer = signal<TemplateRef<any> | undefined>(undefined);
 
   set renderer(v: TemplateRef<any> | undefined) {
@@ -80,7 +84,7 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
       const styles = this._elementRef.nativeElement.style;
       styles.zIndex = data.config.zIndex;
       if (data.config.snapped) {
-        styles.transform = data.config.sticky === 1 ? ZEROS_TRANSLATE_3D : `${TRANSLATE_3D}(${data.config.isVertical ? 0 : data.measures.x}${PX}, ${data.config.isVertical ? data.measures.y : 0}${PX} , 0)`;;
+        styles.transform = data.config.sticky === 1 ? ZEROS_TRANSLATE_3D : `${TRANSLATE_3D}(${data.config.isVertical ? 0 : data.measures.x}${PX}, ${data.config.isVertical ? data.measures.y : 0}${PX} , 0)`;
         if (!data.config.isSnappingMethodAdvanced) {
           styles.position = POSITION_STICKY;
         }
@@ -89,12 +93,12 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
         styles.transform = `${TRANSLATE_3D}(${data.measures.x}${PX}, ${data.measures.y}${PX} , 0)`;
       }
       styles.height = SIZE_AUTO;
-      styles.width = SIZE_AUTO;
+        styles.width = `${data.measures.width}${PX}`;
 
       const listItem = this._listItemRef();
       if (listItem) {
         const liElement = listItem.nativeElement;
-        liElement.style.height = `${data.measures.height}${PX}`;
+        liElement.style.minHeight = `${data.measures.height}${PX}`;
       }
     }
   }

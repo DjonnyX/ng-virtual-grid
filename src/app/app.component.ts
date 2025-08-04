@@ -5,12 +5,9 @@ import { LOGO } from './const';
 import { IVirtualGridCollection, IVirtualGridColumnCollection, IVirtualGridStickyMap, VirtualGridRow } from '../../projects/ng-virtual-grid/src/lib/models';
 import { Id } from '../../projects/ng-virtual-grid/src/lib/types';
 
-const ROWS = 1000, COLUMNS = 100;
+const ROWS = 100, COLUMNS = 2;
 
-interface IRowData {
-  type: 'group-header' | 'item';
-  name: string | undefined;
-}
+interface IRowData { }
 
 interface IColumnData {
   value: string;
@@ -30,8 +27,12 @@ const generateWord = () => {
   return `${result.join('')}`;
 };
 
+let num = 1;
 const generateText = () => {
-  const length = 2 + Math.floor(Math.random() * 10), result = [];
+  // const n = num;
+  // num ++;
+  // return String(n);
+  const length = 1 + Math.floor(Math.random() * 8), result = [];
   while (result.length < length) {
     result.push(generateWord());
   }
@@ -56,11 +57,10 @@ for (let i = 0, l = ROWS; i < l; i++) {
   for (let j = 0, l1 = COLUMNS; j < l1; j++) {
     index++;
     const id = index;
+    GROUP_DYNAMIC_ITEMS_STICKY_MAP[id] = type === 'group-header' ? 1 : 0;
     columns.push({ id: id, value: generateText() });
   }
-  GROUP_DYNAMIC_ITEMS.push({ id: rowId, type, name: type === 'group-header' ? `Group ${rowId}. ${generateText()}` : generateText(), columns });
-  const pos = 1 + Math.round(Math.random()), actualPos = pos === 1 ? 1 : 2;
-  GROUP_DYNAMIC_ITEMS_STICKY_MAP[rowId] = type === 'group-header' ? actualPos : 0;
+  GROUP_DYNAMIC_ITEMS.push({ id: rowId, columns });
 }
 
 @Component({

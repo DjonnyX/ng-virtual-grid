@@ -4,9 +4,9 @@ export const DEFAULT_COLUMN_SIZE = 200;
 
 export const DEFAULT_MIN_COLUMN_SIZE = 10;
 
-export const DEFAULT_ITEM_SIZE = 80;
+export const DEFAULT_ITEM_SIZE = 120;
 
-export const DEFAULT_ROW_SIZE = 24;
+export const DEFAULT_ROW_SIZE = 32;
 
 export const DEFAULT_BUFFER_SIZE = 2;
 

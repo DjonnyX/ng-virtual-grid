@@ -8,6 +8,10 @@ import { Id } from "../types";
  */
 export type VirtualGridColumn<C = Object> = C & {
     /**
+     * Unique identifier of the row.
+     */
+    rowId?: Id;
+    /**
      * Unique identifier of the element.
      */
     id: Id;
