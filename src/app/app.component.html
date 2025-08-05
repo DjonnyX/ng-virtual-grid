@@ -5,7 +5,7 @@
     <p class="l">Animation of elements is supported.</p>
     <p class="l m">&#64;author: djonnyx&#64;gmail.com</p>
     <img class="logo" [src]="logo" />
-    <div class="version"><span>v 19.0.0-beta-8</span></div>
+    <div class="version"><span>v 19.0.0-beta-9</span></div>
   </div>
 
   <div class="vl-section">
@@ -19,7 +19,7 @@
   <div class="vl-section">
     <div class="vl-section__container">
       <h2>Virtual grid (dynamic row size with resize)</h2>
-      <ng-virtual-grid class="grid" [items]="groupDynamicItems" [resizeRowsEnabled]="true"
+      <ng-virtual-grid class="grid" [items]="groupDynamicItems" [resizeRowsEnabled]="true" [resizeColumnsEnabled]="true"
         [itemRenderer]="itemRenderer" [itemSize]="300" [rowSize]="200" [bufferSize]="5"></ng-virtual-grid> <!-- [stickyMap]="groupDynamicItemsStickyMap" -->
     </div>
   </div>

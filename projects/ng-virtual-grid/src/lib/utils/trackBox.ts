@@ -6,7 +6,7 @@ import { CacheMap, CMap } from "./cacheMap";
 import { Tracker } from "./tracker";
 import { IPoint, IRect, ISize } from "../types";
 import { DEFAULT_BUFFER_SIZE, DEFAULT_COLUMN_SIZE, DEFAULT_ROW_SIZE, HEIGHT_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME, X_PROP_NAME, Y_PROP_NAME } from "../const";
-import { IColumnsSize, IRowsSize, IVirtualGridStickyMap, VirtualGridRow } from "../models";
+import { IColumnsSize, IRowsSize, IVirtualGridColumnCollection, IVirtualGridStickyMap, VirtualGridRow } from "../models";
 import { bufferInterpolation } from "./buffer-interpolation";
 import { BaseVirtualListItemComponent } from "../models/base-virtual-list-item-component";
 
@@ -232,6 +232,8 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
     protected _customSizeMap = new CMap<Id, boolean>();
 
+    protected _columnsMap = new CMap<Id, IVirtualGridColumnCollection>();
+
     updateRowsSize(v: IRowsSize) {
         if (!v) {
             return;
@@ -252,9 +254,14 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             return;
         }
         for (let id in v) {
-            const value = v[id];
-            this._customSizeMap.set(id, value !== undefined);
-            this.set(id, { ...this.get(id) || {}, width: value } as any);
+            const value = v[id], items = this._columnsMap.get(id);
+            if (Array.isArray(items)) {
+                for (let i = 0, l = items.length; i < l; i++) {
+                    const item = items[i], id = item.id;
+                    this._customSizeMap.set(id, value !== undefined);
+                    this.set(id, { ...this.get(id) || {}, width: value } as any);
+                }
+            }
         }
     }
 
@@ -278,16 +285,22 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             return;
         }
 
+        const colMap = this._columnsMap;
+
         if (currentCollection) {
             const collection: Array<I> = [];
             for (let i = 0, l = currentCollection.length; i < l; i++) {
-                const item = currentCollection[i], subCollection = item.columns.map((v, index) => ({
-                    ...v,
-                    rowId: item.id,
-                    columnId: index,
-                }));
+                const item = currentCollection[i], subCollection = item.columns as IVirtualGridColumnCollection;
                 this._map.set(item.id, { width: itemSize, height: rowSize, method: ItemDisplayMethods.NOT_CHANGED });
-                collection.push(item, ...subCollection);
+                for (let j = 0, l1 = subCollection.length; j < l1; j++) {
+                    const col = subCollection[j];
+                    col.rowId = item.id;
+                    if (!colMap.has(j)) {
+                        colMap.set(j, []);
+                    }
+                    colMap.get(j).push(col);
+                    collection.push(col as I);
+                }
             }
             this.updateCache(this._previousCollection, collection, rowSize, itemSize);
             this._previousCollection = collection;
@@ -863,7 +876,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                     if (!items[i]) {
                         continue;
                     }
-                    const id = items[i].id, rowId = items[i].rowId, sticky = stickyMap[id], size = this.get(id)?.[sizeProperty] || typicalItemSize;
+                    const id = items[i].id, columnId = i, sticky = stickyMap[id], size = this.get(id)?.[sizeProperty] || typicalItemSize;
                     if (sticky === 1) {
                         const measures = {
                             x: isVertical ? 0 : actualSnippedPosition,
@@ -883,7 +896,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
                         const itemData: I = items[i];
 
-                        stickyItem = { id, rowId, measures, data: itemData, config };
+                        stickyItem = { id, rowId, columnId, measures, data: itemData, config };
                         stickyItemIndex = i;
                         stickyItemSize = size;
 
@@ -899,7 +912,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                     if (!items[i]) {
                         continue;
                     }
-                    const id = items[i].id, sticky = stickyMap[id], size = this.get(id)?.[sizeProperty] || typicalItemSize;
+                    const id = items[i].id, columnId = i, sticky = stickyMap[id], size = this.get(id)?.[sizeProperty] || typicalItemSize;
                     if (sticky === 2) {
                         const w = isVertical ? normalizedItemWidth : size, h = isVertical ? size : normalizedItemHeight, measures = {
                             x: isVertical ? 0 : actualEndSnippedPosition - w,
@@ -919,7 +932,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
                         const itemData: I = items[i];
 
-                        endStickyItem = { id, rowId, measures, data: itemData, config };
+                        endStickyItem = { id, rowId, columnId, measures, data: itemData, config };
                         endStickyItemIndex = i;
                         endStickyItemSize = size;
 
@@ -939,7 +952,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                     continue;
                 }
 
-                const id = items[i].id, size = this.get(id)?.[sizeProperty] || typicalItemSize;
+                const id = items[i].id, columnId = i, size = this.get(id)?.[sizeProperty] || typicalItemSize;
 
                 if (id !== stickyItem?.id && id !== endStickyItem?.id) {
                     const snapped = snap && (stickyMap[id] === 1 && pos <= scrollSize || stickyMap[id] === 2 && pos >= scrollSize + boundsSize - size),
@@ -965,7 +978,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
                     const itemData: I = items[i];
 
-                    const item: IRenderVirtualListItem = { id, rowId, measures, data: itemData, config };
+                    const item: IRenderVirtualListItem = { id, rowId, columnId, measures, data: itemData, config };
                     if (!nextSticky && stickyItemIndex < i && stickyMap[id] === 1 && (pos <= scrollSize + size + stickyItemSize)) {
                         item.measures.x = isVertical ? 0 : snapped ? actualSnippedPosition : pos;
                         item.measures.y = isVertical ? snapped ? actualSnippedPosition : pos : 0;
