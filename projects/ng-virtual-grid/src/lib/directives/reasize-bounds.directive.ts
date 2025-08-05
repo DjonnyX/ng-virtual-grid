@@ -99,6 +99,7 @@ export class ReasizeBoundsDirective {
           element.style.userSelect = 'none';
           return;
         }
+        _$capture.next(CaptureSide.NONE);
         element.style.cursor = element.style.userSelect = 'auto';
       }),
     ).subscribe();
