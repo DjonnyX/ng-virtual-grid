@@ -890,6 +890,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                             height: rowSize,
                             delta: 0,
                         }, config = {
+                            customSize: this._customSizeMap.get(id) || this._customSizeMap.get(rowId),
                             isVertical,
                             sticky,
                             snap,
@@ -926,6 +927,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                             height: rowSize,
                             delta: 0,
                         }, config = {
+                            customSize: this._customSizeMap.get(id) || this._customSizeMap.get(rowId),
                             isVertical,
                             sticky,
                             snap,
@@ -968,6 +970,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                             height: rowSize,
                             delta: 0,
                         }, config = {
+                            customSize: this._customSizeMap.get(id) || this._customSizeMap.get(rowId),
                             isVertical,
                             sticky: stickyMap[id],
                             snap,

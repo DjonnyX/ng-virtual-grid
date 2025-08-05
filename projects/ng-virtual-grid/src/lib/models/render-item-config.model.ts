@@ -9,6 +9,10 @@ import { Id } from "../types";
  */
 export interface IRenderVirtualListItemConfig {
     /**
+     * Determines whether the content has custom dimensions.
+     */
+    customSize: boolean;
+    /**
      * If greater than 0, the element will have a sticky position with the given zIndex.
      */
     sticky: number;

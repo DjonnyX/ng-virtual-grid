@@ -106,7 +106,13 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
       const listItem = this._listItemRef();
       if (listItem) {
         const liElement = listItem.nativeElement;
-        liElement.style.height = `${data.measures.height}${PX}`;
+        if (this._data?.config.customSize) {
+          liElement.style.height = `${data.measures.height}${PX}`;
+          liElement.style.minHeight = 'initial';
+        } else {
+          liElement.style.minHeight = `${data.measures.height}${PX}`;
+          liElement.style.height = 'initial';
+        }
       }
     }
   }
