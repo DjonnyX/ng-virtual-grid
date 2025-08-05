@@ -9,6 +9,7 @@ import { DEFAULT_BUFFER_SIZE, DEFAULT_COLUMN_SIZE, DEFAULT_ROW_SIZE, HEIGHT_PROP
 import { IColumnsSize, IRowsSize, IVirtualGridColumnCollection, IVirtualGridStickyMap, VirtualGridRow } from "../models";
 import { bufferInterpolation } from "./buffer-interpolation";
 import { BaseVirtualListItemComponent } from "../models/base-virtual-list-item-component";
+import { normalizeDeltaX } from "./delta";
 
 export const TRACK_BOX_CHANGE_EVENT_NAME = 'change';
 
@@ -216,7 +217,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
     protected _bufferSizeSequenceY: Array<number> = [];
 
-    protected _bufferSizeX: { [id: Id]: number } = {};
+    protected _bufferSizeX: number = 0;
     get bufferSizeX() { return this._bufferSizeX; }
 
     protected _bufferSizeY: number = 0;
@@ -233,6 +234,8 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
     protected _customSizeMap = new CMap<Id, boolean>();
 
     protected _columnsMap = new CMap<Id, IVirtualGridColumnCollection>();
+
+    protected _columnsStructureMap = new CMap<Id, boolean>();
 
     updateRowsSize(v: IRowsSize) {
         if (!v) {
@@ -312,8 +315,8 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
     /**
      * Update the cache of items from the list
      */
-    protected updateCache<I extends { id: Id; }, C extends Array<I>>(previousCollection: C | null | undefined, currentCollection: C | null | undefined,
-        rowSize: number, itemSize: number): void {
+    protected updateCache<I extends { id: Id; }, C extends Array<I>>(
+        previousCollection: C | null | undefined, currentCollection: C | null | undefined, rowSize: number, itemSize: number): void {
         let crudDetected = false;
 
         if (!currentCollection || currentCollection.length === 0) {
@@ -419,9 +422,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         this._defaultBufferSize = opt.bufferSize;
         this._maxBufferSize = opt.maxBufferSize;
 
-        const currentDelta = this._deltaX;
-
-        let maxDelta = -1, columnsTotalSize = 0, displayItemCollection = Array<any>();
+        let columnsTotalSize = 0, displayItemCollection = Array<any>();
 
         const rowMetrics = this.recalculateMetrics({
             ...opt,
@@ -435,7 +436,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             y: 0,
         });
 
-        const rowDisplayItems = this.generateDisplayCollection(items, stickyMap, { ...rowMetrics } as any);
+        const rowDisplayItems = this.generateDisplayCollection(items, stickyMap, { ...rowMetrics } as any), deltaXSequence: Array<number> = [];
 
         for (let i = 0, l = rowDisplayItems.length; i < l; i++) {
             const item = rowDisplayItems[i], rowId = item.id, columnsCollection = (item.data as VirtualGridRow).columns;
@@ -446,28 +447,30 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                 crudDetected: this._crudDetected,
                 deletedItemsMap,
                 isVertical: false,
-                bufferSize: this._bufferSizeX[rowId] ?? DEFAULT_BUFFER_SIZE,
+                bufferSize: this._bufferSizeX ?? DEFAULT_BUFFER_SIZE,
                 rowSize: this.get(item.id)?.height ?? rowMetrics.rowSize,
                 y: item.measures.y,
             });
 
-            const deltaX = currentDelta + metrics.delta;
-            maxDelta = metrics.delta;
-            columnsTotalSize = metrics.totalSize;
+            deltaXSequence.push(metrics.delta);
 
-            const { scrollSize, bufferSize } = this.updateAdaptiveBufferParams(metrics, l, deltaX,
-                this._previousScrollSizeX[rowId] ?? 0, '_bufferSizeX', '_bufferSizeSequenceX', rowId);
+            columnsTotalSize = Math.max(metrics.totalSize, columnsTotalSize);
+
+            const { scrollSize, bufferSize } = this.updateAdaptiveBufferParams(metrics, l, metrics.delta,
+                this._previousScrollSizeX[rowId] ?? 0, '_bufferSizeX', '_bufferSizeSequenceX');
             this._previousScrollSizeX[rowId] = scrollSize;
-            this._bufferSizeX[rowId] = bufferSize;
+            this._bufferSizeX = bufferSize;
 
             const displayItems = this.generateDisplayCollection(columnsCollection, stickyMap, { ...metrics, rowId });
 
             displayItemCollection.push(displayItems);
         }
 
+        const deltaX = normalizeDeltaX(deltaXSequence);
+
         this.snapshot();
 
-        this._deltaX += maxDelta;
+        this._deltaX += deltaX;
 
         this._deltaY += rowMetrics.delta;
 
@@ -480,7 +483,10 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
         this._crudDetected = false;
 
-        return { displayItems: displayItemCollection.flat(), totalSize: columnsTotalSize, totalHeight: rowMetrics.totalSize, delta: rowMetrics.delta, crudDetected };
+        return {
+            displayItems: displayItemCollection.flat(), totalSize: columnsTotalSize, totalHeight: rowMetrics.totalSize,
+            delta: rowMetrics.delta, crudDetected,
+        };
     }
 
     /**
@@ -491,36 +497,30 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
     }
 
     protected updateAdaptiveBufferParams(metrics: IMetrics, totalItemsLength: number, delta: number,
-        previousScrollSize: number, bufferSizeName: string, bufferSizeSequenceName: string, rowId?: Id) {
+        previousScrollSize: number, bufferSizeName: string, bufferSizeSequenceName: string) {
         this.disposeClearBufferSizeTimer();
 
         const ctx = this as any;
         const scrollSize = metrics.scrollSize + delta, actualDelta = Math.abs(previousScrollSize - scrollSize);
-        const bufferRawSize = Math.min(Math.floor(delta / metrics.typicalItemSize) * 5, totalItemsLength),
+        const bufferRawSize = Math.min(Math.floor(actualDelta / metrics.typicalItemSize) * 5, totalItemsLength),
             minBufferSize = bufferRawSize < this._defaultBufferSize ? this._defaultBufferSize : bufferRawSize,
             bufferValue = minBufferSize > this._maxBufferSize ? this._maxBufferSize : minBufferSize;
 
         const buffPropertyValue = ctx[bufferSizeName];
-        const bufferSize = bufferInterpolation(typeof buffPropertyValue === 'object' && rowId !== undefined ? buffPropertyValue[rowId] : buffPropertyValue,
+        const bufferSize = bufferInterpolation(buffPropertyValue,
             ctx[bufferSizeSequenceName], bufferValue, {
             extremumThreshold: this._bufferSequenceExtraThreshold,
             bufferSize: this._maxBufferSequenceLength,
         });
 
-        this.startResetBufferSizeTimer(bufferSizeName, bufferSizeSequenceName, rowId);
+        this.startResetBufferSizeTimer(bufferSizeName, bufferSizeSequenceName);
 
         return { scrollSize, bufferSize };
     }
 
-    protected startResetBufferSizeTimer(bufferSizeName: string, bufferSizeSequenceName: string, rowId?: Id) {
+    protected startResetBufferSizeTimer(bufferSizeName: string, bufferSizeSequenceName: string) {
         this._resetBufferSizeTimer = setTimeout(() => {
             const ctx = this as any;
-            const buffPropertyValue = ctx[bufferSizeName];
-            if (typeof buffPropertyValue === 'object' && rowId !== undefined) {
-                buffPropertyValue[rowId] = this._defaultBufferSize;
-            } else {
-                ctx[bufferSizeName] = this._defaultBufferSize;
-            }
             ctx[bufferSizeName] = this._defaultBufferSize;
             ctx[bufferSizeSequenceName] = [];
         }, this._resetBufferSizeTimeout) as unknown as number;
@@ -648,19 +648,24 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             if (map.has(id)) {
                 const bounds = map.get(id) || { width: typicalItemSize, height: typicalItemSize };
                 componentSize = bounds[sizeProperty];
-                itemDisplayMethod = bounds?.method ?? ItemDisplayMethods.UPDATE;
-                switch (itemDisplayMethod) {
-                    case ItemDisplayMethods.UPDATE: {
-                        const snapshotBounds = snapshot.get(id);
-                        const componentSnapshotSize = componentSize - (snapshotBounds ? snapshotBounds[sizeProperty] : typicalItemSize);
-                        componentSizeDelta = componentSnapshotSize;
-                        map.set(id, { ...bounds, method: ItemDisplayMethods.NOT_CHANGED });
-                        break;
-                    }
-                    case ItemDisplayMethods.CREATE: {
-                        componentSizeDelta = typicalItemSize;
-                        map.set(id, { ...bounds, method: ItemDisplayMethods.NOT_CHANGED });
-                        break;
+                if (!isVertical && this._columnsStructureMap.get(i)) {
+                    itemDisplayMethod = ItemDisplayMethods.NOT_CHANGED;
+                    map.set(id, { ...bounds, method: ItemDisplayMethods.NOT_CHANGED });
+                } else {
+                    itemDisplayMethod = bounds?.method ?? ItemDisplayMethods.UPDATE;
+                    switch (itemDisplayMethod) {
+                        case ItemDisplayMethods.UPDATE: {
+                            const snapshotBounds = snapshot.get(id);
+                            const componentSnapshotSize = componentSize - (snapshotBounds ? snapshotBounds[sizeProperty] : typicalItemSize);
+                            componentSizeDelta = componentSnapshotSize;
+                            map.set(id, { ...bounds, method: ItemDisplayMethods.NOT_CHANGED });
+                            break;
+                        }
+                        case ItemDisplayMethods.CREATE: {
+                            componentSizeDelta = typicalItemSize;
+                            map.set(id, { ...bounds, method: ItemDisplayMethods.NOT_CHANGED });
+                            break;
+                        }
                     }
                 }
             }
@@ -1067,15 +1072,20 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
         const rowDict: { [id: Id]: number } = {};
         for (let i = 0, l = this._displayComponents.length; i < l; i++) {
-            const component: ComponentRef<C> = this._displayComponents[i], rowId = component.instance.rowId, itemId = component.instance.itemId;
+            const component: ComponentRef<C> = this._displayComponents[i], rowId = component.instance.rowId, columnId = component.instance.columnId,
+                itemId = component.instance.itemId;
             if (itemId === undefined) {
                 continue;
+            }
+            const itemCache = this.get(itemId);
+            if (columnId !== undefined && !this._columnsStructureMap.has(columnId)) {
+                this._columnsStructureMap.set(columnId, this._columnsStructureMap.get(columnId) || itemCache?.method === ItemDisplayMethods.NOT_CHANGED);
             }
             if (this._customSizeMap.get(itemId)) {
                 continue;
             }
             const bounds = component.instance.getBounds();
-            this._map.set(itemId, { ...this.get(itemId), ...bounds } as any);
+            this._map.set(itemId, { ...itemCache, ...bounds } as any);
             if (rowId !== undefined) {
                 if (!rowDict.hasOwnProperty(rowId)) {
                     rowDict[rowId] = 0;
@@ -1088,7 +1098,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                 continue;
             }
             const rowBounds = this.get(id);
-            this._map.set(id, { width: rowBounds?.width, height: rowDict[id] } as any);
+            this._map.set(id, { ...rowBounds, width: rowBounds?.width, height: rowDict[id] } as any);
         }
     }
 
@@ -1096,6 +1106,14 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         super.dispose();
 
         this.disposeClearBufferSizeTimer();
+
+        if (this._columnsMap) {
+            this._columnsMap.clear();
+        }
+
+        if (this._columnsStructureMap) {
+            this._columnsStructureMap.clear();
+        }
 
         if (this._tracker) {
             this._tracker.dispose();
