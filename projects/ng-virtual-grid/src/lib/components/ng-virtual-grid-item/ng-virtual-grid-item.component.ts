@@ -8,7 +8,7 @@ import {
 } from '../../const';
 import { BaseVirtualListItemComponent } from '../../models/base-virtual-list-item-component';
 import { Component$1 } from '../../models/component.model';
-import { ReasizeBoundsDirective, ResizeEvent } from '../../directives/reasize-bounds.directive';
+import { CaptureSide, ReasizeBoundsDirective, ResizeEvent } from '../../directives/reasize-bounds.directive';
 import { NgVirtualGridService } from '../../ng-virtual-grid.service';
 
 /**
@@ -37,6 +37,12 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
     return this._id;
   }
 
+  liId: string;
+
+  leftLiId: string | undefined;
+
+  topLiId: string | undefined;
+
   data = signal<IRenderVirtualListItem | undefined>(undefined);
   private _data: IRenderVirtualListItem | undefined = undefined;
   set item(v: IRenderVirtualListItem | undefined) {
@@ -45,6 +51,11 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
     }
 
     this._data = v;
+
+    const rowId = this.rowId, colId = Number(this.columnId);
+    this.liId = `li-${this.service.listId}-${rowId}-${colId}`;
+    this.leftLiId = this._data?.config.prevColId !== undefined ? `li-${this.service.listId}-${rowId}-${this._data?.config.prevColId}` : undefined;
+    this.topLiId = this._data?.config.prevRowId !== undefined ? `li-${this.service.listId}-${this._data?.config.prevRowId}-${colId}` : undefined;
 
     this.update();
 
@@ -63,8 +74,16 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
     return this._data!.rowId;
   }
 
+  get prevRowId() {
+    return this._data!.config.prevRowId;
+  }
+
   get columnId() {
     return this._data!.columnId;
+  }
+
+  get prevColumnId() {
+    return this._data!.config.prevColId;
   }
 
   itemRenderer = signal<TemplateRef<any> | undefined>(undefined);
@@ -78,12 +97,14 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
     return this._elementRef.nativeElement;
   }
 
-  private _listItemRef = viewChild<ElementRef<HTMLLIElement>>('listItem')
+  private _listItemRef = viewChild<ElementRef<HTMLLIElement>>('listItem');
 
   constructor() {
     super();
     this._id = NgVirtualGridItemComponent.__nextId = NgVirtualGridItemComponent.__nextId === Number.MAX_SAFE_INTEGER
       ? 0 : NgVirtualGridItemComponent.__nextId + 1;
+
+    this.liId = `li-${this.service.listId}-${this._id}`;
   }
 
   private update() {
@@ -151,7 +172,11 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
   }
 
   protected onResizeHandler(event: ResizeEvent) {
-    this.service.onResize(this.rowId!, this.columnId!, event.width, event.height);
+    this.service.onResize(
+      event.method === CaptureSide.TOP ? this.prevRowId! : this.rowId!,
+      event.method === CaptureSide.LEFT ? this.prevColumnId! : this.columnId!,
+      event.width, event.height,
+    );
   }
 }
 

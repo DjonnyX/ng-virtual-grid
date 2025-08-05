@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { ElementRef, Injectable, signal } from '@angular/core';
 import { Id } from './types';
 import { Subject } from 'rxjs';
 import { ICellResizeEvent } from './models/cell-resize-event.model';
@@ -34,6 +34,10 @@ export class NgVirtualGridService {
     }
   }
   get resizeColumnsEnabled() { return this._resizeColumnsEnabled; }
+
+  listId = 0;
+
+  host: ElementRef<HTMLUListElement> | undefined;
 
   constructor() { }
 

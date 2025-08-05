@@ -1,13 +1,16 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, fromEvent, map, tap } from 'rxjs';
+import { fromEvent, map, Subject, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PointerDetectService {
-  private _$coordinates = new BehaviorSubject<{ clientX: number, clientY: number, target: EventTarget | null }>({ clientX: 0, clientY: 0, target: null });
+  private _$coordinates = new Subject<{ clientX: number, clientY: number, target: EventTarget | null }>();
   $coordinates = this._$coordinates.asObservable();
+
+  private _$up = new Subject<void>();
+  $up = this._$up.asObservable();
 
   private _target: EventTarget | null = null;
 
@@ -29,6 +32,13 @@ export class PointerDetectService {
       map(v => ({ clientX: v.clientX, clientY: v.clientY, target: v.target })),
       tap(v => {
         this._$coordinates.next(v);
+      }),
+    ).subscribe();
+
+    fromEvent(document, 'pointerup').pipe(
+      takeUntilDestroyed(),
+      tap(() => {
+        this._$up.next();
       }),
     ).subscribe();
 
