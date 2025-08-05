@@ -1,7 +1,8 @@
-import { Directive, ElementRef, input, output } from '@angular/core';
+import { Directive, ElementRef, inject, input, output } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { BehaviorSubject, combineLatest, filter, fromEvent, map, tap } from 'rxjs';
 import { DEFAULT_MIN_COLUMN_SIZE, DEFAULT_MIN_ROW_SIZE, DEFAULT_RESIZE_COLUMNS_ENABLED, DEFAULT_RESIZE_ROWS_ENABLED } from '../const';
+import { PointerDetectService } from '../service/pointer-detect.service';
 
 export class ResizeEvent {
   private _width: number = 0;
@@ -29,6 +30,8 @@ enum CaptureSide {
 })
 export class ReasizeBoundsDirective {
 
+  private _pointerDetectService = inject(PointerDetectService);
+
   resize = output<ResizeEvent>();
 
   resizeRowsEnabled = input<boolean>(DEFAULT_RESIZE_ROWS_ENABLED);
@@ -48,65 +51,90 @@ export class ReasizeBoundsDirective {
     const $resizeRowsEnabled = toObservable(this.resizeRowsEnabled),
       $resizeColumnsEnabled = toObservable(this.resizeColumnsEnabled);
 
-    const $mouseMove = fromEvent(window, 'mousemove').pipe(
+    fromEvent<PointerEvent>(element, 'pointerdown', { passive: false }).pipe(
       takeUntilDestroyed(),
-      map((v: any) => ({ clientX: v.clientX, clientY: v.clientY })),
-    );
-
-    fromEvent(element, 'mousedown').pipe(
-      takeUntilDestroyed(),
-      tap(() => {
+      tap((event) => {
         _$down.next(true);
-      }),
-    ).subscribe();
-
-    fromEvent(window, 'mouseup').pipe(
-      takeUntilDestroyed(),
-      tap(() => {
-        _$down.next(false);
-      }),
-    ).subscribe();
-
-    combineLatest([$resizeRowsEnabled, $resizeColumnsEnabled, $down, $mouseMove]).pipe(
-      takeUntilDestroyed(),
-      filter(([resizeRowsEnabled, resizeColumnsEnabled, down]) => (resizeRowsEnabled || resizeColumnsEnabled) && !down),
-      map(([resizeRowsEnabled, resizeColumnsEnabled, , coords]) => ({ resizeRowsEnabled, resizeColumnsEnabled, coords })),
-      tap(({ resizeRowsEnabled, resizeColumnsEnabled, coords }) => {
-        const { x, y, width, height } = element.getBoundingClientRect(),
-          cx = coords.clientX - x, cy = coords.clientY - y;
+        const resizeColumnsEnabled = this.resizeColumnsEnabled(), resizeRowsEnabled = this.resizeRowsEnabled(),
+          { x, y, width, height } = element.getBoundingClientRect(),
+          cx = event.clientX - x, cy = event.clientY - y;
         if (resizeColumnsEnabled && cx >= 0 && cx <= threshold) {
-          _$start.next({ clientX: coords.clientX, clientY: coords.clientY, width, height });
+          this._pointerDetectService.target = event.target;
+          _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
           _$capture.next(CaptureSide.LEFT);
           element.style.cursor = 'col-resize';
           element.style.userSelect = 'none';
           return;
         } else if (resizeColumnsEnabled && cx >= width - threshold && cx <= width) {
-          _$start.next({ clientX: coords.clientX, clientY: coords.clientY, width, height });
+          this._pointerDetectService.target = event.target;
+          _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
           _$capture.next(CaptureSide.RIGHT);
           element.style.cursor = 'col-resize';
           element.style.userSelect = 'none';
           return;
         } else if (resizeRowsEnabled && cy >= 0 && cy <= threshold) {
-          _$start.next({ clientX: coords.clientX, clientY: coords.clientY, width, height });
+          this._pointerDetectService.target = event.target;
+          _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
           _$capture.next(CaptureSide.TOP);
           element.style.cursor = 'row-resize';
           element.style.userSelect = 'none';
           return;
         } else if (resizeRowsEnabled && cy >= height - threshold && cy <= height) {
-          _$start.next({ clientX: coords.clientX, clientY: coords.clientY, width, height });
+          this._pointerDetectService.target = event.target;
+          _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
           _$capture.next(CaptureSide.BOTTOM);
           element.style.cursor = 'row-resize';
           element.style.userSelect = 'none';
           return;
         }
+        this._pointerDetectService.target = null;
         _$capture.next(CaptureSide.NONE);
+      }),
+    ).subscribe();
+
+    fromEvent(window, 'pointerup').pipe(
+      takeUntilDestroyed(),
+      tap(() => {
+        this._pointerDetectService.target = null;
+        _$down.next(false);
+      }),
+    ).subscribe();
+
+    combineLatest([$resizeRowsEnabled, $resizeColumnsEnabled, $down, this._pointerDetectService.$coordinates]).pipe(
+      takeUntilDestroyed(),
+      filter(([resizeRowsEnabled, resizeColumnsEnabled, down]) => (resizeRowsEnabled || resizeColumnsEnabled) && !down),
+      map(([resizeRowsEnabled, resizeColumnsEnabled, , event]) => ({ resizeRowsEnabled, resizeColumnsEnabled, event })),
+      tap(({ resizeRowsEnabled, resizeColumnsEnabled, event }) => {
+        const { x, y, width, height } = element.getBoundingClientRect(),
+          cx = event.clientX - x, cy = event.clientY - y;
+        if (resizeColumnsEnabled && cx >= 0 && cx <= threshold) {
+          _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
+          element.style.cursor = 'col-resize';
+          element.style.userSelect = 'none';
+          return;
+        } else if (resizeColumnsEnabled && cx >= width - threshold && cx <= width) {
+          _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
+          element.style.cursor = 'col-resize';
+          element.style.userSelect = 'none';
+          return;
+        } else if (resizeRowsEnabled && cy >= 0 && cy <= threshold) {
+          _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
+          element.style.cursor = 'row-resize';
+          element.style.userSelect = 'none';
+          return;
+        } else if (resizeRowsEnabled && cy >= height - threshold && cy <= height) {
+          _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
+          element.style.cursor = 'row-resize';
+          element.style.userSelect = 'none';
+          return;
+        }
         element.style.cursor = element.style.userSelect = 'auto';
       }),
     ).subscribe();
 
-    combineLatest([$resizeRowsEnabled, $resizeColumnsEnabled, $down, $capture, $start, $mouseMove]).pipe(
+    combineLatest([$resizeRowsEnabled, $resizeColumnsEnabled, $down, $capture, $start, this._pointerDetectService.$coordinates]).pipe(
       takeUntilDestroyed(),
-      filter(([resizeRowsEnabled, resizeColumnsEnabled, down, capture]) => (resizeRowsEnabled || resizeColumnsEnabled) && down && capture !== CaptureSide.NONE),
+      filter(([resizeRowsEnabled, resizeColumnsEnabled, down, capture]) => (resizeRowsEnabled || resizeColumnsEnabled) && !!down && capture !== CaptureSide.NONE),
       map(([resizeRowsEnabled, resizeColumnsEnabled, , capture, start, mouseEvent]) => ({ resizeRowsEnabled, resizeColumnsEnabled, capture, start, ...mouseEvent })),
       tap(({ resizeRowsEnabled, resizeColumnsEnabled, capture, start, clientX, clientY }) => {
         const width = start.width + (clientX - start.clientX), height = start.height + (clientY - start.clientY),
