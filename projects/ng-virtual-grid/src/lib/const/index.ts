@@ -8,11 +8,17 @@ export const DEFAULT_ITEM_SIZE = 120;
 
 export const DEFAULT_ROW_SIZE = 120;
 
+export const DEFAULT_MIN_ROW_SIZE = 10;
+
 export const DEFAULT_BUFFER_SIZE = 2;
 
 export const DEFAULT_MAX_BUFFER_SIZE = 2;
 
 export const DEFAULT_GRID_SIZE = 400;
+
+export const DEFAULT_RESIZE_ROWS_ENABLED = false;
+
+export const DEFAULT_RESIZE_COLUMNS_ENABLED = false;
 
 export const DEFAULT_SNAP = false;
 

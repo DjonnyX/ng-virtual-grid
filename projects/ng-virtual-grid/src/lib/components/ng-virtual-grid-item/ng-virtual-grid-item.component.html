@@ -1,10 +1,11 @@
 @let item = data();
 @let renderer = itemRenderer();
 
-<li #listItem part="item" reasizeBounds class="ngvg-item__container" [ngClass]="{'snapped': item ? item.config.snapped : false,
+<li #listItem part="item" reasizeBounds [resizeRowsEnabled]="service.resizeRows()"
+    [resizeColumnsEnabled]="service.resizeColumns()" class="ngvg-item__container" [ngClass]="{'snapped': item ? item.config.snapped : false,
         'snapped-out': item ? item.config.snappedOut : false}" (resize)="onResizeHandler($event)">
     @if (item && renderer) {
-    <ng-container [ngTemplateOutlet]="renderer"
-        [ngTemplateOutletContext]="{data: item.data, config: item.config, measures: item.measures}" />
+        <ng-container [ngTemplateOutlet]="renderer"
+            [ngTemplateOutletContext]="{data: item.data, config: item.config, measures: item.measures}" />
     }
 </li>

@@ -178,9 +178,9 @@ input {
     background-color: #0f0f11;
 
     &::part(scroller) {
-        scroll-behavior: auto;
         color: #71718c;
         background-color: #1a1a1e;
+        scroll-behavior: auto;
 
         /* custom scrollbar */
         &::-webkit-scrollbar {
@@ -207,13 +207,40 @@ input {
         }
     }
 
+    &::part(item) {
+        scroll-behavior: auto;
+
+        /* custom scrollbar */
+        &::-webkit-scrollbar {
+            width: 16px;
+            height: 16px;
+        }
+
+        &::-webkit-scrollbar-track,
+        &::-webkit-scrollbar-corner {
+            background-color: transparent;
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background-color: #71718c;
+            border-radius: 20px;
+            border: 6px solid transparent;
+            background-clip: content-box;
+            min-width: 60px;
+            min-height: 60px;
+        }
+
+        &::-webkit-scrollbar-thumb:hover {
+            background-color: #7e7e99;
+        }
+    }
+
     &__item-container {
-        height: 100%;
+        height: auto;
         width: auto;
         display: flex;
         align-items: center;
-        box-sizing: content-box;
-        padding: 8px;
+        box-sizing: border-box;
 
         &>span {
             width: auto;
@@ -221,7 +248,7 @@ input {
             word-wrap: break-word;
             word-break: break-all;
             height: auto;
-            overflow: hidden;
+            padding: 8px;
         }
     }
 

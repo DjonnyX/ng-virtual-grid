@@ -1,17 +1,18 @@
-import { Directive, ElementRef, output } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Directive, ElementRef, input, output } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { BehaviorSubject, combineLatest, filter, fromEvent, map, tap } from 'rxjs';
+import { DEFAULT_MIN_COLUMN_SIZE, DEFAULT_MIN_ROW_SIZE, DEFAULT_RESIZE_COLUMNS_ENABLED, DEFAULT_RESIZE_ROWS_ENABLED } from '../const';
 
 export class ResizeEvent {
-  private _dx: number = 0;
-  get dx() { return this._dx; }
+  private _width: number = 0;
+  get width() { return this._width; }
 
-  private _dy: number = 0;
-  get dy() { return this._dy; }
+  private _height: number = 0;
+  get height() { return this._height; }
 
-  constructor(dx: number, dy: number) {
-    this._dx = dx;
-    this._dy = dy;
+  constructor(width: number, height: number) {
+    this._width = width;
+    this._height = height;
   }
 }
 
@@ -30,14 +31,22 @@ export class ReasizeBoundsDirective {
 
   resize = output<ResizeEvent>();
 
+  resizeRowsEnabled = input<boolean>(DEFAULT_RESIZE_ROWS_ENABLED);
+
+  resizeColumnsEnabled = input<boolean>(DEFAULT_RESIZE_COLUMNS_ENABLED);
+
   private _threshold = 10;
 
   constructor(private _element: ElementRef<HTMLDivElement>) {
     const element = this._element.nativeElement, threshold = this._threshold;
 
     const _$capture = new BehaviorSubject<CaptureSide>(CaptureSide.NONE), $capture = _$capture.asObservable(),
-      _$start = new BehaviorSubject<{ clientX: number, clientY: number }>({ clientX: 0, clientY: 0 }), $start = _$start.asObservable(),
+      _$start = new BehaviorSubject<{ clientX: number, clientY: number, width: number; height: number }>({ clientX: 0, clientY: 0, width: 0, height: 0 }),
+      $start = _$start.asObservable(),
       _$down = new BehaviorSubject<boolean>(false), $down = _$down.asObservable();
+
+    const $resizeRowsEnabled = toObservable(this.resizeRowsEnabled),
+      $resizeColumnsEnabled = toObservable(this.resizeColumnsEnabled);
 
     const $mouseMove = fromEvent(window, 'mousemove').pipe(
       takeUntilDestroyed(),
@@ -58,33 +67,33 @@ export class ReasizeBoundsDirective {
       }),
     ).subscribe();
 
-    combineLatest([$down, $mouseMove]).pipe(
+    combineLatest([$resizeRowsEnabled, $resizeColumnsEnabled, $down, $mouseMove]).pipe(
       takeUntilDestroyed(),
-      filter(([down]) => !down),
-      map(([, coords]) => ({ coords })),
-      tap(({ coords }) => {
+      filter(([resizeRowsEnabled, resizeColumnsEnabled, down]) => (resizeRowsEnabled || resizeColumnsEnabled) && !down),
+      map(([resizeRowsEnabled, resizeColumnsEnabled, , coords]) => ({ resizeRowsEnabled, resizeColumnsEnabled, coords })),
+      tap(({ resizeRowsEnabled, resizeColumnsEnabled, coords }) => {
         const { x, y, width, height } = element.getBoundingClientRect(),
           cx = coords.clientX - x, cy = coords.clientY - y;
-        if (cx >= 0 && cx <= threshold) {
-          _$start.next({ clientX: coords.clientX, clientY: coords.clientY });
+        if (resizeColumnsEnabled && cx >= 0 && cx <= threshold) {
+          _$start.next({ clientX: coords.clientX, clientY: coords.clientY, width, height });
           _$capture.next(CaptureSide.LEFT);
           element.style.cursor = 'col-resize';
           element.style.userSelect = 'none';
           return;
-        } else if (cx >= width - threshold && cx <= width) {
-          _$start.next({ clientX: coords.clientX, clientY: coords.clientY });
+        } else if (resizeColumnsEnabled && cx >= width - threshold && cx <= width) {
+          _$start.next({ clientX: coords.clientX, clientY: coords.clientY, width, height });
           _$capture.next(CaptureSide.RIGHT);
           element.style.cursor = 'col-resize';
           element.style.userSelect = 'none';
           return;
-        } else if (cy >= 0 && cy <= threshold) {
-          _$start.next({ clientX: coords.clientX, clientY: coords.clientY });
+        } else if (resizeRowsEnabled && cy >= 0 && cy <= threshold) {
+          _$start.next({ clientX: coords.clientX, clientY: coords.clientY, width, height });
           _$capture.next(CaptureSide.TOP);
           element.style.cursor = 'row-resize';
           element.style.userSelect = 'none';
           return;
-        } else if (cy >= height - threshold && cy <= height) {
-          _$start.next({ clientX: coords.clientX, clientY: coords.clientY });
+        } else if (resizeRowsEnabled && cy >= height - threshold && cy <= height) {
+          _$start.next({ clientX: coords.clientX, clientY: coords.clientY, width, height });
           _$capture.next(CaptureSide.BOTTOM);
           element.style.cursor = 'row-resize';
           element.style.userSelect = 'none';
@@ -94,14 +103,18 @@ export class ReasizeBoundsDirective {
       }),
     ).subscribe();
 
-    combineLatest([$down, $capture, $start, $mouseMove]).pipe(
+    combineLatest([$resizeRowsEnabled, $resizeColumnsEnabled, $down, $capture, $start, $mouseMove]).pipe(
       takeUntilDestroyed(),
-      filter(([down, capture]) => down && capture !== CaptureSide.NONE),
-      map(([, capture, start, mouseEvent]) => ({ capture, start, ...mouseEvent })),
-      tap(({ capture, start, clientX, clientY }) => {
-        const dx = clientX - start.clientX, dy = clientY - start.clientY,
-          event = new ResizeEvent(capture === CaptureSide.LEFT || capture === CaptureSide.RIGHT ? dx : 0,
-            capture === CaptureSide.TOP || capture === CaptureSide.BOTTOM ? dy : 0);
+      filter(([resizeRowsEnabled, resizeColumnsEnabled, down, capture]) => (resizeRowsEnabled || resizeColumnsEnabled) && down && capture !== CaptureSide.NONE),
+      map(([resizeRowsEnabled, resizeColumnsEnabled, , capture, start, mouseEvent]) => ({ resizeRowsEnabled, resizeColumnsEnabled, capture, start, ...mouseEvent })),
+      tap(({ resizeRowsEnabled, resizeColumnsEnabled, capture, start, clientX, clientY }) => {
+        const width = start.width + (clientX - start.clientX), height = start.height + (clientY - start.clientY),
+          event = new ResizeEvent(
+            resizeColumnsEnabled && (capture === CaptureSide.LEFT || capture === CaptureSide.RIGHT)
+              ? width > DEFAULT_MIN_COLUMN_SIZE ? width : DEFAULT_MIN_COLUMN_SIZE : 0,
+            resizeRowsEnabled && (capture === CaptureSide.TOP || capture === CaptureSide.BOTTOM)
+              ? height > DEFAULT_MIN_ROW_SIZE ? height : DEFAULT_MIN_ROW_SIZE : 0,
+          );
         this.resize.emit(event);
       }),
     ).subscribe();

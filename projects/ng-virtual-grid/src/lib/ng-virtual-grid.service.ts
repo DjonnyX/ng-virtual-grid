@@ -1,0 +1,48 @@
+import { Injectable, signal } from '@angular/core';
+import { Id } from './types';
+import { Subject } from 'rxjs';
+import { ICellResizeEvent } from './models/cell-resize-event.model';
+import { DEFAULT_RESIZE_COLUMNS_ENABLED, DEFAULT_RESIZE_ROWS_ENABLED } from './const';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class NgVirtualGridService {
+  private _$resize = new Subject<ICellResizeEvent>();
+  $resize = this._$resize.asObservable();
+
+  private _resizeRowsEnabled: boolean = DEFAULT_RESIZE_ROWS_ENABLED;
+
+  resizeRows = signal<boolean>(this._resizeRowsEnabled);
+
+  set resizeRowsEnabled(v: boolean) {
+    if (this._resizeRowsEnabled !== v) {
+      this._resizeRowsEnabled = v;
+      this.resizeRows.set(v);
+    }
+  }
+  get resizeRowsEnabled() { return this._resizeRowsEnabled; }
+
+  private _resizeColumnsEnabled: boolean = DEFAULT_RESIZE_COLUMNS_ENABLED;
+
+  resizeColumns = signal<boolean>(this._resizeColumnsEnabled);
+
+  set resizeColumnsEnabled(v: boolean) {
+    if (this._resizeColumnsEnabled !== v) {
+      this._resizeColumnsEnabled = v;
+      this.resizeColumns.set(v);
+    }
+  }
+  get resizeColumnsEnabled() { return this._resizeColumnsEnabled; }
+
+  constructor() { }
+
+  onResize(rowId: Id, columnId: Id, width: number, height: number) {
+    this._$resize.next({
+      rowId,
+      columnId,
+      width,
+      height,
+    });
+  }
+}
