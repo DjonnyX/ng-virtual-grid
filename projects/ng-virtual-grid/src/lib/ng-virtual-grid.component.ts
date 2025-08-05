@@ -225,7 +225,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
     }
   }
 
-  private _elementRef = inject(ElementRef<HTMLDivElement>);
+  private _elementRef: ElementRef<HTMLDivElement> = inject(ElementRef<HTMLDivElement>);
 
   private _initialized!: WritableSignal<boolean>;
 
@@ -262,6 +262,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       ? 0 : NgVirtualGridComponent.__nextId + 1;
     this._id = NgVirtualGridComponent.__nextId;
 
+    this._service.listId = this._id;
     this._pointerDetectservice.capture();
 
     this._initialized = signal<boolean>(false);
@@ -432,6 +433,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   }
 
   private onInit() {
+    this._service.host = this._list();
     this.listenCacheChangesIfNeed(true);
     this._initialized.set(true);
   }

@@ -40,4 +40,12 @@ export interface IRenderVirtualListItemConfig {
      * z-index
      */
     zIndex: string;
+    /**
+     * adjacent top cell columnId
+     */
+    prevColId: Id | undefined;
+    /**
+     * adjacent left cell rowId
+     */
+    prevRowId: Id | undefined;
 }

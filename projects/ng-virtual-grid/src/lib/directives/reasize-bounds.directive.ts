@@ -3,6 +3,7 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { BehaviorSubject, combineLatest, filter, fromEvent, map, tap } from 'rxjs';
 import { DEFAULT_MIN_COLUMN_SIZE, DEFAULT_MIN_ROW_SIZE, DEFAULT_RESIZE_COLUMNS_ENABLED, DEFAULT_RESIZE_ROWS_ENABLED } from '../const';
 import { PointerDetectService } from '../service/pointer-detect.service';
+import { NgVirtualGridService } from '../ng-virtual-grid.service';
 
 export class ResizeEvent {
   private _width: number = 0;
@@ -11,13 +12,17 @@ export class ResizeEvent {
   private _height: number = 0;
   get height() { return this._height; }
 
-  constructor(width: number, height: number) {
+  private _method: CaptureSide = CaptureSide.NONE;
+  get method() { return this._method; }
+
+  constructor(width: number, height: number, method: CaptureSide) {
     this._width = width;
     this._height = height;
+    this._method = method;
   }
 }
 
-enum CaptureSide {
+export enum CaptureSide {
   NONE,
   LEFT,
   RIGHT,
@@ -30,6 +35,8 @@ enum CaptureSide {
 })
 export class ReasizeBoundsDirective {
 
+  private _service = inject(NgVirtualGridService);
+
   private _pointerDetectService = inject(PointerDetectService);
 
   resize = output<ResizeEvent>();
@@ -38,13 +45,20 @@ export class ReasizeBoundsDirective {
 
   resizeColumnsEnabled = input<boolean>(DEFAULT_RESIZE_COLUMNS_ENABLED);
 
+  leftLiId = input<string | undefined>();
+
+  topLiId = input<string | undefined>();
+
   private _threshold = 10;
 
-  constructor(private _element: ElementRef<HTMLDivElement>) {
+  private _element = inject(ElementRef<HTMLDivElement>);
+
+  constructor() {
     const element = this._element.nativeElement, threshold = this._threshold;
 
     const _$capture = new BehaviorSubject<CaptureSide>(CaptureSide.NONE), $capture = _$capture.asObservable(),
-      _$start = new BehaviorSubject<{ clientX: number, clientY: number, width: number; height: number }>({ clientX: 0, clientY: 0, width: 0, height: 0 }),
+      _$start = new BehaviorSubject<{ clientX: number, clientY: number, width: number; height: number }>
+        ({ clientX: 0, clientY: 0, width: 0, height: 0 }),
       $start = _$start.asObservable(),
       _$down = new BehaviorSubject<boolean>(false), $down = _$down.asObservable();
 
@@ -54,45 +68,60 @@ export class ReasizeBoundsDirective {
     fromEvent<PointerEvent>(element, 'pointerdown', { passive: false }).pipe(
       takeUntilDestroyed(),
       tap((event) => {
-        _$down.next(true);
         const resizeColumnsEnabled = this.resizeColumnsEnabled(), resizeRowsEnabled = this.resizeRowsEnabled(),
           { x, y, width, height } = element.getBoundingClientRect(),
           cx = event.clientX - x, cy = event.clientY - y;
-        if (resizeColumnsEnabled && cx >= 0 && cx <= threshold) {
-          this._pointerDetectService.target = event.target;
-          _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
-          _$capture.next(CaptureSide.LEFT);
-          element.style.cursor = 'col-resize';
-          element.style.userSelect = 'none';
-          return;
-        } else if (resizeColumnsEnabled && cx >= width - threshold && cx <= width) {
+        if (resizeColumnsEnabled && cx >= width - threshold && cx <= width) {
           this._pointerDetectService.target = event.target;
           _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
           _$capture.next(CaptureSide.RIGHT);
+          _$down.next(true);
           element.style.cursor = 'col-resize';
           element.style.userSelect = 'none';
           return;
-        } else if (resizeRowsEnabled && cy >= 0 && cy <= threshold) {
-          this._pointerDetectService.target = event.target;
-          _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
-          _$capture.next(CaptureSide.TOP);
-          element.style.cursor = 'row-resize';
-          element.style.userSelect = 'none';
+        } else if (resizeColumnsEnabled && cx >= 0 && cx <= threshold) {
+          const hostElement = this._service.host?.nativeElement, adjacentId = this.leftLiId(),
+            adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
+          this._pointerDetectService.target = adjacentTarget;
+          if (adjacentTarget) {
+            const adjacentElement = adjacentTarget as HTMLElement, { x, y, width, height } = adjacentElement.getBoundingClientRect();
+            _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
+            _$capture.next(CaptureSide.LEFT);
+            _$down.next(true);
+            element.style.cursor = 'col-resize';
+            element.style.userSelect = 'none';
+          }
           return;
         } else if (resizeRowsEnabled && cy >= height - threshold && cy <= height) {
           this._pointerDetectService.target = event.target;
           _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
           _$capture.next(CaptureSide.BOTTOM);
+          _$down.next(true);
           element.style.cursor = 'row-resize';
           element.style.userSelect = 'none';
           return;
+        } else if (resizeRowsEnabled && cy >= 0 && cy <= threshold) {
+          const hostElement = this._service.host?.nativeElement, adjacentId = this.topLiId(),
+            adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
+          this._pointerDetectService.target = adjacentTarget;
+          if (adjacentTarget) {
+            const adjacentElement = adjacentTarget as HTMLElement, { x, y, width, height } = adjacentElement.getBoundingClientRect();
+            _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
+            _$capture.next(CaptureSide.TOP);
+            _$down.next(true);
+            element.style.cursor = 'row-resize';
+            element.style.userSelect = 'none';
+          }
+          return;
         }
+        element.style.cursor = 'initial';
+        element.style.userSelect = 'initial';
         this._pointerDetectService.target = null;
         _$capture.next(CaptureSide.NONE);
       }),
     ).subscribe();
 
-    fromEvent(window, 'pointerup').pipe(
+    this._pointerDetectService.$up.pipe(
       takeUntilDestroyed(),
       tap(() => {
         this._pointerDetectService.target = null;
@@ -107,34 +136,31 @@ export class ReasizeBoundsDirective {
       tap(({ resizeRowsEnabled, resizeColumnsEnabled, event }) => {
         const { x, y, width, height } = element.getBoundingClientRect(),
           cx = event.clientX - x, cy = event.clientY - y;
-        if (resizeColumnsEnabled && cx >= 0 && cx <= threshold) {
-          _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
+        if (resizeColumnsEnabled && cx >= width - threshold && cx <= width) {
           element.style.cursor = 'col-resize';
           element.style.userSelect = 'none';
           return;
-        } else if (resizeColumnsEnabled && cx >= width - threshold && cx <= width) {
-          _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
+        } else if (resizeColumnsEnabled && cx >= 0 && cx <= threshold) {
           element.style.cursor = 'col-resize';
-          element.style.userSelect = 'none';
-          return;
-        } else if (resizeRowsEnabled && cy >= 0 && cy <= threshold) {
-          _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
-          element.style.cursor = 'row-resize';
           element.style.userSelect = 'none';
           return;
         } else if (resizeRowsEnabled && cy >= height - threshold && cy <= height) {
-          _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
+          element.style.cursor = 'row-resize';
+          element.style.userSelect = 'none';
+          return;
+        } else if (resizeRowsEnabled && cy >= 0 && cy <= threshold) {
           element.style.cursor = 'row-resize';
           element.style.userSelect = 'none';
           return;
         }
-        element.style.cursor = element.style.userSelect = 'auto';
+        element.style.cursor = 'initial';
+        element.style.userSelect = 'initial';
       }),
     ).subscribe();
 
     combineLatest([$resizeRowsEnabled, $resizeColumnsEnabled, $down, $capture, $start, this._pointerDetectService.$coordinates]).pipe(
       takeUntilDestroyed(),
-      filter(([resizeRowsEnabled, resizeColumnsEnabled, down, capture]) => (resizeRowsEnabled || resizeColumnsEnabled) && !!down && capture !== CaptureSide.NONE),
+      filter(([resizeRowsEnabled, resizeColumnsEnabled, down, capture]) => (resizeRowsEnabled || resizeColumnsEnabled) && down && capture !== CaptureSide.NONE),
       map(([resizeRowsEnabled, resizeColumnsEnabled, , capture, start, mouseEvent]) => ({ resizeRowsEnabled, resizeColumnsEnabled, capture, start, ...mouseEvent })),
       tap(({ resizeRowsEnabled, resizeColumnsEnabled, capture, start, clientX, clientY }) => {
         const width = start.width + (clientX - start.clientX), height = start.height + (clientY - start.clientY),
@@ -143,6 +169,7 @@ export class ReasizeBoundsDirective {
               ? width > DEFAULT_MIN_COLUMN_SIZE ? width : DEFAULT_MIN_COLUMN_SIZE : 0,
             resizeRowsEnabled && (capture === CaptureSide.TOP || capture === CaptureSide.BOTTOM)
               ? height > DEFAULT_MIN_ROW_SIZE ? height : DEFAULT_MIN_ROW_SIZE : 0,
+            capture,
           );
         this.resize.emit(event);
       }),

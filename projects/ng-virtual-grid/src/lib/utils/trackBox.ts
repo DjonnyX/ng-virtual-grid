@@ -438,6 +438,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
         const rowDisplayItems = this.generateDisplayCollection(items, stickyMap, { ...rowMetrics } as any), deltaXSequence: Array<number> = [];
 
+        let prevRowId: Id | undefined;
         for (let i = 0, l = rowDisplayItems.length; i < l; i++) {
             const item = rowDisplayItems[i], rowId = item.id, columnsCollection = (item.data as VirtualGridRow).columns;
             const metrics = this.recalculateMetrics({
@@ -461,9 +462,13 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             this._previousScrollSizeX[rowId] = scrollSize;
             this._bufferSizeX = bufferSize;
 
-            const displayItems = this.generateDisplayCollection(columnsCollection, stickyMap, { ...metrics, rowId });
+            const displayItems = this.generateDisplayCollection(columnsCollection, stickyMap, { ...metrics, rowId }, {
+                prevRowId,
+            });
 
             displayItemCollection.push(displayItems);
+
+            prevRowId = item.id;
         }
 
         const deltaX = normalizeDeltaX(deltaXSequence);
@@ -844,7 +849,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
     }
 
     protected generateDisplayCollection<I extends { id: Id, rowId?: Id }, C extends Array<I>>(items: C, stickyMap: IVirtualGridStickyMap,
-        metrics: IMetrics): IRenderVirtualListCollection {
+        metrics: IMetrics, options?: { prevRowId?: Id | undefined }): IRenderVirtualListCollection {
         const {
             width,
             height,
@@ -866,7 +871,9 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             startY,
             rowId,
         } = metrics,
+            prevRowId = options?.prevRowId,
             displayItems: IRenderVirtualListCollection = [];
+
         if (items.length) {
             const actualSnippedPosition = snippedPos, isSnappingMethodAdvanced = this.isSnappingMethodAdvanced,
                 boundsSize = isVertical ? height : width, actualEndSnippedPosition = boundsSize;
@@ -898,6 +905,8 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                             snappedOut: false,
                             isSnappingMethodAdvanced,
                             zIndex: '1',
+                            prevColId: i > 0 ? i - 1 : undefined,
+                            prevRowId,
                         };
 
                         const itemData: I = items[i];
@@ -935,6 +944,8 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                             snappedOut: false,
                             isSnappingMethodAdvanced,
                             zIndex: '1',
+                            prevColId: i > 0 ? i - 1 : undefined,
+                            prevRowId,
                         };
 
                         const itemData: I = items[i];
@@ -978,6 +989,8 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                             snappedOut: false,
                             isSnappingMethodAdvanced,
                             zIndex: '0',
+                            prevColId: i > 0 ? i - 1 : undefined,
+                            prevRowId,
                         };
 
                     if (snapped) {
