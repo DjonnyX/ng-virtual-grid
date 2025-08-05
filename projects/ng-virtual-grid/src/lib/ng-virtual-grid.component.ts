@@ -28,6 +28,7 @@ import { FIREFOX_SCROLLBAR_OVERLAP_SIZE, IS_FIREFOX } from './utils/browser';
 import { BaseVirtualListItemComponent } from './models/base-virtual-list-item-component';
 import { Component$1 } from './models/component.model';
 import { NgVirtualGridService } from './ng-virtual-grid.service';
+import { PointerDetectService } from './service/pointer-detect.service';
 
 /**
  * Virtual list component.
@@ -44,7 +45,7 @@ import { NgVirtualGridService } from './ng-virtual-grid.service';
   styleUrl: './ng-virtual-grid.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.ShadowDom,
-  providers: [NgVirtualGridService],
+  providers: [NgVirtualGridService, PointerDetectService],
 })
 export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy {
   private static __nextId: number = 0;
@@ -56,6 +57,8 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   get id() { return this._id; }
 
   private _service = inject(NgVirtualGridService);
+
+  private _pointerDetectservice = inject(PointerDetectService);
 
   @ViewChild('renderersContainer', { read: ViewContainerRef })
   private _listContainerRef: ViewContainerRef | undefined;
@@ -258,6 +261,8 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
     NgVirtualGridComponent.__nextId = NgVirtualGridComponent.__nextId + 1 === Number.MAX_SAFE_INTEGER
       ? 0 : NgVirtualGridComponent.__nextId + 1;
     this._id = NgVirtualGridComponent.__nextId;
+
+    this._pointerDetectservice.capture();
 
     this._initialized = signal<boolean>(false);
     this.$initialized = toObservable(this._initialized);
