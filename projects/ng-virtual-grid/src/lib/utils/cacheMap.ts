@@ -30,6 +30,12 @@ export class CMap<K = string, V = any> {
     clear() {
         this._dict = {};
     }
+    clone() {
+        return { ...this._dict };
+    }
+    toObject() {
+        return this._dict;
+    }
 }
 
 export interface ICacheMap<I = any, B = any> {

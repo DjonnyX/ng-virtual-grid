@@ -9,6 +9,7 @@ import {
 import { BaseVirtualListItemComponent } from '../../models/base-virtual-list-item-component';
 import { Component$1 } from '../../models/component.model';
 import { ReasizeBoundsDirective, ResizeEvent } from '../../directives/reasize-bounds.directive';
+import { NgVirtualGridService } from '../../ng-virtual-grid.service';
 
 /**
  * Virtual list item component
@@ -28,6 +29,8 @@ import { ReasizeBoundsDirective, ResizeEvent } from '../../directives/reasize-bo
 })
 export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
   private static __nextId: number = 0;
+
+  service = inject(NgVirtualGridService);
 
   private _id!: number;
   get id() {
@@ -103,7 +106,7 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
       const listItem = this._listItemRef();
       if (listItem) {
         const liElement = listItem.nativeElement;
-        liElement.style.minHeight = `${data.measures.height}${PX}`;
+        liElement.style.height = `${data.measures.height}${PX}`;
       }
     }
   }
@@ -142,7 +145,7 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
   }
 
   protected onResizeHandler(event: ResizeEvent) {
-    // console.log(this.rowId, this.columnId, event.dx, event.dy);
+    this.service.onResize(this.rowId!, this.columnId!, event.width, event.height);
   }
 }
 

@@ -5,8 +5,8 @@ import { Id } from "../types/id";
 import { CacheMap, CMap } from "./cacheMap";
 import { Tracker } from "./tracker";
 import { IPoint, IRect, ISize } from "../types";
-import { DEFAULT_BUFFER_SIZE, HEIGHT_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME, X_PROP_NAME, Y_PROP_NAME } from "../const";
-import { IVirtualGridStickyMap, VirtualGridRow } from "../models";
+import { DEFAULT_BUFFER_SIZE, DEFAULT_COLUMN_SIZE, DEFAULT_ROW_SIZE, HEIGHT_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME, X_PROP_NAME, Y_PROP_NAME } from "../const";
+import { IColumnsSize, IRowsSize, IVirtualGridStickyMap, VirtualGridRow } from "../models";
 import { bufferInterpolation } from "./buffer-interpolation";
 import { BaseVirtualListItemComponent } from "../models/base-virtual-list-item-component";
 
@@ -229,6 +229,38 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
     protected _resetBufferSizeTimeout: number = DEFAULT_RESET_BUFFER_SIZE_TIMEOUT;
 
     protected _resetBufferSizeTimer: number | undefined;
+
+    protected _customSizeMap = new CMap<Id, boolean>();
+
+    updateRowsSize(v: IRowsSize) {
+        if (!v) {
+            return;
+        }
+        for (let id in v) {
+            const value = v[id];
+            this._customSizeMap.set(id, value !== undefined);
+            this.set(id, { ...this.get(id) || {}, height: value } as any);
+        }
+    }
+
+    getRowSizeById(id: Id) {
+        return this.get(id)?.height ?? DEFAULT_ROW_SIZE;
+    }
+
+    updateColumnSize(v: IColumnsSize) {
+        if (!v) {
+            return;
+        }
+        for (let id in v) {
+            const value = v[id];
+            this._customSizeMap.set(id, value !== undefined);
+            this.set(id, { ...this.get(id) || {}, width: value } as any);
+        }
+    }
+
+    getColumnSizeById(id: Id) {
+        return this.get(id)?.width ?? DEFAULT_COLUMN_SIZE;
+    }
 
     protected override lifeCircle() {
         this.fireChangeIfNeed();
@@ -1026,6 +1058,9 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             if (itemId === undefined) {
                 continue;
             }
+            if (this._customSizeMap.get(itemId)) {
+                continue;
+            }
             const bounds = component.instance.getBounds();
             this._map.set(itemId, { ...this.get(itemId), ...bounds } as any);
             if (rowId !== undefined) {
@@ -1036,6 +1071,9 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             }
         }
         for (let id in rowDict) {
+            if (this._customSizeMap.get(id)) {
+                continue;
+            }
             const rowBounds = this.get(id);
             this._map.set(id, { width: rowBounds?.width, height: rowDict[id] } as any);
         }

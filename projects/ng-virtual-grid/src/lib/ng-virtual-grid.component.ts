@@ -13,8 +13,11 @@ import {
   HEIGHT_PROP_NAME, LEFT_PROP_NAME, MAX_SCROLL_TO_ITERATIONS, PX, SCROLL, SCROLL_END, TOP_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME,
   DEFAULT_MAX_BUFFER_SIZE,
   DEFAULT_ROW_SIZE,
+  DEFAULT_COLUMN_SIZE,
+  DEFAULT_RESIZE_ROWS_ENABLED,
+  DEFAULT_RESIZE_COLUMNS_ENABLED,
 } from './const';
-import { IScrollEvent, IVirtualGridCollection, IVirtualGridStickyMap } from './models';
+import { IColumnsSize, IRowsSize, IScrollEvent, IVirtualGridCollection, IVirtualGridStickyMap } from './models';
 import { Id, ISize } from './types';
 import { IRenderVirtualListCollection } from './models/render-collection.model';
 import { Direction, Directions, SnappingMethod } from './enums';
@@ -24,6 +27,7 @@ import { isSnappingMethodAdvenced } from './utils/snapping-method';
 import { FIREFOX_SCROLLBAR_OVERLAP_SIZE, IS_FIREFOX } from './utils/browser';
 import { BaseVirtualListItemComponent } from './models/base-virtual-list-item-component';
 import { Component$1 } from './models/component.model';
+import { NgVirtualGridService } from './ng-virtual-grid.service';
 
 /**
  * Virtual list component.
@@ -40,6 +44,7 @@ import { Component$1 } from './models/component.model';
   styleUrl: './ng-virtual-grid.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.ShadowDom,
+  providers: [NgVirtualGridService],
 })
 export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy {
   private static __nextId: number = 0;
@@ -49,6 +54,8 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
    * Readonly. Returns the unique identifier of the component.
    */
   get id() { return this._id; }
+
+  private _service = inject(NgVirtualGridService);
 
   @ViewChild('renderersContainer', { read: ViewContainerRef })
   private _listContainerRef: ViewContainerRef | undefined;
@@ -159,6 +166,26 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
    */
   maxBufferSize = input<number>(DEFAULT_MAX_BUFFER_SIZE, { ...this._maxBufferSizeTransform });
 
+  /**
+   * 
+   */
+  columnsSize = input<IColumnsSize>({});
+
+  /**
+   * 
+   */
+  rowsSize = input<IRowsSize>({});
+
+  /**
+   * 
+   */
+  resizeRowsEnabled = input<boolean>(DEFAULT_RESIZE_ROWS_ENABLED);
+
+  /**
+   * 
+   */
+  resizeColumnsEnabled = input<boolean>(DEFAULT_RESIZE_COLUMNS_ENABLED);
+
   private _displayComponents: Array<ComponentRef<BaseVirtualListItemComponent>> = [];
 
   private _snapedDisplayComponent: ComponentRef<BaseVirtualListItemComponent> | undefined;
@@ -237,7 +264,57 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
 
     this._trackBox.displayComponents = this._displayComponents;
 
-    const $trackBy = toObservable(this.trackBy);
+    const $trackBy = toObservable(this.trackBy),
+      $rowsSize = toObservable(this.rowsSize),
+      $columnsSize = toObservable(this.columnsSize),
+      $resizeRowsEnabled = toObservable(this.resizeRowsEnabled),
+      $resizeColumnsEnabled = toObservable(this.resizeColumnsEnabled);
+
+    $resizeRowsEnabled.pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      tap(v => {
+        this._service.resizeRowsEnabled = v;
+      }),
+    ).subscribe();
+
+    $resizeColumnsEnabled.pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      tap(v => {
+        this._service.resizeColumnsEnabled = v;
+      }),
+    ).subscribe();
+
+    $rowsSize.pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      tap(v => {
+        this._trackBox.updateRowsSize(v);
+      }),
+    ).subscribe();
+
+    $columnsSize.pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      tap(v => {
+        this._trackBox.updateColumnSize(v);
+      }),
+    ).subscribe();
+
+    this._service.$resize.pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      tap(v => {
+        const { rowId, columnId, width, height } = v;
+        if (height !== 0 && rowId !== undefined) {
+          this._trackBox.updateRowsSize({ [rowId]: height });
+        }
+        if (width !== 0 && columnId !== undefined) {
+          this._trackBox.updateColumnSize({ [columnId]: width });
+        }
+      }),
+    ).subscribe();
 
     $trackBy.pipe(
       takeUntilDestroyed(),
@@ -288,8 +365,8 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       distinctUntilChanged(),
       filter(([initialized]) => !!initialized),
       switchMap(([,
-        bounds, items, stickyMap, scrollSizeX, scrollSizeY, itemSize, rowSize,
-        bufferSize, maxBufferSize, snap, enabledBufferOptimization, cacheVersion,
+        bounds, items, stickyMap, scrollSizeX, scrollSizeY, itemSize, rowSize, bufferSize, maxBufferSize,
+        snap, enabledBufferOptimization, cacheVersion,
       ]) => {
         const container = this._container();
 
