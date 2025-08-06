@@ -18,10 +18,20 @@ input {
 // reset ng-virtual-grid-item styles
 .grid::part(item) {
     background-color: unset;
-    background-color: #373737;
-    border-bottom: 1px solid #27272e;
-    border-right: 1px solid #27272e;
+    background-color: #363636;
+    border-bottom: 1px solid #19191b;
+    border-right: 1px solid #19191b;
     box-sizing: border-box;
+    display: flex;
+    justify-content: stretch;
+    flex-direction: column;
+}
+
+.grid::part(border) {
+    background-color: #292929;
+    height: 100%;
+    width: 100%;
+    flex: 1;
 }
 
 .wrapper {
@@ -247,6 +257,7 @@ input {
             display: flex;
             word-wrap: break-word;
             word-break: break-all;
+            letter-spacing: 1px;
             height: auto;
             padding: 8px;
         }

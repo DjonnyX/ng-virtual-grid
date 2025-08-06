@@ -2,7 +2,7 @@ import { Component, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgVirtualGridComponent } from '../../projects/ng-virtual-grid/src/public-api';
 import { LOGO } from './const';
-import { IVirtualGridCollection, IVirtualGridColumnCollection, IVirtualGridStickyMap, VirtualGridRow } from '../../projects/ng-virtual-grid/src/lib/models';
+import { IColumnsSize, IRowsSize, IVirtualGridCollection, IVirtualGridColumnCollection, IVirtualGridStickyMap, VirtualGridRow } from '../../projects/ng-virtual-grid/src/lib/models';
 import { Id } from '../../projects/ng-virtual-grid/src/lib/types';
 
 const ROWS = 1000, COLUMNS = 100;
@@ -11,6 +11,7 @@ interface IRowData { }
 
 interface IColumnData {
   value: string;
+  isBorder?: boolean;
 }
 
 const CHARS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
@@ -44,12 +45,14 @@ const generateText = () => {
 let num = 1;
 const generateNumber = () => {
   const n = num;
-  num ++;
+  num++;
   return String(n);
 }
 
 const GROUP_DYNAMIC_ITEMS: IVirtualGridCollection<IRowData, IColumnData> = [],
-  GROUP_DYNAMIC_ITEMS_STICKY_MAP: IVirtualGridStickyMap = {};
+  GROUP_DYNAMIC_ITEMS_STICKY_MAP: IVirtualGridStickyMap = {},
+  GROUP_DYNAMIC_COLUMNS_SIZE_MAP: IColumnsSize = {},
+  GROUP_DYNAMIC_ROWS_SIZE_MAP: IRowsSize = {};
 
 const GROUP_ITEMS: IVirtualGridCollection<IRowData, IColumnData> = [],
   GROUP_ITEMS_STICKY_MAP: IVirtualGridStickyMap = {};
@@ -64,7 +67,27 @@ for (let i = 0, l = ROWS; i < l; i++) {
     index++;
     const id = index;
     GROUP_DYNAMIC_ITEMS_STICKY_MAP[id] = type === 'group-header' ? 1 : 0;
-    columns.push({ id: id, value: generateText() });
+    if (j === 0 || j === l1 - 1) {
+      GROUP_DYNAMIC_COLUMNS_SIZE_MAP[j] = 36;
+    }
+    let value: string, isBorder: boolean;
+    if ((i === 0 && j === 0) || (i === 0 && j === l1 - 1) || (i === l - 1 && j === 0) || (i === l - 1 && j === l1 - 1)) {
+      value = '№';
+      isBorder = true;
+    } else if (i === 0 || i === l - 1) {
+      value = String(j);
+      isBorder = true;
+    } else if (j === 0 || j === l1 - 1) {
+      value = String(i);
+      isBorder = true;
+    } else {
+      value = generateText();
+      isBorder = false;
+    }
+    columns.push({ id: id, value, isBorder });
+  }
+  if (i === 0 || i === l - 1) {
+    GROUP_DYNAMIC_ROWS_SIZE_MAP[rowId] = 35;
   }
   GROUP_DYNAMIC_ITEMS.push({ id: rowId, columns });
 }
@@ -102,6 +125,8 @@ export class AppComponent {
 
   groupDynamicItems = GROUP_DYNAMIC_ITEMS;
   groupDynamicItemsStickyMap = GROUP_DYNAMIC_ITEMS_STICKY_MAP;
+  groupDynamicColumnsSize = GROUP_DYNAMIC_COLUMNS_SIZE_MAP;
+  groupDynamicRowsSize = GROUP_DYNAMIC_ROWS_SIZE_MAP;
 
   private _minId: Id = this.groupDynamicItems.length > 0 ? this.groupDynamicItems[0].id : 0;
   get minId() { return this._minId; };

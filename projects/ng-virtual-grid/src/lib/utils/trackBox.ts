@@ -231,7 +231,11 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
     protected _resetBufferSizeTimer: number | undefined;
 
-    protected _customSizeMap = new CMap<Id, boolean>();
+    protected _customSizeMap = new CMap<Id, number | undefined>();
+
+    protected _customColumnsSizeMap = new CMap<Id, number | undefined>();
+
+    protected _customRowsSizeMap = new CMap<Id, number | undefined>();
 
     protected _columnsMap = new CMap<Id, IVirtualGridColumnCollection>();
 
@@ -241,10 +245,14 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         if (!v) {
             return;
         }
-        for (let id in v) {
-            const value = v[id];
-            this._customSizeMap.set(id, value !== undefined);
-            this.set(id, { ...this.get(id) || {}, height: value } as any);
+        for (let rowId in v) {
+            const value = v[rowId];
+            if (value === null || value === undefined) {
+                this._customRowsSizeMap.delete(rowId);
+            } else {
+                this._customRowsSizeMap.set(rowId, value);
+            }
+            this.set(rowId, { ...this.get(rowId) || {}, height: value } as any);
         }
     }
 
@@ -256,12 +264,18 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         if (!v) {
             return;
         }
-        for (let id in v) {
-            const value = v[id], items = this._columnsMap.get(id);
+        for (let columnId in v) {
+            const value = v[columnId], items = this._columnsMap.get(columnId);
+            this._columnsStructureMap.set(columnId, value !== undefined);
+            if (value === null || value === undefined) {
+                this._customColumnsSizeMap.delete(columnId);
+            } else {
+                this._customColumnsSizeMap.set(columnId, value);
+            }
             if (Array.isArray(items)) {
                 for (let i = 0, l = items.length; i < l; i++) {
                     const item = items[i], id = item.id;
-                    this._customSizeMap.set(id, value !== undefined);
+                    this._customSizeMap.set(id, value);
                     this.set(id, { ...this.get(id) || {}, width: value } as any);
                 }
             }
@@ -281,7 +295,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
     /**
      * Scans the collection for deleted items and flushes the deleted item cache.
      */
-    resetCollection<I extends { id: Id; columns: Array<I & { rowId?: Id; }>; }, C extends Array<I>>(currentCollection: C | null | undefined,
+    resetCollection<I extends { id: Id; columns: Array<I & { rowId?: Id; columnId?: Id }>; }, C extends Array<I>>(currentCollection: C | null | undefined,
         rowSize: number, itemSize: number): void {
         if (currentCollection !== undefined && currentCollection !== null && currentCollection === this._previousCollection) {
             console.warn('Attention! The collection must be immutable.');
@@ -293,11 +307,13 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         if (currentCollection) {
             const collection: Array<I> = [];
             for (let i = 0, l = currentCollection.length; i < l; i++) {
-                const item = currentCollection[i], subCollection = item.columns as IVirtualGridColumnCollection;
-                this._map.set(item.id, { width: itemSize, height: rowSize, method: ItemDisplayMethods.NOT_CHANGED });
+                const item = currentCollection[i], subCollection = item.columns as IVirtualGridColumnCollection, rowId = item.id,
+                    rowHeight = this._customRowsSizeMap.get(rowId) ?? rowSize;
+                this._map.set(rowId, { width: itemSize, height: rowHeight, method: ItemDisplayMethods.NOT_CHANGED });
                 for (let j = 0, l1 = subCollection.length; j < l1; j++) {
                     const col = subCollection[j];
-                    col.rowId = item.id;
+                    col.rowId = rowId;
+                    col.columnId = j;
                     if (!colMap.has(j)) {
                         colMap.set(j, []);
                     }
@@ -315,7 +331,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
     /**
      * Update the cache of items from the list
      */
-    protected updateCache<I extends { id: Id; }, C extends Array<I>>(
+    protected updateCache<I extends { id: Id; rowId?: Id, columnId?: Id; }, C extends Array<I>>(
         previousCollection: C | null | undefined, currentCollection: C | null | undefined, rowSize: number, itemSize: number): void {
         let crudDetected = false;
 
@@ -337,8 +353,10 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                 // added
                 for (let i = 0, l = currentCollection.length; i < l; i++) {
                     crudDetected = true;
-                    const item = currentCollection[i], id = item.id;
-                    this._map.set(id, { width: itemSize, height: rowSize, method: ItemDisplayMethods.CREATE });
+                    const item = currentCollection[i], id = item.id, rowId = item.rowId, columnId = item.columnId,
+                        rowHeight = rowId !== undefined ? this._customRowsSizeMap.get(rowId) ?? rowSize : rowSize,
+                        itemWidth = columnId !== undefined ? this._customColumnsSizeMap.get(columnId) ?? itemSize : itemSize;
+                    this._map.set(id, { width: itemWidth, height: rowHeight, method: ItemDisplayMethods.CREATE });
                 }
             }
             return;
@@ -352,19 +370,21 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         }
         const notChangedMap: { [id: Id]: I } = {}, deletedMap: { [id: Id]: I } = {}, deletedItemsMap: { [index: number]: ISize } = {}, updatedMap: { [id: Id]: I } = {};
         for (let i = 0, l = previousCollection.length; i < l; i++) {
-            const item = previousCollection[i], id = item.id;
+            const item = previousCollection[i], id = item.id, rowId = item.rowId, columnId = item.columnId,
+                rowHeight = rowId !== undefined ? this._customRowsSizeMap.get(rowId) ?? rowSize : rowSize,
+                itemWidth = columnId !== undefined ? this._customColumnsSizeMap.get(columnId) ?? itemSize : itemSize;
             if (item) {
                 if (collectionDict.hasOwnProperty(id)) {
                     if (item === collectionDict[id]) {
                         // not changed
                         notChangedMap[item.id] = item;
-                        this._map.set(id, { ...(this._map.get(id) || { width: itemSize, height: rowSize }), method: ItemDisplayMethods.NOT_CHANGED });
+                        this._map.set(id, { ...(this._map.get(id) || { width: itemWidth, height: rowHeight }), method: ItemDisplayMethods.NOT_CHANGED });
                         continue;
                     } else {
                         // updated
                         crudDetected = true;
                         updatedMap[item.id] = item;
-                        this._map.set(id, { ...(this._map.get(id) || { width: itemSize, height: rowSize }), method: ItemDisplayMethods.UPDATE });
+                        this._map.set(id, { ...(this._map.get(id) || { width: itemWidth, height: rowHeight }), method: ItemDisplayMethods.UPDATE });
                         continue;
                     }
                 }
@@ -378,11 +398,13 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         }
 
         for (let i = 0, l = currentCollection.length; i < l; i++) {
-            const item = currentCollection[i], id = item.id;
+            const item = currentCollection[i], id = item.id, rowId = item.rowId, columnId = item.columnId,
+                rowHeight = rowId !== undefined ? this._customRowsSizeMap.get(rowId) ?? rowSize : rowSize,
+                itemWidth = columnId !== undefined ? this._customColumnsSizeMap.get(columnId) ?? itemSize : itemSize;
             if (item && !deletedMap.hasOwnProperty(id) && !updatedMap.hasOwnProperty(id) && !notChangedMap.hasOwnProperty(id)) {
                 // added
                 crudDetected = true;
-                this._map.set(id, { width: itemSize, height: rowSize, method: ItemDisplayMethods.CREATE });
+                this._map.set(id, { width: itemWidth, height: rowHeight, method: ItemDisplayMethods.CREATE });
             }
         }
         this._crudDetected = crudDetected;
@@ -440,7 +462,8 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
         let prevRowId: Id | undefined;
         for (let i = 0, l = rowDisplayItems.length; i < l; i++) {
-            const item = rowDisplayItems[i], rowId = item.id, columnsCollection = (item.data as VirtualGridRow).columns;
+            const item = rowDisplayItems[i], rowId = item.id, columnsCollection = (item.data as VirtualGridRow).columns,
+                customRowSize = this._customRowsSizeMap.get(item.id);
             const metrics = this.recalculateMetrics({
                 ...opt,
                 collection: columnsCollection,
@@ -449,7 +472,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                 deletedItemsMap,
                 isVertical: false,
                 bufferSize: this._bufferSizeX ?? DEFAULT_BUFFER_SIZE,
-                rowSize: this.get(item.id)?.height ?? rowMetrics.rowSize,
+                rowSize: customRowSize !== undefined ? customRowSize : this.get(item.id)?.height ?? rowMetrics.rowSize,
                 y: item.measures.y,
             });
 
@@ -651,8 +674,11 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             let componentSize = isVertical ? typicalRowSize : typicalItemSize, componentSizeDelta = 0,
                 itemDisplayMethod: ItemDisplayMethods = ItemDisplayMethods.NOT_CHANGED;
             if (map.has(id)) {
-                const bounds = map.get(id) || { width: typicalItemSize, height: typicalItemSize };
-                componentSize = bounds[sizeProperty];
+                const bounds = map.get(id) || { width: typicalItemSize, height: typicalItemSize },
+                    actualSize = isVertical
+                        ? this._customRowsSizeMap.get(id) ?? this._customSizeMap.get(id) ?? bounds.height
+                        : this._customColumnsSizeMap.get(i) ?? this._customSizeMap.get(id) ?? bounds.width;
+                componentSize = actualSize;
                 if (!isVertical && this._columnsStructureMap.get(i)) {
                     itemDisplayMethod = ItemDisplayMethods.NOT_CHANGED;
                     map.set(id, { ...bounds, method: ItemDisplayMethods.NOT_CHANGED });
@@ -897,7 +923,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                             height: rowSize,
                             delta: 0,
                         }, config = {
-                            customSize: this._customSizeMap.get(id) || this._customSizeMap.get(rowId),
+                            customSize: this._customRowsSizeMap.get(rowId) !== undefined || this._customSizeMap.get(id) !== undefined,
                             isVertical,
                             sticky,
                             snap,
@@ -936,7 +962,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                             height: rowSize,
                             delta: 0,
                         }, config = {
-                            customSize: this._customSizeMap.get(id) || this._customSizeMap.get(rowId),
+                            customSize: this._customRowsSizeMap.get(rowId) !== undefined || this._customSizeMap.get(id) !== undefined,
                             isVertical,
                             sticky,
                             snap,
@@ -973,6 +999,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                 const id = items[i].id, columnId = i, size = this.get(id)?.[sizeProperty] || typicalItemSize;
 
                 if (id !== stickyItem?.id && id !== endStickyItem?.id) {
+                    
                     const snapped = snap && (stickyMap[id] === 1 && pos <= scrollSize || stickyMap[id] === 2 && pos >= scrollSize + boundsSize - size),
                         measures = {
                             x: isVertical ? stickyMap[id] === 1 ? 0 : boundsSize - size : pos,
@@ -981,7 +1008,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                             height: rowSize,
                             delta: 0,
                         }, config = {
-                            customSize: this._customSizeMap.get(id) || this._customSizeMap.get(rowId),
+                            customSize: this._customRowsSizeMap.get(rowId) !== undefined || this._customSizeMap.get(id) !== undefined,
                             isVertical,
                             sticky: stickyMap[id],
                             snap,
@@ -1097,7 +1124,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             if (columnId !== undefined && !this._columnsStructureMap.has(columnId)) {
                 this._columnsStructureMap.set(columnId, this._columnsStructureMap.get(columnId) || itemCache?.method === ItemDisplayMethods.NOT_CHANGED);
             }
-            if (this._customSizeMap.get(itemId)) {
+            if (this._customSizeMap.get(itemId) !== undefined || (rowId !== undefined && this._customRowsSizeMap.get(rowId) !== undefined)) {
                 continue;
             }
             const bounds = component.instance.getBounds();
@@ -1110,7 +1137,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             }
         }
         for (let id in rowDict) {
-            if (this._customSizeMap.get(id)) {
+            if (this._customRowsSizeMap.get(id) !== undefined) {
                 continue;
             }
             const rowBounds = this.get(id);
@@ -1125,6 +1152,14 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
         if (this._columnsMap) {
             this._columnsMap.clear();
+        }
+
+        if (this._customColumnsSizeMap) {
+            this._customColumnsSizeMap.clear();
+        }
+
+        if (this._customRowsSizeMap) {
+            this._customRowsSizeMap.clear();
         }
 
         if (this._columnsStructureMap) {
