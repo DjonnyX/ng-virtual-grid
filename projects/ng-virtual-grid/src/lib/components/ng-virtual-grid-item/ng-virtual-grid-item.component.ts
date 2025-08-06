@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, Templat
 import { IRenderVirtualListItem } from '../../models/render-item.model';
 import { ISize } from '../../types';
 import {
+  DEFAULT_MIN_COLUMN_SIZE, DEFAULT_MIN_ROW_SIZE,
   DEFAULT_ZINDEX, DISPLAY_BLOCK, DISPLAY_NONE, HIDDEN_ZINDEX, POSITION_ABSOLUTE, POSITION_STICKY, PX, SIZE_100_PERSENT,
   SIZE_AUTO, TRANSLATE_3D, VISIBILITY_HIDDEN, VISIBILITY_VISIBLE, ZEROS_TRANSLATE_3D,
 } from '../../const';
@@ -99,6 +100,8 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
 
   private _listItemRef = viewChild<ElementRef<HTMLLIElement>>('listItem');
 
+  private _listItemContentRef = viewChild<ElementRef<HTMLLIElement>>('content');
+
   constructor() {
     super();
     this._id = NgVirtualGridItemComponent.__nextId = NgVirtualGridItemComponent.__nextId === Number.MAX_SAFE_INTEGER
@@ -110,7 +113,7 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
   private update() {
     const data = this._data;
     if (data) {
-      const styles = this._elementRef.nativeElement.style;
+      const element = this._elementRef.nativeElement, styles = element.style;
       styles.zIndex = data.config.zIndex;
       if (data.config.snapped) {
         styles.transform = data.config.sticky === 1 ? ZEROS_TRANSLATE_3D : `${TRANSLATE_3D}(${data.config.isVertical ? 0 : data.measures.x}${PX}, ${data.config.isVertical ? data.measures.y : 0}${PX} , 0)`;
@@ -145,7 +148,28 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
         { width, height } = el.getBoundingClientRect();
       return { width, height };
     }
-    return { width: 0, height: 0 };
+    return { width: DEFAULT_MIN_COLUMN_SIZE, height: DEFAULT_MIN_ROW_SIZE };
+  }
+
+  getContentBounds(): ISize {
+    const content = this._listItemContentRef();
+    if (content) {
+      const el: HTMLElement = content.nativeElement,
+        { width, height } = el.getBoundingClientRect();
+
+      const list: HTMLLIElement | undefined = this._listItemRef()?.nativeElement;
+      let borderWX = 0, borderWY = 0;
+      if (list) {
+        const computedStyle = window.getComputedStyle(list);
+        borderWX += parseFloat(computedStyle.borderRightWidth);
+        borderWX += parseFloat(computedStyle.borderLeftWidth);
+        borderWY += parseFloat(computedStyle.borderTopWidth);
+        borderWY += parseFloat(computedStyle.borderBottomWidth);
+      }
+
+      return { width: width + borderWX, height: height + borderWY };
+    }
+    return { width: DEFAULT_MIN_COLUMN_SIZE, height: DEFAULT_MIN_ROW_SIZE };
   }
 
   show() {

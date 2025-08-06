@@ -1,9 +1,10 @@
-import { Component, viewChild } from '@angular/core';
+import { Component, viewChild, ViewEncapsulation } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgVirtualGridComponent } from '../../projects/ng-virtual-grid/src/public-api';
 import { LOGO } from './const';
 import { IColumnsSize, IRowsSize, IVirtualGridCollection, IVirtualGridColumnCollection, IVirtualGridStickyMap, VirtualGridRow } from '../../projects/ng-virtual-grid/src/lib/models';
 import { Id } from '../../projects/ng-virtual-grid/src/lib/types';
+import { PersistentStore } from './utils';
 
 const ROWS = 1000, COLUMNS = 100;
 
@@ -87,7 +88,7 @@ for (let i = 0, l = ROWS; i < l; i++) {
     columns.push({ id: id, value, isBorder });
   }
   if (i === 0 || i === l - 1) {
-    GROUP_DYNAMIC_ROWS_SIZE_MAP[rowId] = 35;
+    GROUP_DYNAMIC_ROWS_SIZE_MAP[rowId] = 40;
   }
   GROUP_DYNAMIC_ITEMS.push({ id: rowId, columns });
 }
@@ -107,11 +108,26 @@ for (let i = 0, l = ROWS; i < l; i++) {
   GROUP_ITEMS.push({ id: rowId, columns });
 }
 
+const getDynamicRowsSize = () => {
+  const defaultValue = GROUP_DYNAMIC_ROWS_SIZE_MAP,
+    storedValue = {}, //PersistentStore.get('rows'),
+    result = { ...defaultValue, ...storedValue || {} };
+  return result;
+};
+
+const getDynamicColumnsSize = () => {
+  const defaultValue = GROUP_DYNAMIC_COLUMNS_SIZE_MAP,
+    storedValue = {}, //PersistentStore.get('columns'),
+    result = { ...defaultValue, ...storedValue || {} };
+  return result;
+};
+
 @Component({
   selector: 'app-root',
   imports: [FormsModule, NgVirtualGridComponent],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.scss'
+  styleUrl: './app.component.scss',
+  encapsulation: ViewEncapsulation.None
 })
 export class AppComponent {
   readonly logo = LOGO;
@@ -125,8 +141,8 @@ export class AppComponent {
 
   groupDynamicItems = GROUP_DYNAMIC_ITEMS;
   groupDynamicItemsStickyMap = GROUP_DYNAMIC_ITEMS_STICKY_MAP;
-  groupDynamicColumnsSize = GROUP_DYNAMIC_COLUMNS_SIZE_MAP;
-  groupDynamicRowsSize = GROUP_DYNAMIC_ROWS_SIZE_MAP;
+  groupDynamicColumnsSize = getDynamicColumnsSize();
+  groupDynamicRowsSize = getDynamicRowsSize();
 
   private _minId: Id = this.groupDynamicItems.length > 0 ? this.groupDynamicItems[0].id : 0;
   get minId() { return this._minId; };
@@ -160,5 +176,27 @@ export class AppComponent {
 
   onItemClick(data: VirtualGridRow) {
     // console.info(`Click: Item ${data['name']} (ID: ${data.id})`);
+  }
+
+  onRowsSizeChangedHandler(data: IRowsSize) {
+    let rowsData = PersistentStore.get('rows');
+    if (rowsData) {
+      rowsData = { ...rowsData, ...data };
+      PersistentStore.set('rows', rowsData);
+      return;
+    }
+
+    PersistentStore.set('rows', data);
+  }
+
+  onColumnsSizeChangedHandler(data: IColumnsSize) {
+    let coolumnsData = PersistentStore.get('columns');
+    if (coolumnsData) {
+      coolumnsData = { ...coolumnsData, ...data };
+      PersistentStore.set('columns', coolumnsData);
+      return;
+    }
+
+    PersistentStore.set('columns', data);
   }
 }

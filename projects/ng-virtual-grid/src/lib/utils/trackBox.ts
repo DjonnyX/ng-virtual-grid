@@ -5,7 +5,7 @@ import { Id } from "../types/id";
 import { CacheMap, CMap } from "./cacheMap";
 import { Tracker } from "./tracker";
 import { IPoint, IRect, ISize } from "../types";
-import { DEFAULT_BUFFER_SIZE, DEFAULT_COLUMN_SIZE, DEFAULT_ROW_SIZE, HEIGHT_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME, X_PROP_NAME, Y_PROP_NAME } from "../const";
+import { DEFAULT_BUFFER_SIZE, DEFAULT_COLUMN_SIZE, DEFAULT_MIN_ROW_SIZE, DEFAULT_ROW_SIZE, HEIGHT_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME, X_PROP_NAME, Y_PROP_NAME } from "../const";
 import { IColumnsSize, IRowsSize, IVirtualGridColumnCollection, IVirtualGridStickyMap, VirtualGridRow } from "../models";
 import { bufferInterpolation } from "./buffer-interpolation";
 import { BaseVirtualListItemComponent } from "../models/base-virtual-list-item-component";
@@ -247,12 +247,14 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         }
         for (let rowId in v) {
             const value = v[rowId];
-            if (value === null || value === undefined) {
+            if (value === undefined) {
                 this._customRowsSizeMap.delete(rowId);
             } else {
                 this._customRowsSizeMap.set(rowId, value);
             }
-            this.set(rowId, { ...this.get(rowId) || {}, height: value } as any);
+            if (value !== undefined) {
+                this.set(rowId, { ...this.get(rowId) || {}, height: value } as any);
+            }
         }
     }
 
@@ -267,7 +269,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         for (let columnId in v) {
             const value = v[columnId], items = this._columnsMap.get(columnId);
             this._columnsStructureMap.set(columnId, value !== undefined);
-            if (value === null || value === undefined) {
+            if (value === undefined) {
                 this._customColumnsSizeMap.delete(columnId);
             } else {
                 this._customColumnsSizeMap.set(columnId, value);
@@ -276,7 +278,9 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                 for (let i = 0, l = items.length; i < l; i++) {
                     const item = items[i], id = item.id;
                     this._customSizeMap.set(id, value);
-                    this.set(id, { ...this.get(id) || {}, width: value } as any);
+                    if (value !== undefined) {
+                        this.set(id, { ...this.get(id) || {}, width: value } as any);
+                    }
                 }
             }
         }
@@ -292,11 +296,18 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         this.lifeCircleDo();
     }
 
+    private _rowSize: number = 0;
+
+    private _itemSize: number = 0;
+
     /**
      * Scans the collection for deleted items and flushes the deleted item cache.
      */
     resetCollection<I extends { id: Id; columns: Array<I & { rowId?: Id; columnId?: Id }>; }, C extends Array<I>>(currentCollection: C | null | undefined,
         rowSize: number, itemSize: number): void {
+        this._rowSize = rowSize;
+        this._itemSize = itemSize;
+
         if (currentCollection !== undefined && currentCollection !== null && currentCollection === this._previousCollection) {
             console.warn('Attention! The collection must be immutable.');
             return;
@@ -999,7 +1010,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                 const id = items[i].id, columnId = i, size = this.get(id)?.[sizeProperty] || typicalItemSize;
 
                 if (id !== stickyItem?.id && id !== endStickyItem?.id) {
-                    
+
                     const snapped = snap && (stickyMap[id] === 1 && pos <= scrollSize || stickyMap[id] === 2 && pos >= scrollSize + boundsSize - size),
                         measures = {
                             x: isVertical ? stickyMap[id] === 1 ? 0 : boundsSize - size : pos,
@@ -1131,8 +1142,9 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             this._map.set(itemId, { ...itemCache, ...bounds } as any);
             if (rowId !== undefined) {
                 if (!rowDict.hasOwnProperty(rowId)) {
-                    rowDict[rowId] = 0;
+                    rowDict[rowId] = DEFAULT_MIN_ROW_SIZE;
                 }
+                const bounds = component.instance.getContentBounds();
                 rowDict[rowId] = Math.max(rowDict[rowId], bounds.height);
             }
         }
