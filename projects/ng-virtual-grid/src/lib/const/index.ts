@@ -4,8 +4,6 @@ export const DEFAULT_COLUMN_SIZE = 24;
 
 export const DEFAULT_MIN_COLUMN_SIZE = 12;
 
-export const DEFAULT_ITEM_SIZE = 24;
-
 export const DEFAULT_ROW_SIZE = 24;
 
 export const DEFAULT_MIN_ROW_SIZE = 12;

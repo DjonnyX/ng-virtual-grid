@@ -3,7 +3,6 @@ import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, Templat
 import { IRenderVirtualListItem } from '../../models/render-item.model';
 import { ISize } from '../../types';
 import {
-  DEFAULT_MIN_COLUMN_SIZE, DEFAULT_MIN_ROW_SIZE,
   DEFAULT_ZINDEX, DISPLAY_BLOCK, DISPLAY_NONE, HIDDEN_ZINDEX, POSITION_ABSOLUTE, POSITION_STICKY, PX, SIZE_100_PERSENT,
   SIZE_AUTO, TRANSLATE_3D, VISIBILITY_HIDDEN, VISIBILITY_VISIBLE, ZEROS_TRANSLATE_3D,
 } from '../../const';
@@ -148,7 +147,7 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
         { width, height } = el.getBoundingClientRect();
       return { width, height };
     }
-    return { width: DEFAULT_MIN_COLUMN_SIZE, height: DEFAULT_MIN_ROW_SIZE };
+    return { width: this.service.minColumnSize, height: this.service.minRowSize };
   }
 
   getContentBounds(): ISize {
@@ -169,7 +168,7 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
 
       return { width: width + borderWX, height: height + borderWY };
     }
-    return { width: DEFAULT_MIN_COLUMN_SIZE, height: DEFAULT_MIN_ROW_SIZE };
+    return { width: this.service.minColumnSize, height: this.service.minRowSize };
   }
 
   show() {
