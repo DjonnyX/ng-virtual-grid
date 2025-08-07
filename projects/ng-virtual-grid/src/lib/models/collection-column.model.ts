@@ -12,6 +12,10 @@ export type VirtualGridColumn<C = Object> = C & {
      */
     rowId?: Id;
     /**
+     * Unique identifier of the column.
+     */
+    columnId?: Id;
+    /**
      * Unique identifier of the element.
      */
     id: Id;

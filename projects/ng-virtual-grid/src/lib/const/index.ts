@@ -1,14 +1,14 @@
 import { SnappingMethods } from "../enums";
 
-export const DEFAULT_COLUMN_SIZE = 200;
+export const DEFAULT_COLUMN_SIZE = 24;
 
-export const DEFAULT_MIN_COLUMN_SIZE = 10;
+export const DEFAULT_MIN_COLUMN_SIZE = 12;
 
-export const DEFAULT_ITEM_SIZE = 120;
+export const DEFAULT_ITEM_SIZE = 24;
 
-export const DEFAULT_ROW_SIZE = 120;
+export const DEFAULT_ROW_SIZE = 24;
 
-export const DEFAULT_MIN_ROW_SIZE = 10;
+export const DEFAULT_MIN_ROW_SIZE = 12;
 
 export const DEFAULT_BUFFER_SIZE = 2;
 

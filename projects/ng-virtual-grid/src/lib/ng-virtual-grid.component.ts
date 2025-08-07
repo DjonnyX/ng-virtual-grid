@@ -16,6 +16,7 @@ import {
   DEFAULT_COLUMN_SIZE,
   DEFAULT_RESIZE_ROWS_ENABLED,
   DEFAULT_RESIZE_COLUMNS_ENABLED,
+  DEFAULT_MIN_ROW_SIZE,
 } from './const';
 import { IColumnsSize, IRowsSize, IScrollEvent, IVirtualGridCollection, IVirtualGridStickyMap } from './models';
 import { Id, ISize } from './types';
@@ -76,6 +77,16 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
    * Fires when the list has completed scrolling.
    */
   onScrollEnd = output<IScrollEvent>();
+
+  /**
+   * Fires when the row size is changed.
+   */
+  onRowsSizeChanged = output<IRowsSize>();
+
+  /**
+   * Fires when the column size is changed.
+   */
+  onColumnsSizeChanged = output<IColumnsSize>();
 
   private _itemsOptions = {
     transform: (v: IVirtualGridCollection | undefined) => {
@@ -314,10 +325,14 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       tap(v => {
         const { rowId, columnId, width, height } = v;
         if (height !== 0 && rowId !== undefined) {
-          this._trackBox.updateRowsSize({ [rowId]: height });
+          const data: IRowsSize = { [rowId]: height };
+          this._trackBox.updateRowsSize(data);
+          this.onRowsSizeChanged.emit(data);
         }
         if (width !== 0 && columnId !== undefined) {
-          this._trackBox.updateColumnSize({ [columnId]: width });
+          const data: IColumnsSize = { [columnId]: width };
+          this._trackBox.updateColumnSize(data);
+          this.onColumnsSizeChanged.emit(data);
         }
       }),
     ).subscribe();

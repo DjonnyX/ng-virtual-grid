@@ -20,6 +20,7 @@ export abstract class BaseVirtualListItemComponent {
     abstract set renderer(v: TemplateRef<any> | undefined);
     abstract get element(): HTMLElement;
     public abstract getBounds(): ISize;
+    public abstract getContentBounds(): ISize;
     public abstract show(): void;
     public abstract hide(): void;
 }
