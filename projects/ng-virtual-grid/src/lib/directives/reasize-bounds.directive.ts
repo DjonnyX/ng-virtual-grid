@@ -1,7 +1,7 @@
 import { Directive, ElementRef, inject, input, output } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { BehaviorSubject, combineLatest, filter, fromEvent, map, tap } from 'rxjs';
-import { DEFAULT_MIN_COLUMN_SIZE, DEFAULT_MIN_ROW_SIZE, DEFAULT_RESIZE_COLUMNS_ENABLED, DEFAULT_RESIZE_ROWS_ENABLED } from '../const';
+import { DEFAULT_RESIZE_COLUMNS_ENABLED, DEFAULT_RESIZE_ROWS_ENABLED } from '../const';
 import { PointerDetectService } from '../service/pointer-detect.service';
 import { NgVirtualGridService } from '../ng-virtual-grid.service';
 
@@ -166,9 +166,9 @@ export class ReasizeBoundsDirective {
         const width = start.width + (clientX - start.clientX), height = start.height + (clientY - start.clientY),
           event = new ResizeEvent(
             resizeColumnsEnabled && (capture === CaptureSide.LEFT || capture === CaptureSide.RIGHT)
-              ? width > DEFAULT_MIN_COLUMN_SIZE ? width : DEFAULT_MIN_COLUMN_SIZE : 0,
+              ? width > this._service.minColumnSize ? width : this._service.minColumnSize : 0,
             resizeRowsEnabled && (capture === CaptureSide.TOP || capture === CaptureSide.BOTTOM)
-              ? height > DEFAULT_MIN_ROW_SIZE ? height : DEFAULT_MIN_ROW_SIZE : 0,
+              ? height > this._service.minRowSize ? height : this._service.minRowSize : 0,
             capture,
           );
         this.resize.emit(event);

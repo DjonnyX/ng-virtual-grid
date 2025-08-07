@@ -5,7 +5,7 @@ import { Id } from "../types/id";
 import { CacheMap, CMap } from "./cacheMap";
 import { Tracker } from "./tracker";
 import { IPoint, IRect, ISize } from "../types";
-import { DEFAULT_BUFFER_SIZE, DEFAULT_COLUMN_SIZE, DEFAULT_MIN_ROW_SIZE, DEFAULT_ROW_SIZE, HEIGHT_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME, X_PROP_NAME, Y_PROP_NAME } from "../const";
+import { DEFAULT_BUFFER_SIZE, DEFAULT_COLUMN_SIZE, DEFAULT_MIN_COLUMN_SIZE, DEFAULT_MIN_ROW_SIZE, DEFAULT_ROW_SIZE, HEIGHT_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME, X_PROP_NAME, Y_PROP_NAME } from "../const";
 import { IColumnsSize, IRowsSize, IVirtualGridColumnCollection, IVirtualGridStickyMap, VirtualGridRow } from "../models";
 import { bufferInterpolation } from "./buffer-interpolation";
 import { BaseVirtualListItemComponent } from "../models/base-virtual-list-item-component";
@@ -240,6 +240,10 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
     protected _columnsMap = new CMap<Id, IVirtualGridColumnCollection>();
 
     protected _columnsStructureMap = new CMap<Id, boolean>();
+
+    minColumnSize = DEFAULT_MIN_COLUMN_SIZE;
+
+    minRowSize = DEFAULT_MIN_ROW_SIZE;
 
     updateRowsSize(v: IRowsSize) {
         if (!v) {
@@ -1137,7 +1141,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             this._map.set(itemId, { ...itemCache, ...bounds } as any);
             if (rowId !== undefined) {
                 if (!rowDict.hasOwnProperty(rowId)) {
-                    rowDict[rowId] = DEFAULT_MIN_ROW_SIZE;
+                    rowDict[rowId] = this.minRowSize;
                 }
                 const bounds = component.instance.getContentBounds();
                 rowDict[rowId] = Math.max(rowDict[rowId], bounds.height);

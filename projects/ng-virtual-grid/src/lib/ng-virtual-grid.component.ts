@@ -9,7 +9,7 @@ import { combineLatest, debounceTime, distinctUntilChanged, filter, map, Observa
 import { NgVirtualGridItemComponent } from './components/ng-virtual-grid-item/ng-virtual-grid-item.component';
 import {
   BEHAVIOR_AUTO, BEHAVIOR_INSTANT,
-  DEFAULT_ENABLED_BUFFER_OPTIMIZATION, DEFAULT_ITEM_SIZE, DEFAULT_BUFFER_SIZE, DEFAULT_GRID_SIZE, DEFAULT_SNAP, DEFAULT_SNAPPING_METHOD,
+  DEFAULT_ENABLED_BUFFER_OPTIMIZATION, DEFAULT_BUFFER_SIZE, DEFAULT_GRID_SIZE, DEFAULT_SNAP, DEFAULT_SNAPPING_METHOD,
   HEIGHT_PROP_NAME, LEFT_PROP_NAME, MAX_SCROLL_TO_ITERATIONS, PX, SCROLL, SCROLL_END, TOP_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME,
   DEFAULT_MAX_BUFFER_SIZE,
   DEFAULT_ROW_SIZE,
@@ -17,6 +17,7 @@ import {
   DEFAULT_RESIZE_ROWS_ENABLED,
   DEFAULT_RESIZE_COLUMNS_ENABLED,
   DEFAULT_MIN_ROW_SIZE,
+  DEFAULT_MIN_COLUMN_SIZE,
 } from './const';
 import { IColumnsSize, IRowsSize, IScrollEvent, IVirtualGridCollection, IVirtualGridStickyMap } from './models';
 import { Id, ISize } from './types';
@@ -127,21 +128,35 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
    */
   stickyMap = input<IVirtualGridStickyMap>({});
 
-  private _itemSizeOptions = {
+  private _columnSizeOptions = {
     transform: (v: number | undefined) => {
       if (v === undefined) {
-        return DEFAULT_ITEM_SIZE;
+        return DEFAULT_COLUMN_SIZE;
       }
       const val = Number(v);
-      return Number.isNaN(val) || val <= 0 ? DEFAULT_ITEM_SIZE : val;
+      return Number.isNaN(val) || val <= 0 ? DEFAULT_COLUMN_SIZE : val;
     },
   } as any;
 
   /**
-   * If direction = 'vertical', then the height of a typical element. If direction = 'horizontal', then the width of a typical element.
-   * Ignored if the dynamicSize property is true.
+   * Typical column size. Default value is 24.
    */
-  itemSize = input<number>(DEFAULT_ROW_SIZE, { ...this._itemSizeOptions });
+  columnSize = input<number>(DEFAULT_COLUMN_SIZE, { ...this._columnSizeOptions });
+
+  private _minColumnSizeOptions = {
+    transform: (v: number | undefined) => {
+      if (v === undefined) {
+        return DEFAULT_MIN_COLUMN_SIZE;
+      }
+      const val = Number(v);
+      return Number.isNaN(val) || val <= 0 ? DEFAULT_MIN_COLUMN_SIZE : val;
+    },
+  } as any;
+
+  /**
+   * Minimum column size. Default value is 12.
+   */
+  minColumnSize = input<number>(DEFAULT_MIN_COLUMN_SIZE, { ...this._minColumnSizeOptions });
 
   private _rowSizeOptions = {
     transform: (v: number | undefined) => {
@@ -157,6 +172,21 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
    * Typical row size. Default value is 24.
    */
   rowSize = input<number>(DEFAULT_ROW_SIZE, { ...this._rowSizeOptions });
+
+  private _minRowSizeOptions = {
+    transform: (v: number | undefined) => {
+      if (v === undefined) {
+        return DEFAULT_MIN_ROW_SIZE;
+      }
+      const val = Number(v);
+      return Number.isNaN(val) || val <= 0 ? DEFAULT_MIN_ROW_SIZE : val;
+    },
+  } as any;
+
+  /**
+   * Minimum row size. Default value is 12.
+   */
+  minRowSize = input<number>(DEFAULT_MIN_ROW_SIZE, { ...this._minRowSizeOptions });
 
   /**
    * Number of elements outside the scope of visibility. Default value is 2.
@@ -285,7 +315,25 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       $rowsSize = toObservable(this.rowsSize),
       $columnsSize = toObservable(this.columnsSize),
       $resizeRowsEnabled = toObservable(this.resizeRowsEnabled),
-      $resizeColumnsEnabled = toObservable(this.resizeColumnsEnabled);
+      $resizeColumnsEnabled = toObservable(this.resizeColumnsEnabled),
+      $minColumnSize = toObservable(this.minColumnSize),
+      $minRowSize = toObservable(this.minRowSize);
+
+    $minColumnSize.pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      tap(v => {
+        this._service.minColumnSize = this._trackBox.minColumnSize = v;
+      }),
+    ).subscribe();
+
+    $minRowSize.pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      tap(v => {
+        this._service.minRowSize = this._trackBox.minRowSize = v;
+      }),
+    ).subscribe();
 
     $resizeRowsEnabled.pipe(
       takeUntilDestroyed(),
@@ -355,8 +403,8 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       $rowSize = toObservable(this.rowSize).pipe(
         map(v => v <= 0 ? DEFAULT_ROW_SIZE : v),
       ),
-      $itemSize = toObservable(this.itemSize).pipe(
-        map(v => v <= 0 ? DEFAULT_ITEM_SIZE : v),
+      $columnSize = toObservable(this.columnSize).pipe(
+        map(v => v <= 0 ? DEFAULT_COLUMN_SIZE : v),
       ),
       $bufferSize = toObservable(this.bufferSize).pipe(
         map(v => v < 0 ? DEFAULT_BUFFER_SIZE : v),
@@ -371,22 +419,22 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       $enabledBufferOptimization = toObservable(this.enabledBufferOptimization),
       $cacheVersion = toObservable(this._cacheVersion);
 
-    combineLatest([$items, $rowSize, $itemSize]).pipe(
+    combineLatest([$items, $rowSize, $columnSize]).pipe(
       takeUntilDestroyed(),
       distinctUntilChanged(),
-      tap(([items, rowSize, itemSize]) => {
-        this._trackBox.resetCollection(items, rowSize, itemSize);
+      tap(([items, rowSize, columnSize]) => {
+        this._trackBox.resetCollection(items, rowSize, columnSize);
       }),
     ).subscribe();
 
-    combineLatest([this.$initialized, $bounds, $items, $stickyMap, $scrollSizeX, $scrollSizeY, $itemSize, $rowSize,
+    combineLatest([this.$initialized, $bounds, $items, $stickyMap, $scrollSizeX, $scrollSizeY, $columnSize, $rowSize,
       $bufferSize, $maxBufferSize, $snap, $enabledBufferOptimization, $cacheVersion,
     ]).pipe(
       takeUntilDestroyed(),
       distinctUntilChanged(),
       filter(([initialized]) => !!initialized),
       switchMap(([,
-        bounds, items, stickyMap, scrollSizeX, scrollSizeY, itemSize, rowSize, bufferSize, maxBufferSize,
+        bounds, items, stickyMap, scrollSizeX, scrollSizeY, columnSize, rowSize, bufferSize, maxBufferSize,
         snap, enabledBufferOptimization, cacheVersion,
       ]) => {
         const container = this._container();
@@ -395,7 +443,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
           let actualScrollSizeX = container.nativeElement.scrollLeft ?? 0, actualScrollSizeY = container.nativeElement.scrollTop ?? 0;
           const { width, height } = bounds,
             opts: IUpdateCollectionOptions<any, IVirtualGridCollection> = {
-              bounds: { width, height }, itemSize, rowSize,
+              bounds: { width, height }, itemSize: columnSize, rowSize,
               bufferSize, maxBufferSize, scrollSizeX: actualScrollSizeX, scrollSizeY: actualScrollSizeY, snap, enabledBufferOptimization,
             },
             { displayItems, totalSize, totalHeight } = this._trackBox.updateCollection(items, stickyMap, opts);
@@ -544,7 +592,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
     //   return;
     // }
 
-    // const dynamicSize = this.dynamicSize(), container = this._container(), itemSize = this.itemSize();
+    // const dynamicSize = this.dynamicSize(), container = this._container(), columnSize = this.columnSize();
     // if (container) {
     //   this.clearScrollToRepeatExecutionTimeout();
 
@@ -557,7 +605,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
     //       stickyMap = this.stickyMap(), items = this.items(), isVertical = this._isVertical, deltaX = this._trackBox.deltaX,
     //       deltaY = this._trackBox.deltaY,
     //       opts: IGetItemPositionOptions<any, IVirtualGridCollection> = {
-    //         bounds: { width, height }, collection: items, dynamicSize, isVertical: this._isVertical, itemSize,
+    //         bounds: { width, height }, collection: items, dynamicSize, isVertical: this._isVertical, columnSize,
     //         bufferSize: this.bufferSize(), maxBufferSize: this.maxBufferSize(),
     //         scrollSizeX: container.nativeElement.scrollLeft + deltaX,
     //         scrollSizeY: container.nativeElement.scrollTop + deltaY,
@@ -615,7 +663,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
     //   } else {
     //     const index = items.findIndex(item => item.id === id);
     //     if (index > -1) {
-    //       const scrollSize = index * this.itemSize();
+    //       const scrollSize = index * this.columnSize();
     //       const params: ScrollToOptions = { [this._isVertical ? TOP_PROP_NAME : LEFT_PROP_NAME]: scrollSize, behavior };
     //       container.nativeElement.scrollTo(params);
     //     }
