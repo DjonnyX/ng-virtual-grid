@@ -296,17 +296,11 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         this.lifeCircleDo();
     }
 
-    private _rowSize: number = 0;
-
-    private _itemSize: number = 0;
-
     /**
      * Scans the collection for deleted items and flushes the deleted item cache.
      */
     resetCollection<I extends { id: Id; columns: Array<I & { rowId?: Id; columnId?: Id }>; }, C extends Array<I>>(currentCollection: C | null | undefined,
         rowSize: number, itemSize: number): void {
-        this._rowSize = rowSize;
-        this._itemSize = itemSize;
 
         if (currentCollection !== undefined && currentCollection !== null && currentCollection === this._previousCollection) {
             console.warn('Attention! The collection must be immutable.');
@@ -688,7 +682,8 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                 const bounds = map.get(id) || { width: typicalItemSize, height: typicalItemSize },
                     actualSize = isVertical
                         ? this._customRowsSizeMap.get(id) ?? this._customSizeMap.get(id) ?? bounds.height
-                        : this._customColumnsSizeMap.get(i) ?? this._customSizeMap.get(id) ?? bounds.width;
+                        : this._customColumnsSizeMap.get(i) ?? this._customSizeMap.get(id) ?? bounds.width,
+                    actualBounds: Partial<ISize> = { [sizeProperty]: actualSize };
                 componentSize = actualSize;
                 if (!isVertical && this._columnsStructureMap.get(i)) {
                     itemDisplayMethod = ItemDisplayMethods.NOT_CHANGED;
@@ -700,12 +695,12 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                             const snapshotBounds = snapshot.get(id);
                             const componentSnapshotSize = componentSize - (snapshotBounds ? snapshotBounds[sizeProperty] : typicalItemSize);
                             componentSizeDelta = componentSnapshotSize;
-                            map.set(id, { ...bounds, method: ItemDisplayMethods.NOT_CHANGED });
+                            map.set(id, { ...bounds, ...actualBounds, method: ItemDisplayMethods.NOT_CHANGED });
                             break;
                         }
                         case ItemDisplayMethods.CREATE: {
                             componentSizeDelta = typicalItemSize;
-                            map.set(id, { ...bounds, method: ItemDisplayMethods.NOT_CHANGED });
+                            map.set(id, { ...bounds, ...actualBounds, method: ItemDisplayMethods.NOT_CHANGED });
                             break;
                         }
                     }

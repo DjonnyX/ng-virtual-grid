@@ -110,14 +110,14 @@ for (let i = 0, l = ROWS; i < l; i++) {
 
 const getDynamicRowsSize = () => {
   const defaultValue = GROUP_DYNAMIC_ROWS_SIZE_MAP,
-    storedValue = {}, //PersistentStore.get('rows'),
+    storedValue = PersistentStore.get('rows'),
     result = { ...defaultValue, ...storedValue || {} };
   return result;
 };
 
 const getDynamicColumnsSize = () => {
   const defaultValue = GROUP_DYNAMIC_COLUMNS_SIZE_MAP,
-    storedValue = {}, //PersistentStore.get('columns'),
+    storedValue = PersistentStore.get('columns'),
     result = { ...defaultValue, ...storedValue || {} };
   return result;
 };
