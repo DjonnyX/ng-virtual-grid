@@ -690,8 +690,8 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                     actualBounds: Partial<ISize> = { [sizeProperty]: actualSize };
                 componentSize = actualSize;
                 if (!isVertical && this._columnsStructureMap.get(i)) {
-                    itemDisplayMethod = ItemDisplayMethods.NOT_CHANGED;
-                    map.set(id, { ...bounds, method: ItemDisplayMethods.NOT_CHANGED });
+                    itemDisplayMethod = ItemDisplayMethods.UPDATE;
+                    map.set(id, { ...bounds, method: ItemDisplayMethods.UPDATE });
                 } else {
                     itemDisplayMethod = bounds?.method ?? ItemDisplayMethods.UPDATE;
                     switch (itemDisplayMethod) {
@@ -699,12 +699,12 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                             const snapshotBounds = snapshot.get(id);
                             const componentSnapshotSize = componentSize - (snapshotBounds ? snapshotBounds[sizeProperty] : typicalItemSize);
                             componentSizeDelta = componentSnapshotSize;
-                            map.set(id, { ...bounds, ...actualBounds, method: ItemDisplayMethods.NOT_CHANGED });
+                            map.set(id, { ...bounds, ...actualBounds, method: ItemDisplayMethods.UPDATE });
                             break;
                         }
                         case ItemDisplayMethods.CREATE: {
                             componentSizeDelta = typicalItemSize;
-                            map.set(id, { ...bounds, ...actualBounds, method: ItemDisplayMethods.NOT_CHANGED });
+                            map.set(id, { ...bounds, ...actualBounds, method: ItemDisplayMethods.UPDATE });
                             break;
                         }
                     }
@@ -771,7 +771,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                 totalItemsToDisplayEndWeight += componentSize;
                 itemsFromDisplayEndToOffsetEnd = itemsFromStartToDisplayEnd + rightItemsOffset;
 
-                if (y <= scrollSize - componentSize) {
+                if (y <= scrollSize + size) {
                     switch (itemDisplayMethod) {
                         case ItemDisplayMethods.CREATE: {
                             leftSizeOfAddedItems += componentSizeDelta;
@@ -1012,8 +1012,8 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
                     const snapped = snap && (stickyMap[id] === 1 && pos <= scrollSize || stickyMap[id] === 2 && pos >= scrollSize + boundsSize - size),
                         measures = {
-                            x: isVertical ? stickyMap[id] === 1 ? 0 : boundsSize - size : pos,
-                            y: isVertical ? pos : stickyMap[id] === 2 ? boundsSize - size : startY ?? 0,
+                            x: isVertical ? snap && stickyMap[id] === 1 ? 0 : boundsSize - size : pos,
+                            y: isVertical ? pos : snap && stickyMap[id] === 2 ? boundsSize - size : startY ?? 0,
                             width: isVertical ? normalizedItemWidth : size,
                             height: rowSize,
                             delta: 0,
@@ -1037,14 +1037,14 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                     const itemData: I = items[i];
 
                     const item: IRenderVirtualListItem = { id, rowId, columnId, measures, data: itemData, config };
-                    if (!nextSticky && stickyItemIndex < i && stickyMap[id] === 1 && (pos <= scrollSize + size + stickyItemSize)) {
+                    if (snap && !nextSticky && stickyItemIndex < i && stickyMap[id] === 1 && (pos <= scrollSize + size + stickyItemSize)) {
                         item.measures.x = isVertical ? 0 : snapped ? actualSnippedPosition : pos;
                         item.measures.y = isVertical ? snapped ? actualSnippedPosition : pos : 0;
                         nextSticky = item;
                         nextSticky.config.snapped = snapped;
                         nextSticky.measures.delta = isVertical ? (item.measures.y - scrollSize) : (item.measures.x - scrollSize);
                         nextSticky.config.zIndex = '3';
-                    } else if (!nextEndSticky && endStickyItemIndex > i && stickyMap[id] === 2 && (pos >= scrollSize + boundsSize - size - endStickyItemSize)) {
+                    } else if (snap && !nextEndSticky && endStickyItemIndex > i && stickyMap[id] === 2 && (pos >= scrollSize + boundsSize - size - endStickyItemSize)) {
                         item.measures.x = isVertical ? 0 : snapped ? actualEndSnippedPosition - size : pos;
                         item.measures.y = isVertical ? snapped ? actualEndSnippedPosition - size : pos : 0;
                         nextEndSticky = item;

@@ -39,6 +39,8 @@ export class NgVirtualGridService {
 
   minRowSize = DEFAULT_MIN_ROW_SIZE;
 
+  isAjacentResizeCellMode: boolean = false;
+
   listId = 0;
 
   host: ElementRef<HTMLUListElement> | undefined;

@@ -11,7 +11,7 @@
     margin: 0;
     padding: 0;
     overflow: hidden;
-    background-color: #ffffff;
+    background-color: inherit;
     width: inherit;
     height: auto;
     overflow: auto;
@@ -20,4 +20,5 @@
 .ngvg-item__content {
     width: auto;
     height: auto;
+    box-sizing: border-box;
 }

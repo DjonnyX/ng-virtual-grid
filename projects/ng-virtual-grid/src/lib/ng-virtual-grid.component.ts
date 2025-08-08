@@ -22,7 +22,7 @@ import {
 import { IColumnsSize, IRowsSize, IScrollEvent, IVirtualGridCollection, IVirtualGridStickyMap } from './models';
 import { Id, ISize } from './types';
 import { IRenderVirtualListCollection } from './models/render-collection.model';
-import { Direction, Directions, SnappingMethod } from './enums';
+import { CellResizeMode, CellResizeModes } from './enums';
 import { ScrollEvent, toggleClassName } from './utils';
 import { IGetItemPositionOptions, IUpdateCollectionOptions, TRACK_BOX_CHANGE_EVENT_NAME, TrackBox } from './utils/trackBox';
 import { isSnappingMethodAdvenced } from './utils/snapping-method';
@@ -31,6 +31,7 @@ import { BaseVirtualListItemComponent } from './models/base-virtual-list-item-co
 import { Component$1 } from './models/component.model';
 import { NgVirtualGridService } from './ng-virtual-grid.service';
 import { PointerDetectService } from './service/pointer-detect.service';
+import { isAdjacentCellMode } from './utils/isAdjacentCellMode';
 
 /**
  * Virtual list component.
@@ -189,6 +190,11 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   minRowSize = input<number>(DEFAULT_MIN_ROW_SIZE, { ...this._minRowSizeOptions });
 
   /**
+   * Cell resize mode
+   */
+  cellResizeMode = input<CellResizeMode>(CellResizeModes.SELF);
+
+  /**
    * Number of elements outside the scope of visibility. Default value is 2.
    */
   bufferSize = input<number>(DEFAULT_BUFFER_SIZE);
@@ -317,7 +323,16 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       $resizeRowsEnabled = toObservable(this.resizeRowsEnabled),
       $resizeColumnsEnabled = toObservable(this.resizeColumnsEnabled),
       $minColumnSize = toObservable(this.minColumnSize),
-      $minRowSize = toObservable(this.minRowSize);
+      $minRowSize = toObservable(this.minRowSize),
+      $cellResizeMode = toObservable(this.cellResizeMode);
+
+    $cellResizeMode.pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      tap(v => {
+        this._service.isAjacentResizeCellMode = isAdjacentCellMode(v, CellResizeModes.ADJACENT);
+      }),
+    ).subscribe();
 
     $minColumnSize.pipe(
       takeUntilDestroyed(),

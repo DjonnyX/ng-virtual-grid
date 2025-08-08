@@ -24,6 +24,7 @@ import { NgVirtualGridService } from '../../ng-virtual-grid.service';
   styleUrl: './ng-virtual-grid-item.component.scss',
   host: {
     'class': 'ngvg__item',
+    'part': 'grid-item',
   },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -143,8 +144,8 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
   getBounds(): ISize {
     const list = this._listItemRef();
     if (list) {
-      const el: HTMLElement = list.nativeElement,
-        { width, height } = el.getBoundingClientRect();
+      const el: HTMLElement = list.nativeElement;
+      const { width, height } = el.getBoundingClientRect();
       return { width, height };
     }
     return { width: this.service.minColumnSize, height: this.service.minRowSize };
@@ -195,11 +196,19 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
   }
 
   protected onResizeHandler(event: ResizeEvent) {
-    this.service.onResize(
-      event.method === CaptureSide.TOP ? this.prevRowId! : this.rowId!,
-      event.method === CaptureSide.LEFT ? this.prevColumnId! : this.columnId!,
-      event.width, event.height,
-    );
+    if (this.service.isAjacentResizeCellMode) {
+      this.service.onResize(
+        event.method === CaptureSide.TOP ? this.prevRowId! : this.rowId!,
+        event.method === CaptureSide.LEFT ? this.prevColumnId! : this.columnId!,
+        event.width, event.height,
+      );
+    } else {
+      this.service.onResize(
+        this.rowId!,
+        this.columnId!,
+        event.width, event.height,
+      );
+    }
   }
 }
 

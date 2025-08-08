@@ -12,7 +12,8 @@ interface IRowData { }
 
 interface IColumnData {
   value: string;
-  isBorder?: boolean;
+  isBorderStart?: boolean;
+  isBorderEnd?: boolean;
 }
 
 const CHARS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
@@ -63,29 +64,39 @@ for (let i = 0, l = ROWS; i < l; i++) {
   const columns: IVirtualGridColumnCollection<IColumnData> = [];
   const rowId = index;
   index++;
-  const type = i === 0 || Math.random() > .895 ? 'group-header' : 'item';
   for (let j = 0, l1 = COLUMNS; j < l1; j++) {
     index++;
     const id = index;
-    GROUP_DYNAMIC_ITEMS_STICKY_MAP[id] = type === 'group-header' ? 1 : 0;
     if (j === 0 || j === l1 - 1) {
       GROUP_DYNAMIC_COLUMNS_SIZE_MAP[j] = 36;
     }
-    let value: string, isBorder: boolean;
+    let value: string, isBorderStart: boolean = false, isBorderEnd: boolean = false;
     if ((i === 0 && j === 0) || (i === 0 && j === l1 - 1) || (i === l - 1 && j === 0) || (i === l - 1 && j === l1 - 1)) {
       value = '№';
-      isBorder = true;
+      if ((i === 0 && j === 0) || (i === l - 1 && j === 0)) {
+        isBorderStart = true;
+      } else if ((i === 0 && j === l1 - 1) || (i === l - 1 && j === l1 - 1)) {
+        isBorderEnd = true;
+      }
     } else if (i === 0 || i === l - 1) {
       value = String(j);
-      isBorder = true;
+      if (i === 0) {
+        isBorderStart = true;
+      } else if (i === l - 1) {
+        isBorderEnd = true;
+      }
     } else if (j === 0 || j === l1 - 1) {
       value = String(i);
-      isBorder = true;
+      if (j === 0) {
+        isBorderStart = true;
+      } else if (j === l1 - 1) {
+        isBorderEnd = true;
+      }
     } else {
       value = generateText();
-      isBorder = false;
     }
-    columns.push({ id: id, value, isBorder });
+    GROUP_DYNAMIC_ITEMS_STICKY_MAP[id] = isBorderStart ? 1 : isBorderEnd ? 2 : 0;
+    columns.push({ id: id, value, isBorderStart, isBorderEnd });
   }
   if (i === 0 || i === l - 1) {
     GROUP_DYNAMIC_ROWS_SIZE_MAP[rowId] = 40;

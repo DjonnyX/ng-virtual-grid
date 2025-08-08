@@ -80,11 +80,19 @@ export class ReasizeBoundsDirective {
           element.style.userSelect = 'none';
           return;
         } else if (resizeColumnsEnabled && cx >= 0 && cx <= threshold) {
-          const hostElement = this._service.host?.nativeElement, adjacentId = this.leftLiId(),
-            adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
-          this._pointerDetectService.target = adjacentTarget;
-          if (adjacentTarget) {
-            const adjacentElement = adjacentTarget as HTMLElement, { x, y, width, height } = adjacentElement.getBoundingClientRect();
+          if (this._service.isAjacentResizeCellMode) {
+            const hostElement = this._service.host?.nativeElement, adjacentId = this.leftLiId(),
+              adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
+            this._pointerDetectService.target = adjacentTarget;
+            if (adjacentTarget) {
+              const adjacentElement = adjacentTarget as HTMLElement, { x, y, width, height } = adjacentElement.getBoundingClientRect();
+              _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
+              _$capture.next(CaptureSide.LEFT);
+              _$down.next(true);
+              element.style.cursor = 'col-resize';
+              element.style.userSelect = 'none';
+            }
+          } else {
             _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
             _$capture.next(CaptureSide.LEFT);
             _$down.next(true);
@@ -101,11 +109,19 @@ export class ReasizeBoundsDirective {
           element.style.userSelect = 'none';
           return;
         } else if (resizeRowsEnabled && cy >= 0 && cy <= threshold) {
-          const hostElement = this._service.host?.nativeElement, adjacentId = this.topLiId(),
-            adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
-          this._pointerDetectService.target = adjacentTarget;
-          if (adjacentTarget) {
-            const adjacentElement = adjacentTarget as HTMLElement, { x, y, width, height } = adjacentElement.getBoundingClientRect();
+          if (this._service.isAjacentResizeCellMode) {
+            const hostElement = this._service.host?.nativeElement, adjacentId = this.topLiId(),
+              adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
+            this._pointerDetectService.target = adjacentTarget;
+            if (adjacentTarget) {
+              const adjacentElement = adjacentTarget as HTMLElement, { x, y, width, height } = adjacentElement.getBoundingClientRect();
+              _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
+              _$capture.next(CaptureSide.TOP);
+              _$down.next(true);
+              element.style.cursor = 'row-resize';
+              element.style.userSelect = 'none';
+            }
+          } else {
             _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
             _$capture.next(CaptureSide.TOP);
             _$down.next(true);

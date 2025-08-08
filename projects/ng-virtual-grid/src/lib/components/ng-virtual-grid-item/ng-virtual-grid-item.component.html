@@ -1,9 +1,11 @@
 @let item = data();
 @let renderer = itemRenderer();
 
-<li [id]="liId" #listItem part="item" reasizeBounds [resizeRowsEnabled]="service.resizeRows()" [leftLiId]="leftLiId"
-    [topLiId]="topLiId" [resizeColumnsEnabled]="service.resizeColumns()" class="ngvg-item__container border" [ngClass]="{'snapped': item ? item.config.snapped : false,
-        'snapped-out': item ? item.config.snappedOut : false}" (resize)="onResizeHandler($event)">
+<li [id]="liId" #listItem part="item" [part]="item && item.config.sticky > 0 ? 'item-sticky':'item'" reasizeBounds
+    [resizeRowsEnabled]="service.resizeRows()" [leftLiId]="leftLiId" [topLiId]="topLiId"
+    [resizeColumnsEnabled]="service.resizeColumns()" class="ngvg-item__container"
+    [ngClass]="{'snapped': item ? item.config.snapped : false,
+        'snapped-out': item ? item.config.snappedOut : false, 'snap': item ? item.config.snap : false, 'sticky': item ? item.config.sticky > 0 : false}" (resize)="onResizeHandler($event)">
     @if (item && renderer) {
     <div #content part="item-content" class="ngvg-item__content">
         <ng-container [ngTemplateOutlet]="renderer"
