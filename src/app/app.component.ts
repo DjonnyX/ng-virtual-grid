@@ -31,7 +31,7 @@ const generateWord = () => {
 };
 
 const generateText = () => {
-  const length = 1 + Math.floor(Math.random() * 5), result = [];
+  const length = 1 + Math.floor(Math.random() * 10), result = [];
   while (result.length < length) {
     result.push(generateWord());
   }
@@ -77,6 +77,8 @@ for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
         isBorderStart = true;
       } else if ((i === 0 && j === l1 - 1) || (i === l - 1 && j === l1 - 1)) {
         isBorderEnd = true;
+      } else {
+        isBorderStart = true;
       }
     } else if (i === 0 || i === l - 1) {
       value = String(j);

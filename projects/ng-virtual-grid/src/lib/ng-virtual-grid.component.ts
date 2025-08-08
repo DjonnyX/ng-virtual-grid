@@ -393,8 +393,15 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
           this.onRowsSizeChanged.emit(data);
         }
         if (width !== 0 && columnId !== undefined) {
-          const data: IColumnsSize = { [columnId]: width };
+          const data: IColumnsSize = { [columnId]: width }, items = this.items();
+          let rowData: { [id: Id]: number } = {};
+          for (let i = 0, l = items.length; i < l; i++) {
+            const row = items[i], rowId = row.id;
+            rowData[rowId] = this._trackBox.getCacheByRowId(rowId) ?? this.minRowSize();
+          }
+          this._trackBox.updateRowsSize(rowData);
           this._trackBox.updateColumnSize(data);
+          this.onRowsSizeChanged.emit(rowData);
           this.onColumnsSizeChanged.emit(data);
         }
       }),

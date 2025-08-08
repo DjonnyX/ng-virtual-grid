@@ -179,14 +179,19 @@ export class ReasizeBoundsDirective {
       filter(([resizeRowsEnabled, resizeColumnsEnabled, down, capture]) => (resizeRowsEnabled || resizeColumnsEnabled) && down && capture !== CaptureSide.NONE),
       map(([resizeRowsEnabled, resizeColumnsEnabled, , capture, start, mouseEvent]) => ({ resizeRowsEnabled, resizeColumnsEnabled, capture, start, ...mouseEvent })),
       tap(({ resizeRowsEnabled, resizeColumnsEnabled, capture, start, clientX, clientY }) => {
-        const width = start.width + (clientX - start.clientX), height = start.height + (clientY - start.clientY),
-          event = new ResizeEvent(
-            resizeColumnsEnabled && (capture === CaptureSide.LEFT || capture === CaptureSide.RIGHT)
-              ? width > this._service.minColumnSize ? width : this._service.minColumnSize : 0,
-            resizeRowsEnabled && (capture === CaptureSide.TOP || capture === CaptureSide.BOTTOM)
-              ? height > this._service.minRowSize ? height : this._service.minRowSize : 0,
-            capture,
-          );
+        const width = start.width + (clientX - start.clientX), height = start.height + (clientY - start.clientY);
+        let w = 0, h = 0;
+        if (resizeColumnsEnabled) {
+          if ((capture === CaptureSide.LEFT || capture === CaptureSide.RIGHT)) {
+            w = width > this._service.minColumnSize ? width : this._service.minColumnSize;
+          }
+        }
+        if (resizeRowsEnabled) {
+          if (capture === CaptureSide.TOP || capture === CaptureSide.BOTTOM) {
+            h = height > this._service.minRowSize ? height : this._service.minRowSize;
+          }
+        }
+        const event = new ResizeEvent(w, h, capture);
         this.resize.emit(event);
       }),
     ).subscribe();

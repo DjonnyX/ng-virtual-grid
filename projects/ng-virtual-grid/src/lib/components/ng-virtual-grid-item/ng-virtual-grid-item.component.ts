@@ -51,14 +51,12 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
       return;
     }
 
-    this._data = v;
-
-    const rowId = this.rowId, colId = Number(this.columnId);
+    const rowId = v?.rowId, colId = Number(v?.columnId);
     this.liId = `li-${this.service.listId}-${rowId}-${colId}`;
-    this.leftLiId = this._data?.config.prevColId !== undefined ? `li-${this.service.listId}-${rowId}-${this._data?.config.prevColId}` : undefined;
-    this.topLiId = this._data?.config.prevRowId !== undefined ? `li-${this.service.listId}-${this._data?.config.prevRowId}-${colId}` : undefined;
+    this.leftLiId = v?.config.prevColId !== undefined ? `li-${this.service.listId}-${rowId}-${v?.config.prevColId}` : undefined;
+    this.topLiId = v?.config.prevRowId !== undefined ? `li-${this.service.listId}-${v?.config.prevRowId}-${colId}` : undefined;
 
-    this.update();
+    this.update(v);
 
     this.data.set(v);
   }
@@ -110,13 +108,13 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
     this.liId = `li-${this.service.listId}-${this._id}`;
   }
 
-  private update() {
-    const data = this._data;
+  private update(data: IRenderVirtualListItem | undefined) {
     if (data) {
-
-      const content = this._listItemContentRef(), elementContent = content?.nativeElement;
-      if (elementContent) {
-        elementContent.style.display = DISPLAY_NONE;
+      const isNewItem = this.itemId !== data.id, content = this._listItemContentRef(), elementContent = content?.nativeElement;
+      if (isNewItem) {
+        if (elementContent) {
+          elementContent.style.display = DISPLAY_NONE;
+        }
       }
 
       const element = this._elementRef.nativeElement, styles = element.style;
@@ -147,10 +145,12 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
         }
       }
 
-      if (elementContent) {
+      if (isNewItem && elementContent) {
         elementContent.style.display = DISPLAY_BLOCK;
       }
     }
+
+    this._data = data;
   }
 
   getBounds(): ISize {

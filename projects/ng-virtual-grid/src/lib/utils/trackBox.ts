@@ -257,7 +257,8 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                 this._customRowsSizeMap.set(rowId, value);
             }
             if (value !== undefined) {
-                this.set(rowId, { ...this.get(rowId) || {}, height: value } as any);
+                const cacheItem = this.get(rowId) || {};
+                this.set(rowId, { ...cacheItem, height: value } as any);
             }
         }
     }
@@ -283,7 +284,8 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                     const item = items[i], id = item.id;
                     this._customSizeMap.set(id, value);
                     if (value !== undefined) {
-                        this.set(id, { ...this.get(id) || {}, width: value } as any);
+                        const cacheItem = this.get(id);
+                        this.set(id, { ...cacheItem || {}, width: value } as any);
                     }
                 }
             }
@@ -940,7 +942,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                             snapped: true,
                             snappedOut: false,
                             isSnappingMethodAdvanced,
-                            zIndex: '1',
+                            zIndex: '2',
                             prevColId: i > 0 ? i - 1 : undefined,
                             prevRowId,
                         };
@@ -979,7 +981,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                             snapped: true,
                             snappedOut: false,
                             isSnappingMethodAdvanced,
-                            zIndex: '1',
+                            zIndex: '2',
                             prevColId: i > 0 ? i - 1 : undefined,
                             prevRowId,
                         };
@@ -1031,7 +1033,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                         };
 
                     if (snapped) {
-                        config.zIndex = '2';
+                        config.zIndex = '3';
                     }
 
                     const itemData: I = items[i];
@@ -1043,12 +1045,12 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                         nextSticky = item;
                         nextSticky.config.snapped = snapped;
                         nextSticky.measures.delta = isVertical ? (item.measures.y - scrollSize) : (item.measures.x - scrollSize);
-                        nextSticky.config.zIndex = '3';
+                        nextSticky.config.zIndex = '4';
                     } else if (snap && !nextEndSticky && endStickyItemIndex > i && stickyMap[id] === 2 && (pos >= scrollSize + boundsSize - size - endStickyItemSize)) {
                         item.measures.x = isVertical ? 0 : snapped ? actualEndSnippedPosition - size : pos;
                         item.measures.y = isVertical ? snapped ? actualEndSnippedPosition - size : pos : 0;
                         nextEndSticky = item;
-                        nextEndSticky.config.zIndex = '3';
+                        nextEndSticky.config.zIndex = '4';
                         nextEndSticky.config.snapped = snapped;
                         nextEndSticky.measures.delta = isVertical ? (item.measures.y - scrollSize) : (item.measures.x - scrollSize);
                     }
@@ -1118,12 +1120,18 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         return undefined;
     }
 
+    private _rowsCache: { [id: Id]: { [colId: Id]: number } } = {};
+
+    getCacheByRowId(id: Id) {
+        return this.has(id) ? this.get(id)?.height : this.minRowSize;
+    }
+
     protected cacheElements(): void {
         if (!this._displayComponents) {
             return;
         }
 
-        const rowDict: { [id: Id]: number } = {};
+        const rowDict = this._rowsCache;
         for (let i = 0, l = this._displayComponents.length; i < l; i++) {
             const component: ComponentRef<C> = this._displayComponents[i], rowId = component.instance.rowId, columnId = component.instance.columnId,
                 itemId = component.instance.itemId;
@@ -1141,18 +1149,23 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             this._map.set(itemId, { ...itemCache, ...bounds } as any);
             if (rowId !== undefined) {
                 if (!rowDict.hasOwnProperty(rowId)) {
-                    rowDict[rowId] = this.minRowSize;
+                    rowDict[rowId] = {};
                 }
                 const bounds = component.instance.getContentBounds();
-                rowDict[rowId] = Math.max(rowDict[rowId], bounds.height);
+                rowDict[rowId][itemId] = bounds.height;
             }
         }
         for (let id in rowDict) {
+            const row = rowDict[id];
             if (this._customRowsSizeMap.get(id) !== undefined) {
                 continue;
             }
+            let maxSize = this.minRowSize;
+            for (let colId in row) {
+                maxSize = Math.max(maxSize, row[colId]);
+            }
             const rowBounds = this.get(id);
-            this._map.set(id, { ...rowBounds, width: rowBounds?.width, height: rowDict[id] } as any);
+            this._map.set(id, { ...rowBounds, width: rowBounds?.width, height: maxSize } as any);
         }
     }
 
