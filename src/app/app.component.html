@@ -21,7 +21,7 @@
       <h2>Virtual grid (dynamic row size with resize)</h2>
       <ng-virtual-grid class="grid" [resizeRowsEnabled]="true" [resizeColumnsEnabled]="true" [items]="groupDynamicItems"
         [columnsSize]="groupDynamicColumnsSize" [rowsSize]="groupDynamicRowsSize" [itemRenderer]="itemRenderer"
-        cellResizeMode="self" [minColumnSize]="36" [minRowSize]="36" [columnSize]="300" [rowSize]="100"
+        cellResizeMode="adjacent" [minColumnSize]="36" [minRowSize]="36" [columnSize]="300" [rowSize]="100"
         [bufferSize]="7" [snap]="false" [stickyMap]="groupDynamicItemsStickyMap"
         (onRowsSizeChanged)="onRowsSizeChangedHandler($event)"
         (onColumnsSizeChanged)="onColumnsSizeChangedHandler($event)"></ng-virtual-grid>

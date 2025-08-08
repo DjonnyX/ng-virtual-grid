@@ -192,7 +192,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   /**
    * Cell resize mode
    */
-  cellResizeMode = input<CellResizeMode>(CellResizeModes.SELF);
+  cellResizeMode = input<CellResizeMode>(CellResizeModes.ADJACENT);
 
   /**
    * Number of elements outside the scope of visibility. Default value is 2.
