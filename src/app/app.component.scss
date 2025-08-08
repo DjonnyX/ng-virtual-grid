@@ -188,11 +188,11 @@ input {
     }
 }
 
-// .grid.regular {
-//     &::part(grid-item) {
-//         transition: all 200ms ease-out;
-//     }
-// }
+.grid {
+    &::part(grid-item) {
+        transition: outline 10ms linear;
+    }
+}
 
 .grid {
     width: 100%;

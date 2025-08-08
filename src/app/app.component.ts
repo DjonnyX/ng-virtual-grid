@@ -6,7 +6,7 @@ import { IColumnsSize, IRowsSize, IVirtualGridCollection, IVirtualGridColumnColl
 import { Id } from '../../projects/ng-virtual-grid/src/lib/types';
 import { PersistentStore } from './utils';
 
-const ROWS = 1000, COLUMNS = 100;
+const ROWS = 1000, COLUMNS = 100, DYNAMIC_ROWS = 2000, DYNAMIC_COLUMNS = 50;
 
 interface IRowData { }
 
@@ -23,7 +23,7 @@ const generateLetter = () => {
 }
 
 const generateWord = () => {
-  const length = 5 + Math.floor(Math.random() * 50), result = [];
+  const length = 5 + Math.floor(Math.random() * 20), result = [];
   while (result.length < length) {
     result.push(generateLetter());
   }
@@ -31,7 +31,7 @@ const generateWord = () => {
 };
 
 const generateText = () => {
-  const length = 1 + Math.floor(Math.random() * 8), result = [];
+  const length = 1 + Math.floor(Math.random() * 5), result = [];
   while (result.length < length) {
     result.push(generateWord());
   }
@@ -60,11 +60,11 @@ const GROUP_ITEMS: IVirtualGridCollection<IRowData, IColumnData> = [],
   GROUP_ITEMS_STICKY_MAP: IVirtualGridStickyMap = {};
 
 let index = 0;
-for (let i = 0, l = ROWS; i < l; i++) {
+for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
   const columns: IVirtualGridColumnCollection<IColumnData> = [];
   const rowId = index;
   index++;
-  for (let j = 0, l1 = COLUMNS; j < l1; j++) {
+  for (let j = 0, l1 = DYNAMIC_COLUMNS; j < l1; j++) {
     index++;
     const id = index;
     if (j === 0 || j === l1 - 1) {

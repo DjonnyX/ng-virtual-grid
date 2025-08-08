@@ -113,6 +113,12 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
   private update() {
     const data = this._data;
     if (data) {
+
+      const content = this._listItemContentRef(), elementContent = content?.nativeElement;
+      if (elementContent) {
+        elementContent.style.display = DISPLAY_NONE;
+      }
+
       const element = this._elementRef.nativeElement, styles = element.style;
       styles.zIndex = data.config.zIndex;
       if (data.config.snapped) {
@@ -132,11 +138,17 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
         const liElement = listItem.nativeElement;
         if (this._data?.config.customSize) {
           liElement.style.height = `${data.measures.height}${PX}`;
-          liElement.style.minHeight = 'initial';
+          liElement.style.maxHeight = `${data.measures.height}${PX}`;
+          liElement.style.minHeight = 'unset';
         } else {
           liElement.style.minHeight = `${data.measures.height}${PX}`;
-          liElement.style.height = 'initial';
+          liElement.style.maxHeight = 'unset';
+          liElement.style.height = 'unset';
         }
+      }
+
+      if (elementContent) {
+        elementContent.style.display = DISPLAY_BLOCK;
       }
     }
   }

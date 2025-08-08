@@ -22,7 +22,7 @@
       <ng-virtual-grid class="grid" [resizeRowsEnabled]="true" [resizeColumnsEnabled]="true" [items]="groupDynamicItems"
         [columnsSize]="groupDynamicColumnsSize" [rowsSize]="groupDynamicRowsSize" [itemRenderer]="itemRenderer"
         cellResizeMode="adjacent" [minColumnSize]="36" [minRowSize]="36" [columnSize]="300" [rowSize]="100"
-        [bufferSize]="7" [snap]="false" [stickyMap]="groupDynamicItemsStickyMap"
+        [bufferSize]="5" [snap]="false" [stickyMap]="groupDynamicItemsStickyMap"
         (onRowsSizeChanged)="onRowsSizeChangedHandler($event)"
         (onColumnsSizeChanged)="onColumnsSizeChangedHandler($event)"></ng-virtual-grid>
     </div>

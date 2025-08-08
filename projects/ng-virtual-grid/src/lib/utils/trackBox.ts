@@ -771,7 +771,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                 totalItemsToDisplayEndWeight += componentSize;
                 itemsFromDisplayEndToOffsetEnd = itemsFromStartToDisplayEnd + rightItemsOffset;
 
-                if (y <= scrollSize + size) {
+                if (y <= scrollSize) {
                     switch (itemDisplayMethod) {
                         case ItemDisplayMethods.CREATE: {
                             leftSizeOfAddedItems += componentSizeDelta;
@@ -1132,9 +1132,9 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             }
             const itemCache = this.get(itemId);
             if (columnId !== undefined && !this._columnsStructureMap.has(columnId)) {
-                this._columnsStructureMap.set(columnId, this._columnsStructureMap.get(columnId) || itemCache?.method === ItemDisplayMethods.NOT_CHANGED);
+                this._columnsStructureMap.set(columnId, this._columnsStructureMap.get(columnId) || itemCache?.method === ItemDisplayMethods.NOT_CHANGED || itemCache?.method === ItemDisplayMethods.UPDATE);
             }
-            if (this._customSizeMap.get(itemId) !== undefined || (rowId !== undefined && this._customRowsSizeMap.get(rowId) !== undefined)) {
+            if (this._customSizeMap.get(itemId) || (rowId !== undefined && this._customRowsSizeMap.get(rowId))) {
                 continue;
             }
             const bounds = component.instance.getBounds();
