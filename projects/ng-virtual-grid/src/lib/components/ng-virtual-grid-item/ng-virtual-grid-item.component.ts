@@ -156,18 +156,7 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
     if (content) {
       const el: HTMLElement = content.nativeElement,
         { width, height } = el.getBoundingClientRect();
-
-      const list: HTMLLIElement | undefined = this._listItemRef()?.nativeElement;
-      let borderWX = 0, borderWY = 0;
-      if (list) {
-        const computedStyle = window.getComputedStyle(list);
-        borderWX += parseFloat(computedStyle.borderRightWidth);
-        borderWX += parseFloat(computedStyle.borderLeftWidth);
-        borderWY += parseFloat(computedStyle.borderTopWidth);
-        borderWY += parseFloat(computedStyle.borderBottomWidth);
-      }
-
-      return { width: width + borderWX, height: height + borderWY };
+      return { width: width, height: height };
     }
     return { width: this.service.minColumnSize, height: this.service.minRowSize };
   }
