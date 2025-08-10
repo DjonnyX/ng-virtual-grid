@@ -1,5 +1,4 @@
 :host {
-    display: block;
     position: absolute;
     display: inline-flex;
     left: 0;
@@ -11,7 +10,6 @@
 .ngvg-item__container {
     margin: 0;
     padding: 0;
-    overflow: hidden;
     background-color: inherit;
     width: inherit;
     height: auto;

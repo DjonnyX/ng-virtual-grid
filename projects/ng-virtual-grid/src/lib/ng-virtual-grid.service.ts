@@ -3,6 +3,7 @@ import { Id } from './types';
 import { Subject } from 'rxjs';
 import { ICellResizeEvent } from './models/cell-resize-event.model';
 import { DEFAULT_MIN_COLUMN_SIZE, DEFAULT_MIN_ROW_SIZE, DEFAULT_RESIZE_COLUMNS_ENABLED, DEFAULT_RESIZE_ROWS_ENABLED } from './const';
+import { TrackBox } from './utils/trackBox';
 
 @Injectable({
   providedIn: 'root'
@@ -45,7 +46,13 @@ export class NgVirtualGridService {
 
   host: ElementRef<HTMLUListElement> | undefined;
 
+  private _trackBox: TrackBox | undefined;
+
   constructor() { }
+
+  initialize(trackBox: TrackBox) {
+    this._trackBox = trackBox;
+  }
 
   onResize(rowId: Id, columnId: Id, width: number, height: number) {
     this._$resize.next({
@@ -54,5 +61,9 @@ export class NgVirtualGridService {
       width,
       height,
     });
+  }
+
+  getRowSizeById(id: Id) {
+    return this._trackBox ? this._trackBox.getRowSizeById(id) : undefined;
   }
 }

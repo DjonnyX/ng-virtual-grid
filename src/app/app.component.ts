@@ -67,6 +67,8 @@ for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
   index++;
   if (i === 0) {
     GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP[rowId] = 1;
+  } else if (i === l - 20) {
+    GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP[rowId] = 1;
   } else if (i === l - 1) {
     GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP[rowId] = 2;
   }
@@ -74,10 +76,12 @@ for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
     index++;
     const id = index;
     if (j === 0 || j === l1 - 1) {
-      if (j === 0) {
-        GROUP_DYNAMIC_ITEMS_STICKY_COLUMNS_MAP[j] = 1;
-      } else if (j === l1 - 1) {
-        GROUP_DYNAMIC_ITEMS_STICKY_COLUMNS_MAP[j] = 2;
+      if (i === 0 || i === l - 1) {
+        if (j === 0) {
+          GROUP_DYNAMIC_ITEMS_STICKY_COLUMNS_MAP[j] = 1;
+        } else if (j === l1 - 1) {
+          GROUP_DYNAMIC_ITEMS_STICKY_COLUMNS_MAP[j] = 2;
+        }
       }
       GROUP_DYNAMIC_COLUMNS_SIZE_MAP[j] = 36;
     }

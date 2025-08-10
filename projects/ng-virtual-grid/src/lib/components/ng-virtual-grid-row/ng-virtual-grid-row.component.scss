@@ -7,19 +7,13 @@
     overflow: hidden;
 }
 
-.ngvg-item__container {
-    display: inline-block;
+.ngvg-row__container {
+    display: inline;
     margin: 0;
     padding: 0;
     overflow: hidden;
     background-color: inherit;
-    width: inherit;
-    height: auto;
-    overflow: auto;
-}
-
-.ngvg-item__content {
     width: auto;
     height: auto;
-    box-sizing: border-box;
+    overflow: hidden;
 }

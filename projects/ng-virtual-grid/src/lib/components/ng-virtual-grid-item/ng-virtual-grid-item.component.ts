@@ -134,7 +134,7 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
         } else {
           liElement.style.minHeight = `${data.measures.height}${PX}`;
           liElement.style.maxHeight = 'unset';
-          liElement.style.height = 'unset';
+          liElement.style.height = SIZE_AUTO;
         }
       }
 
@@ -157,14 +157,14 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
   }
 
   getContentBounds(): ISize {
-    return this.getBounds();
-    // const content = this._listItemContentRef();
-    // if (content) {
-    //   const el: HTMLElement = content.nativeElement,
-    //     { width, height } = el.getBoundingClientRect();
-    //   return { width: width, height: height };
-    // }
-    // return { width: this.service.minColumnSize, height: this.service.minRowSize };
+    // return this.getBounds();
+    const content = this._listItemContentRef();
+    if (content) {
+      const el: HTMLElement = content.nativeElement,
+        { width, height } = el.getBoundingClientRect();
+      return { width: width, height: height };
+    }
+    return { width: this.service.minColumnSize, height: this.service.minRowSize };
   }
 
   show() {

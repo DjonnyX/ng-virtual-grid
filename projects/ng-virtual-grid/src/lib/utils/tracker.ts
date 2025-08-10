@@ -64,14 +64,11 @@ export class Tracker<C extends BaseVirtualListItemComponent = any> {
         direction: ScrollDirection): void {
         if (rows && rowComponents) {
             this.trackComponents(rows, rowComponents, direction);
-            if (items && components) {
-                for (let i = 0, l = items.length; i < l; i++) {
-                    const _items = items[i], _components = components[i];
-                    if (!_items || !_components) {
-                        continue;
-                    }
-                    this.trackComponents(_items, _components, direction);
-                }
+        }
+        if (items && components) {
+            for (let i = 0, l = items.length; i < l; i++) {
+                const _items = items[i], _components = components[i];
+                this.trackComponents(_items, _components, direction);
             }
         }
     }

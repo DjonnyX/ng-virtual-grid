@@ -1,6 +1,6 @@
 @let item = data();
 
-<li #listItem part="item-row" [part]="odd ? 'item-row-odd': 'item-row-even'" class="ngvg-item__container"
+<li #listItem part="item" [part]="'item-row ' + odd ? 'item-row-odd': 'item-row-even'" class="ngvg-item__container"
     [ngClass]="{'snapped': item ? item.config.snapped : false,
         'snapped-out': item ? item.config.snappedOut : false, 'snap': item ? item.config.snapped : false, 'sticky': item ? item.config.sticky > 0 : false}">
     <ng-container #renderersContainer></ng-container>

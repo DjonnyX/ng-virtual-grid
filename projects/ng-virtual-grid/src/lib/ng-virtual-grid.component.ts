@@ -320,6 +320,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
     this._id = NgVirtualGridComponent.__nextId;
 
     this._service.listId = this._id;
+    this._service.initialize(this._trackBox);
     this._pointerDetectservice.capture();
 
     this._initialized = signal<boolean>(false);
@@ -613,11 +614,11 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
     for (let i = 0, l = components.length; i < l; i++) {
       const cells = components[i];
       for (let j = 0, l1 = cells.length; j < l1; j++) {
-        const cell = cells[i];
+        const cell = cells[j];
         if (cell) {
           const id = cell.instance.id;
           cell.instance.renderer = itemRenderer || this._itemRenderer();
-          doMap[id] = i;
+          doMap[id] = j;
         }
       }
 

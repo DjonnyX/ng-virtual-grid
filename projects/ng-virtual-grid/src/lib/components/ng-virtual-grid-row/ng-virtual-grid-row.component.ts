@@ -30,6 +30,12 @@ import { NgVirtualGridService } from '../../ng-virtual-grid.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NgVirtualGridRowComponent extends BaseVirtualListItemComponent {
+  public override getBounds(): ISize {
+    throw new Error('Method not implemented.');
+  }
+  public override getContentBounds(): ISize {
+    throw new Error('Method not implemented.');
+  }
   private static __nextId: number = 0;
 
   @ViewChild('renderersContainer', { read: ViewContainerRef })
@@ -96,8 +102,6 @@ export class NgVirtualGridRowComponent extends BaseVirtualListItemComponent {
 
   private _listItemRef = viewChild<ElementRef<HTMLLIElement>>('listItem');
 
-  private _listItemContentRef = viewChild<ElementRef<HTMLLIElement>>('content');
-
   constructor() {
     super();
     this._id = NgVirtualGridRowComponent.__nextId = NgVirtualGridRowComponent.__nextId === Number.MAX_SAFE_INTEGER
@@ -106,13 +110,6 @@ export class NgVirtualGridRowComponent extends BaseVirtualListItemComponent {
 
   private update(data: IRenderVirtualListItem | undefined) {
     if (data) {
-      const isNewItem = this.itemId !== data.id, content = this._listItemContentRef(), elementContent = content?.nativeElement;
-      if (isNewItem) {
-        if (elementContent) {
-          elementContent.style.display = DISPLAY_NONE;
-        }
-      }
-
       const element = this._elementRef.nativeElement, styles = element.style;
       styles.zIndex = data.config.zIndex;
       styles.position = data.config.snapped ? POSITION_STICKY : POSITION_ABSOLUTE;
@@ -123,44 +120,20 @@ export class NgVirtualGridRowComponent extends BaseVirtualListItemComponent {
       const listItem = this._listItemRef();
       if (listItem) {
         const liElement = listItem.nativeElement;
+        const rowSizeCache = this.service.getRowSizeById(data.id) ?? data.measures.height;
         if (this._data?.config.customSize) {
-          liElement.style.height = `${data.measures.height}${PX}`;
-          liElement.style.maxHeight = `${data.measures.height}${PX}`;
+          liElement.style.height = `${rowSizeCache}${PX}`;
+          liElement.style.maxHeight = `${rowSizeCache}${PX}`;
           liElement.style.minHeight = 'unset';
         } else {
-          liElement.style.minHeight = `${data.measures.height}${PX}`;
+          liElement.style.minHeight = `${rowSizeCache}${PX}`;
           liElement.style.maxHeight = 'unset';
-          liElement.style.height = 'unset';
+          liElement.style.height = SIZE_AUTO;
         }
-      }
-
-      if (isNewItem && elementContent) {
-        elementContent.style.display = DISPLAY_BLOCK;
       }
     }
 
     this._data = data;
-  }
-
-  getBounds(): ISize {
-    const list = this._listItemRef();
-    if (list) {
-      const el: HTMLElement = list.nativeElement;
-      const { width, height } = el.getBoundingClientRect();
-      return { width, height };
-    }
-    return { width: this.service.minColumnSize, height: this.service.minRowSize };
-  }
-
-  getContentBounds(): ISize {
-    return this.getBounds();
-    // const content = this._listItemContentRef();
-    // if (content) {
-    //   const el: HTMLElement = content.nativeElement,
-    //     { width, height } = el.getBoundingClientRect();
-    //   return { width: width, height: height };
-    // }
-    // return { width: this.service.minColumnSize, height: this.service.minRowSize };
   }
 
   show() {

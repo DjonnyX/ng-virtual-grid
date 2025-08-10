@@ -953,12 +953,12 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                     if (sticky === 1) {
                         const measures = {
                             x: isVertical ? 0 : actualSnippedPosition,
-                            y: isVertical ? actualSnippedPosition : 0,
+                            y: isVertical ? 0 : 0,
                             width: isVertical ? normalizedItemWidth : size,
-                            height: rowSize,
+                            height: isVertical ? size : rowSize,
                             delta: 0,
                         }, config = {
-                            customSize: this._customRowsSizeMap.get(rowId) !== undefined || this._customSizeMap.get(id) !== undefined,
+                            customSize: rowId !== undefined && this._customRowsSizeMap.get(rowId) !== undefined || this._customSizeMap.get(id) !== undefined,
                             isVertical,
                             sticky,
                             snap,
@@ -991,13 +991,13 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                         size = this.get(id)?.[sizeProperty] || typicalItemSize;
                     if (sticky === 2) {
                         const w = isVertical ? normalizedItemWidth : size, h = isVertical ? size : normalizedItemHeight, measures = {
-                            x: isVertical ? 0 : actualSnippedPosition + actualEndSnippedPosition - size - this._scrollBarHorizontalWeight,
-                            y: isVertical ? actualSnippedPosition + actualEndSnippedPosition - size - this._scrollBarVerticalWeight : 0,
+                            x: isVertical ? 0 : actualSnippedPosition + actualEndSnippedPosition - w - this._scrollBarHorizontalWeight,
+                            y: isVertical ? actualEndSnippedPosition - h - this._scrollBarVerticalWeight : 0,
                             width: w,
-                            height: rowSize,
+                            height: isVertical ? size : rowSize,
                             delta: 0,
                         }, config = {
-                            customSize: this._customRowsSizeMap.get(rowId) !== undefined || this._customSizeMap.get(id) !== undefined,
+                            customSize: rowId !== undefined && this._customRowsSizeMap.get(rowId) !== undefined || this._customSizeMap.get(id) !== undefined,
                             isVertical,
                             sticky,
                             snap,
@@ -1032,22 +1032,21 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
                 const id = items[i].id, columnId = i, bounds = this.get(id), size = bounds?.[sizeProperty] || typicalItemSize;
                 if (id !== stickyItem?.id && id !== endStickyItem?.id) {
-
-                    const sticky = isVertical ? stickyMap[id] : stickyMap[i], stickyWithRow = rowDisplayObject?.config.sticky ?? 0, snapped = (snap && stickyWithRow > 0) || (((sticky === 1 && pos <= scrollSize) || (sticky === 2 && (pos >= (scrollSize + boundsSize - size))))),
+                    const w = isVertical ? normalizedItemWidth : size, sticky = isVertical ? stickyMap[id] : stickyMap[i], stickyWithRow = rowDisplayObject?.config.sticky ?? 0, snapped = ((snap && sticky === 1 && pos <= scrollSize) || (snap && sticky === 2 && (pos >= (scrollSize + boundsSize - size)))),
                         measures = {
-                            x: isVertical ? 0 : snap && sticky === 1 ? 0 : snap && sticky === 2 ? actualEndSnippedPosition - size - this._scrollBarHorizontalWeight : pos,
-                            y: isVertical ? snap && sticky === 1 ? 0 : snap && sticky === 2 ? actualEndSnippedPosition - size - this._scrollBarVerticalWeight : pos : 0,
-                            width: isVertical ? normalizedItemWidth : size,
+                            x: isVertical ? 0 : snapped && sticky === 1 ? 0 : snapped && sticky === 2 ? actualSnippedPosition + actualEndSnippedPosition - w - this._scrollBarHorizontalWeight : pos,
+                            y: isVertical ? snapped && sticky === 1 ? 0 : snapped && sticky === 2 ? actualEndSnippedPosition - size - this._scrollBarVerticalWeight : pos : 0,
+                            width: w,
                             height: rowSize,
                             delta: 0,
                         }, config = {
-                            customSize: this._customRowsSizeMap.get(rowId) !== undefined || this._customSizeMap.get(id) !== undefined,
+                            customSize: rowId !== undefined && this._customRowsSizeMap.get(rowId) !== undefined || this._customSizeMap.get(id) !== undefined,
                             isVertical,
-                            sticky: sticky,
+                            sticky,
                             snap,
-                            snapped: snapped,
+                            snapped: false,
                             snappedOut: false,
-                            zIndex: sticky > 0 || stickyWithRow > 0 ? String(sticky + 3) : '0',
+                            zIndex: sticky > 0 || stickyWithRow > 0 ? String(sticky) : '0',
                             prevColId: i > 0 ? i - 1 : undefined,
                             prevRowId,
                         };
@@ -1060,15 +1059,15 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
                     const item: IRenderVirtualListItem = { index: i, id, rowId, columnId, measures, data: itemData, config };
                     if (snap && !nextSticky && stickyItemIndex < i && sticky === 1 && (pos <= scrollSize + size + stickyItemSize)) {
-                        // item.measures.x = isVertical ? 0 : snapped ? actualSnippedPosition : pos;
-                        // item.measures.y = isVertical ? snapped ? actualSnippedPosition : pos : 0;
+                        item.measures.x = isVertical ? 0 : snapped ? actualSnippedPosition : pos;
+                        item.measures.y = isVertical ? snapped ? actualSnippedPosition : pos : 0;
                         nextSticky = item;
                         nextSticky.config.snapped = snapped;
                         nextSticky.measures.delta = isVertical ? (item.measures.y - scrollSize) : (item.measures.x - scrollSize);
                         nextSticky.config.zIndex = '4';
                     } else if (snap && !nextEndSticky && endStickyItemIndex > i && sticky === 2 && (pos >= scrollSize + boundsSize - size - endStickyItemSize)) {
-                        // item.measures.x = isVertical ? 0 : snapped ? actualEndSnippedPosition - size : pos;
-                        // item.measures.y = isVertical ? snapped ? actualEndSnippedPosition - size : pos : 0;
+                        item.measures.x = isVertical ? 0 : snapped ? actualEndSnippedPosition - size : pos;
+                        item.measures.y = isVertical ? snapped ? actualEndSnippedPosition - size : pos : 0;
                         nextEndSticky = item;
                         nextEndSticky.config.zIndex = '4';
                         nextEndSticky.config.snapped = snapped;
@@ -1087,27 +1086,27 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
             if (nextSticky && stickyItem && nextSticky.measures[axis] <= scrollSize + stickyItemSize) {
                 if (nextSticky.measures[axis] > scrollSize) {
-                    // stickyItem.measures[axis] = nextSticky.measures[axis] - stickyItemSize;
-                    // stickyItem.config.snapped = nextSticky.config.snapped = false;
-                    // stickyItem.config.snappedOut = true;
+                    stickyItem.measures[axis] = nextSticky.measures[axis] - stickyItemSize;
+                    stickyItem.config.snapped = nextSticky.config.snapped = false;
+                    stickyItem.config.snappedOut = true;
                     stickyItem.config.sticky = 1;
-                    // stickyItem.measures.delta = isVertical ? stickyItem.measures.y - scrollSize : stickyItem.measures.x - scrollSize;
+                    stickyItem.measures.delta = isVertical ? stickyItem.measures.y - scrollSize : stickyItem.measures.x - scrollSize;
                 } else {
                     nextSticky.config.snapped = true;
-                    // nextSticky.measures.delta = isVertical ? nextSticky.measures.y - scrollSize : nextSticky.measures.x - scrollSize;
+                    nextSticky.measures.delta = isVertical ? nextSticky.measures.y - scrollSize : nextSticky.measures.x - scrollSize;
                 }
             }
 
             if (nextEndSticky && endStickyItem && nextEndSticky.measures[axis] >= scrollSize + boundsSize - endStickyItemSize - nextEndSticky.measures[sizeProperty]) {
                 if (nextEndSticky.measures[axis] < scrollSize + boundsSize - endStickyItemSize) {
-                    // endStickyItem.measures[axis] = nextEndSticky.measures[axis] + nextEndSticky.measures[sizeProperty];
-                    // endStickyItem.config.snapped = nextEndSticky.config.snapped = false;
-                    // endStickyItem.config.snappedOut = true;
+                    endStickyItem.measures[axis] = nextEndSticky.measures[axis] + nextEndSticky.measures[sizeProperty];
+                    endStickyItem.config.snapped = nextEndSticky.config.snapped = false;
+                    endStickyItem.config.snappedOut = true;
                     endStickyItem.config.sticky = 2;
-                    // endStickyItem.measures.delta = isVertical ? endStickyItem.measures.y - scrollSize : endStickyItem.measures.x - scrollSize;
+                    endStickyItem.measures.delta = isVertical ? endStickyItem.measures.y - scrollSize : endStickyItem.measures.x - scrollSize;
                 } else {
                     nextEndSticky.config.snapped = true;
-                    // nextEndSticky.measures.delta = isVertical ? nextEndSticky.measures.y - scrollSize : nextEndSticky.measures.x - scrollSize;
+                    nextEndSticky.measures.delta = isVertical ? nextEndSticky.measures.y - scrollSize : nextEndSticky.measures.x - scrollSize;
                 }
             }
         }
@@ -1178,17 +1177,17 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                 }
             }
         }
-        for (let id in rowDict) {
-            const row = rowDict[id];
-            if (this._customRowsSizeMap.get(id) !== undefined) {
+        for (let rowId in rowDict) {
+            const row = rowDict[rowId];
+            if (this._customRowsSizeMap.get(rowId) !== undefined) {
                 continue;
             }
             let maxSize = this.minRowSize;
             for (let colId in row) {
                 maxSize = Math.max(maxSize, row[colId]);
             }
-            const rowBounds = this.get(id);
-            this._map.set(id, { ...rowBounds, width: rowBounds?.width, height: maxSize } as any);
+            const rowBounds = this.get(rowId);
+            this._map.set(rowId, { ...rowBounds, width: rowBounds?.width, height: maxSize } as any);
         }
     }
 
