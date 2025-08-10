@@ -1,35 +1,40 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, TemplateRef, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, TemplateRef, ViewChild, viewChild, ViewContainerRef } from '@angular/core';
 import { IRenderVirtualListItem } from '../../models/render-item.model';
 import { ISize } from '../../types';
 import {
-  DEFAULT_ZINDEX, DISPLAY_BLOCK, DISPLAY_NONE, HIDDEN_ZINDEX, POSITION_ABSOLUTE, POSITION_STICKY, PX, SIZE_100_PERSENT,
+  DEFAULT_ZINDEX, DISPLAY_BLOCK, DISPLAY_NONE, HIDDEN_ZINDEX, POSITION_ABSOLUTE, POSITION_STICKY, PX,
+  SIZE_100_PERSENT,
   SIZE_AUTO, TRANSLATE_3D, VISIBILITY_HIDDEN, VISIBILITY_VISIBLE, ZEROS_TRANSLATE_3D,
 } from '../../const';
 import { BaseVirtualListItemComponent } from '../../models/base-virtual-list-item-component';
 import { Component$1 } from '../../models/component.model';
-import { CaptureSide, ReasizeBoundsDirective, ResizeEvent } from '../../directives/reasize-bounds.directive';
+import { CaptureSide, ResizeEvent } from '../../directives/reasize-bounds.directive';
 import { NgVirtualGridService } from '../../ng-virtual-grid.service';
 
 /**
- * Virtual grid item component
- * @link https://github.com/DjonnyX/ng-virtual-list/blob/19.x/projects/ng-virtual-grid/src/lib/components/ng-virtual-grid-item.component.ts
+ * Virtual grid row component
+ * @link https://github.com/DjonnyX/ng-virtual-list/blob/19.x/projects/ng-virtual-grid/src/lib/components/ng-virtual-grid-row.component.ts
  * @author Evgenii Grebennikov
  * @email djonnyx@gmail.com
  */
 @Component({
-  selector: 'ng-virtual-grid-item',
-  imports: [CommonModule, ReasizeBoundsDirective],
-  templateUrl: './ng-virtual-grid-item.component.html',
-  styleUrl: './ng-virtual-grid-item.component.scss',
+  selector: 'ng-virtual-grid-row',
+  imports: [CommonModule],
+  templateUrl: './ng-virtual-grid-row.component.html',
+  styleUrl: './ng-virtual-grid-row.component.scss',
   host: {
     'class': 'ngvg__item',
     'part': 'grid-item',
   },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
+export class NgVirtualGridRowComponent extends BaseVirtualListItemComponent {
   private static __nextId: number = 0;
+
+  @ViewChild('renderersContainer', { read: ViewContainerRef })
+  private _listContainerRef: ViewContainerRef | undefined;
+  get listContainerRef() { return this._listContainerRef; }
 
   service = inject(NgVirtualGridService);
 
@@ -38,11 +43,7 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
     return this._id;
   }
 
-  liId: string;
-
-  leftLiId: string | undefined;
-
-  topLiId: string | undefined;
+  odd = false;
 
   data = signal<IRenderVirtualListItem | undefined>(undefined);
   private _data: IRenderVirtualListItem | undefined = undefined;
@@ -51,10 +52,7 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
       return;
     }
 
-    const rowId = v?.rowId, colId = Number(v?.columnId);
-    this.liId = `li-${this.service.listId}-${rowId}-${colId}`;
-    this.leftLiId = v?.config.prevColId !== undefined ? `li-${this.service.listId}-${rowId}-${v?.config.prevColId}` : undefined;
-    this.topLiId = v?.config.prevRowId !== undefined ? `li-${this.service.listId}-${v?.config.prevRowId}-${colId}` : undefined;
+    this.odd = (v?.index ?? 0) % 2 === 0;
 
     this.update(v);
 
@@ -102,10 +100,8 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
 
   constructor() {
     super();
-    this._id = NgVirtualGridItemComponent.__nextId = NgVirtualGridItemComponent.__nextId === Number.MAX_SAFE_INTEGER
-      ? 0 : NgVirtualGridItemComponent.__nextId + 1;
-
-    this.liId = `li-${this.service.listId}-${this._id}`;
+    this._id = NgVirtualGridRowComponent.__nextId = NgVirtualGridRowComponent.__nextId === Number.MAX_SAFE_INTEGER
+      ? 0 : NgVirtualGridRowComponent.__nextId + 1;
   }
 
   private update(data: IRenderVirtualListItem | undefined) {
@@ -120,9 +116,9 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
       const element = this._elementRef.nativeElement, styles = element.style;
       styles.zIndex = data.config.zIndex;
       styles.position = data.config.snapped ? POSITION_STICKY : POSITION_ABSOLUTE;
-      styles.transform = `${TRANSLATE_3D}(${data.measures.x}${PX}, 0 , 0)`;
+      styles.transform = `${TRANSLATE_3D}(0, ${data.measures.y}${PX} , 0)`;
       styles.height = SIZE_AUTO;
-      styles.width = `${data.measures.width}${PX}`;
+      styles.width = SIZE_100_PERSENT;
 
       const listItem = this._listItemRef();
       if (listItem) {
@@ -207,4 +203,4 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
   }
 }
 
-export const TNgVirtualGridItemComponent = NgVirtualGridItemComponent satisfies Component$1<BaseVirtualListItemComponent>;
+export const TNgVirtualGridRowComponent = NgVirtualGridRowComponent satisfies Component$1<BaseVirtualListItemComponent>;

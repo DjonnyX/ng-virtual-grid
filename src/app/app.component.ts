@@ -52,7 +52,8 @@ const generateNumber = () => {
 }
 
 const GROUP_DYNAMIC_ITEMS: IVirtualGridCollection<IRowData, IColumnData> = [],
-  GROUP_DYNAMIC_ITEMS_STICKY_MAP: IVirtualGridStickyMap = {},
+  GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP: IVirtualGridStickyMap = {},
+  GROUP_DYNAMIC_ITEMS_STICKY_COLUMNS_MAP: IVirtualGridStickyMap = {},
   GROUP_DYNAMIC_COLUMNS_SIZE_MAP: IColumnsSize = {},
   GROUP_DYNAMIC_ROWS_SIZE_MAP: IRowsSize = {};
 
@@ -64,40 +65,34 @@ for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
   const columns: IVirtualGridColumnCollection<IColumnData> = [];
   const rowId = index;
   index++;
+  if (i === 0) {
+    GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP[rowId] = 1;
+  } else if (i === l - 1) {
+    GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP[rowId] = 2;
+  }
   for (let j = 0, l1 = DYNAMIC_COLUMNS; j < l1; j++) {
     index++;
     const id = index;
     if (j === 0 || j === l1 - 1) {
+      if (j === 0) {
+        GROUP_DYNAMIC_ITEMS_STICKY_COLUMNS_MAP[j] = 1;
+      } else if (j === l1 - 1) {
+        GROUP_DYNAMIC_ITEMS_STICKY_COLUMNS_MAP[j] = 2;
+      }
       GROUP_DYNAMIC_COLUMNS_SIZE_MAP[j] = 36;
     }
     let value: string, isBorderStart: boolean = false, isBorderEnd: boolean = false;
-    if ((i === 0 && j === 0) || (i === 0 && j === l1 - 1) || (i === l - 1 && j === 0) || (i === l - 1 && j === l1 - 1)) {
+    if ((i === 0 && j === 0) || (i === 0 && j === l1 - 1)) {
       value = '№';
-      if ((i === 0 && j === 0) || (i === l - 1 && j === 0)) {
-        isBorderStart = true;
-      } else if ((i === 0 && j === l1 - 1) || (i === l - 1 && j === l1 - 1)) {
-        isBorderEnd = true;
-      } else {
-        isBorderStart = true;
-      }
+    } else if ((i === l - 1 && j === 0) || (i === l - 1 && j === l1 - 1)) {
+      value = '';
     } else if (i === 0 || i === l - 1) {
       value = String(j);
-      if (i === 0) {
-        isBorderStart = true;
-      } else if (i === l - 1) {
-        isBorderEnd = true;
-      }
     } else if (j === 0 || j === l1 - 1) {
       value = String(i);
-      if (j === 0) {
-        isBorderStart = true;
-      } else if (j === l1 - 1) {
-        isBorderEnd = true;
-      }
     } else {
       value = generateText();
     }
-    GROUP_DYNAMIC_ITEMS_STICKY_MAP[id] = isBorderStart ? 1 : isBorderEnd ? 2 : 0;
     columns.push({ id: id, value, isBorderStart, isBorderEnd });
   }
   if (i === 0 || i === l - 1) {
@@ -153,7 +148,8 @@ export class AppComponent {
   groupItemsStickyMap = GROUP_ITEMS_STICKY_MAP;
 
   groupDynamicItems = GROUP_DYNAMIC_ITEMS;
-  groupDynamicItemsStickyMap = GROUP_DYNAMIC_ITEMS_STICKY_MAP;
+  groupDynamicItemsStickyRowsMap = GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP;
+  groupDynamicItemsStickyColumnsMap = GROUP_DYNAMIC_ITEMS_STICKY_COLUMNS_MAP;
   groupDynamicColumnsSize = getDynamicColumnsSize();
   groupDynamicRowsSize = getDynamicRowsSize();
 

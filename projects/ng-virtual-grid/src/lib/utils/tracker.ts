@@ -60,14 +60,29 @@ export class Tracker<C extends BaseVirtualListItemComponent = any> {
     /**
      * tracking by propName
      */
-    track(items: Array<any>, components: Array<ComponentRef<C>>, snapedComponent: ComponentRef<C> | null | undefined,
+    track(rows: Array<any>, items: Array<Array<any>>, rowComponents: Array<ComponentRef<C>> | null | undefined, components: Array<Array<ComponentRef<C>>> | null | undefined,
         direction: ScrollDirection): void {
-        if (!items) {
+        if (rows && rowComponents) {
+            this.trackComponents(rows, rowComponents, direction);
+            if (items && components) {
+                for (let i = 0, l = items.length; i < l; i++) {
+                    const _items = items[i], _components = components[i];
+                    if (!_items || !_components) {
+                        continue;
+                    }
+                    this.trackComponents(_items, _components, direction);
+                }
+            }
+        }
+    }
+
+    private trackComponents(items: Array<any>, components: Array<ComponentRef<C>> | null | undefined,
+        direction: ScrollDirection) {
+        if (!items || !components) {
             return;
         }
 
         const idPropName = this._trackingPropertyName, untrackedItems = [...components], isDown = direction === 0 || direction === 1;
-        let isRegularSnapped = false;
 
         for (let i = isDown ? 0 : items.length - 1, l = isDown ? items.length : 0; isDown ? i < l : i >= l; isDown ? i++ : i--) {
             const item = items[i], itemTrackingProperty = item[idPropName];
@@ -83,24 +98,9 @@ export class Tracker<C extends BaseVirtualListItemComponent = any> {
                             return v.instance.id === compId;
                         });
                         if (indexByUntrackedItems > -1) {
-                            if (snapedComponent) {
-                                if (item['config']['snapped'] || item['config']['snappedOut']) {
-                                    isRegularSnapped = true;
-                                    snapedComponent.instance.item = item;
-                                    snapedComponent.instance.show();
-                                }
-                            }
                             comp.instance.item = item;
 
-                            if (snapedComponent) {
-                                if (item['config']['snapped'] || item['config']['snappedOut']) {
-                                    comp.instance.hide();
-                                } else {
-                                    comp.instance.show();
-                                }
-                            } else {
-                                comp.instance.show();
-                            }
+                            comp.instance.show();
                             untrackedItems.splice(indexByUntrackedItems, 1);
                             continue;
                         }
@@ -112,23 +112,8 @@ export class Tracker<C extends BaseVirtualListItemComponent = any> {
             if (untrackedItems.length > 0) {
                 const comp = untrackedItems.shift(), item = items[i];
                 if (comp) {
-                    if (snapedComponent) {
-                        if (item['config']['snapped'] || item['config']['snappedOut']) {
-                            isRegularSnapped = true;
-                            snapedComponent.instance.item = item;
-                            snapedComponent.instance.show();
-                        }
-                    }
                     comp.instance.item = item;
-                    if (snapedComponent) {
-                        if (item['config']['snapped'] || item['config']['snappedOut']) {
-                            comp.instance.hide();
-                        } else {
-                            comp.instance.show();
-                        }
-                    } else {
-                        comp.instance.show();
-                    }
+                    comp.instance.show();
 
                     if (this._trackMap) {
                         this._trackMap[itemTrackingProperty] = comp.instance.id;
@@ -141,13 +126,6 @@ export class Tracker<C extends BaseVirtualListItemComponent = any> {
             for (let i = 0, l = untrackedItems.length; i < l; i++) {
                 const comp = untrackedItems[i];
                 comp.instance.hide();
-            }
-        }
-
-        if (!isRegularSnapped) {
-            if (snapedComponent) {
-                snapedComponent.instance.item = null;
-                snapedComponent.instance.hide();
             }
         }
     }

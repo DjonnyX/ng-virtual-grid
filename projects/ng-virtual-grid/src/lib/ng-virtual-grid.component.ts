@@ -25,13 +25,12 @@ import { IRenderVirtualListCollection } from './models/render-collection.model';
 import { CellResizeMode, CellResizeModes } from './enums';
 import { ScrollEvent, toggleClassName } from './utils';
 import { IGetItemPositionOptions, IUpdateCollectionOptions, TRACK_BOX_CHANGE_EVENT_NAME, TrackBox } from './utils/trackBox';
-import { isSnappingMethodAdvenced } from './utils/snapping-method';
-import { FIREFOX_SCROLLBAR_OVERLAP_SIZE, IS_FIREFOX } from './utils/browser';
 import { BaseVirtualListItemComponent } from './models/base-virtual-list-item-component';
 import { Component$1 } from './models/component.model';
 import { NgVirtualGridService } from './ng-virtual-grid.service';
 import { PointerDetectService } from './service/pointer-detect.service';
 import { isAdjacentCellMode } from './utils/isAdjacentCellMode';
+import { NgVirtualGridRowComponent } from './components/ng-virtual-grid-row/ng-virtual-grid-row.component';
 
 /**
  * Virtual list component.
@@ -127,7 +126,13 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
    * Dictionary zIndex by id of the list element. If the value is not set or equal to 0,
    * then a simple element is displayed, if the value is greater than 0, then the sticky position mode is enabled for the element.
    */
-  stickyMap = input<IVirtualGridStickyMap>({});
+  stickyRowsMap = input<IVirtualGridStickyMap>({});
+
+  /**
+   * Dictionary zIndex by id of the list element. If the value is not set or equal to 0,
+   * then a simple element is displayed, if the value is greater than 0, then the sticky position mode is enabled for the element.
+   */
+  stickyColumnsMap = input<IVirtualGridStickyMap>({});
 
   private _columnSizeOptions = {
     transform: (v: number | undefined) => {
@@ -236,9 +241,9 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
    */
   resizeColumnsEnabled = input<boolean>(DEFAULT_RESIZE_COLUMNS_ENABLED);
 
-  private _displayComponents: Array<ComponentRef<BaseVirtualListItemComponent>> = [];
+  private _displayComponents: Array<Array<ComponentRef<BaseVirtualListItemComponent>>> = [];
 
-  private _snapedDisplayComponent: ComponentRef<BaseVirtualListItemComponent> | undefined;
+  private _rowDisplayComponents: Array<ComponentRef<BaseVirtualListItemComponent>> = [];
 
   private _bounds = signal<ISize | null>(null);
 
@@ -284,6 +289,11 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   trackBy = input<string>(TRACK_BY_PROPERTY_NAME);
 
   /**
+   * Base class of the element row component
+   */
+  private _rowComponentClass: Component$1<BaseVirtualListItemComponent> = NgVirtualGridRowComponent;
+
+  /**
    * Base class of the element component
    */
   private _itemComponentClass: Component$1<BaseVirtualListItemComponent> = NgVirtualGridItemComponent;
@@ -315,6 +325,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
     this._initialized = signal<boolean>(false);
     this.$initialized = toObservable(this._initialized);
 
+    this._trackBox.rowDisplayComponents = this._rowDisplayComponents;
     this._trackBox.displayComponents = this._displayComponents;
 
     const $trackBy = toObservable(this.trackBy),
@@ -434,7 +445,10 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       $maxBufferSize = toObservable(this.maxBufferSize).pipe(
         map(v => v < 0 ? DEFAULT_BUFFER_SIZE : v),
       ),
-      $stickyMap = toObservable(this.stickyMap).pipe(
+      $stickyRowsMap = toObservable(this.stickyRowsMap).pipe(
+        map(v => !v ? {} : v),
+      ),
+      $stickyColumnsMap = toObservable(this.stickyColumnsMap).pipe(
         map(v => !v ? {} : v),
       ),
       $snap = toObservable(this.snap),
@@ -449,14 +463,14 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       }),
     ).subscribe();
 
-    combineLatest([this.$initialized, $bounds, $items, $stickyMap, $scrollSizeX, $scrollSizeY, $columnSize, $rowSize,
+    combineLatest([this.$initialized, $bounds, $items, $stickyRowsMap, $stickyColumnsMap, $scrollSizeX, $scrollSizeY, $columnSize, $rowSize,
       $bufferSize, $maxBufferSize, $snap, $enabledBufferOptimization, $cacheVersion,
     ]).pipe(
       takeUntilDestroyed(),
       distinctUntilChanged(),
       filter(([initialized]) => !!initialized),
       switchMap(([,
-        bounds, items, stickyMap, scrollSizeX, scrollSizeY, columnSize, rowSize, bufferSize, maxBufferSize,
+        bounds, items, stickyRowsMap, stickyColumnsMap, scrollSizeX, scrollSizeY, columnSize, rowSize, bufferSize, maxBufferSize,
         snap, enabledBufferOptimization, cacheVersion,
       ]) => {
         const container = this._container();
@@ -468,14 +482,16 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
               bounds: { width, height }, itemSize: columnSize, rowSize,
               bufferSize, maxBufferSize, scrollSizeX: actualScrollSizeX, scrollSizeY: actualScrollSizeY, snap, enabledBufferOptimization,
             },
-            { displayItems, totalSize, totalHeight } = this._trackBox.updateCollection(items, stickyMap, opts);
+            { displayItems, rowDisplayItems, totalSize, totalHeight } = this._trackBox.updateCollection(items, stickyRowsMap, stickyColumnsMap, opts);
 
           this.resetBoundsSize(false, totalSize);
           this.resetBoundsSize(true, totalHeight);
 
-          this.createDisplayComponentsIfNeed(displayItems);
+          this.createDisplayComponentsIfNeed(displayItems, rowDisplayItems);
 
           this.tracking();
+
+          this.calculateScrollBars();
 
           const deltaX = this._trackBox.deltaX, deltaY = this._trackBox.deltaY;
           actualScrollSizeX = actualScrollSizeX + deltaX;
@@ -523,6 +539,20 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
     this._initialized.set(true);
   }
 
+  private calculateScrollBars() {
+    let scrollBarHorizontalWeight = 0;
+    let scrollBarVerticalWeight = 0;
+
+    const container = this._container()?.nativeElement;
+    if (container) {
+      scrollBarHorizontalWeight = container.offsetWidth - container.clientWidth;
+      scrollBarVerticalWeight = container.offsetHeight - container.clientHeight;
+    }
+
+    this._trackBox.scrollBarHorizontalWeight = scrollBarHorizontalWeight;
+    this._trackBox.scrollBarVerticalWeight = scrollBarVerticalWeight;
+  }
+
   private listenCacheChangesIfNeed(value: boolean) {
     if (value) {
       if (!this._trackBox.hasEventListener(TRACK_BOX_CHANGE_EVENT_NAME, this._onTrackBoxChangeHandler)) {
@@ -535,24 +565,43 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
     }
   }
 
-  private createDisplayComponentsIfNeed(displayItems: IRenderVirtualListCollection | null) {
-    if (!displayItems || !this._listContainerRef) {
+  private createDisplayComponentsIfNeed(displayItems: Array<IRenderVirtualListCollection> | null, rowDisplayItems: IRenderVirtualListCollection | null) {
+    if (!displayItems || !rowDisplayItems || !this._listContainerRef) {
       this._trackBox.setDisplayObjectIndexMapById({});
       return;
     }
 
     this._trackBox.items = displayItems;
 
+    this._trackBox.rowItems = rowDisplayItems;
+
     const _listContainerRef = this._listContainerRef;
 
-    const maxLength = displayItems.length, components = this._displayComponents;
+    const maxRowsLength = rowDisplayItems.length, rowComponents = this._rowDisplayComponents;
 
-    while (components.length < maxLength) {
+    while (rowComponents.length < maxRowsLength) {
       if (_listContainerRef) {
-        const comp = _listContainerRef.createComponent(this._itemComponentClass);
-        components.push(comp);
-
+        const comp = _listContainerRef.createComponent(this._rowComponentClass);
+        rowComponents.push(comp);
         this._componentsResizeObserver.observe(comp.instance.element);
+      }
+    }
+
+    for (let i = 0, l = rowComponents.length; i < l; i++) {
+      if (!this._displayComponents[i]) {
+        this._displayComponents[i] = [];
+      }
+      const row = rowComponents[i].instance as NgVirtualGridRowComponent, listContainerRef = row.listContainerRef,
+        components = this._displayComponents[i];
+
+      if (displayItems[i]) {
+        if (listContainerRef) {
+          while (components.length < displayItems[i].length) {
+            const comp = listContainerRef.createComponent(this._itemComponentClass);
+            components.push(comp);
+            this._componentsResizeObserver.observe(comp.instance.element);
+          }
+        }
       }
     }
 
@@ -562,15 +611,18 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   private resetRenderers(itemRenderer?: TemplateRef<HTMLElement>) {
     const doMap: { [id: number]: number } = {}, components = this._displayComponents;
     for (let i = 0, l = components.length; i < l; i++) {
-      const item = components[i];
-      if (item) {
-        const id = item.instance.id;
-        item.instance.renderer = itemRenderer || this._itemRenderer();
-        doMap[id] = i;
+      const cells = components[i];
+      for (let j = 0, l1 = cells.length; j < l1; j++) {
+        const cell = cells[i];
+        if (cell) {
+          const id = cell.instance.id;
+          cell.instance.renderer = itemRenderer || this._itemRenderer();
+          doMap[id] = i;
+        }
       }
-    }
 
-    this._trackBox.setDisplayObjectIndexMapById(doMap);
+      this._trackBox.setDisplayObjectIndexMapById(doMap);
+    }
   }
 
   /**
@@ -781,14 +833,13 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       containerEl.nativeElement.removeEventListener(SCROLL_END, this._onContainerScrollEndHandler);
     }
 
-    if (this._snapedDisplayComponent) {
-      this._snapedDisplayComponent.destroy();
-    }
-
     if (this._displayComponents) {
-      while (this._displayComponents.length > 0) {
-        const comp = this._displayComponents.pop();
-        comp?.destroy();
+      for (let i = 0, l = this._displayComponents.length; i < l; i++) {
+        const components = this._displayComponents[i];
+        while (components.length > 0) {
+          const comp = components.pop();
+          comp?.destroy();
+        }
       }
     }
   }

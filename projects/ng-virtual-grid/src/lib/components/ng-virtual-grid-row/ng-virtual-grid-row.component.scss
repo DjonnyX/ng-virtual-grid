@@ -1,7 +1,6 @@
 :host {
     display: block;
     position: absolute;
-    display: inline-flex;
     left: 0;
     top: 0;
     box-sizing: border-box;
@@ -9,6 +8,7 @@
 }
 
 .ngvg-item__container {
+    display: inline-block;
     margin: 0;
     padding: 0;
     overflow: hidden;
