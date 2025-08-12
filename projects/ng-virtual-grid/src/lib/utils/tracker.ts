@@ -45,11 +45,6 @@ export class Tracker<C extends BaseVirtualListItemComponent = any> {
      */
     protected _trackMap: { [id: TrackingPropertyId]: number } = {};
 
-    /**
-     * Dictionary displayItems propertyNameId by items propertyNameId
-     */
-    protected _trackRowMap: { [id: TrackingPropertyId]: number } = {};
-
     protected _trackingPropertyName!: string;
 
     set trackingPropertyName(v: string) {
@@ -69,6 +64,8 @@ export class Tracker<C extends BaseVirtualListItemComponent = any> {
             // НЕОБХОДИМО КОРРЕКТНО ПРОТРЕЧИТЬ ЯЧЕЙКИ!!!
 
             if (items && rowComponents) {
+                this.trackRowComponents(rows, rowComponents);
+
                 const itemsByRowId: { [rowId: Id]: IRenderVirtualListCollection } = {};
                 for (let i = 0, l = items.length; i < l; i++) {
                     const cells = items[i];
@@ -83,15 +80,60 @@ export class Tracker<C extends BaseVirtualListItemComponent = any> {
                         itemsByRowId[rowId].push(cell);
                     }
                 }
-                this.trackRowComponents(rows, rowComponents);
 
-                for (const rowId in itemsByRowId) {
-                    const componentsIndex = this._trackRowMap[rowId];
-                    if (componentsIndex === undefined) {
+                const trackRowMap: { [id: Id]: number } = {}, idPropName = this._trackingPropertyName;
+                for (let i = 0, l = rowComponents.length; i < l; i++) {
+                    const rowComponent = rowComponents[i].instance as unknown as NgVirtualGridRowComponent, rowId = rowComponent.itemId;
+                    if (rowId === undefined) {
                         continue;
                     }
-                    const cells = itemsByRowId[rowId], cellComponents = (rowComponents[componentsIndex].instance as unknown as NgVirtualGridRowComponent).components as Array<ComponentRef<C>>;
-                    this.trackCellComponents(cells, cellComponents);
+                    const components = rowComponent.components, rowItems = itemsByRowId[rowId], untrackedItems = [...components];
+                    if (!rowItems) {
+                        continue;
+                    }
+                    for (let j = 0, l1 = rowItems.length; j < l1; j++) {
+                        const cell = rowItems[j], itemTrackingProperty = (cell as any)[idPropName];
+                        if (this._trackMap.hasOwnProperty(itemTrackingProperty)) {
+                            const displayObjectId = this._trackMap[itemTrackingProperty],
+                                compIndex = this._displayObjectIndexMapById[displayObjectId],
+                                comp = components[compIndex],
+                                compId = comp?.instance?.id;
+                            if (comp !== undefined && compId !== undefined && compId === displayObjectId) {
+                                const indexByUntrackedItems = untrackedItems.findIndex(v => {
+                                    return v.instance.id === compId;
+                                });
+                                if (indexByUntrackedItems > -1) {
+                                    comp.instance.item = cell;
+
+                                    comp.instance.show();
+                                    untrackedItems.splice(indexByUntrackedItems, 1);
+                                    continue;
+                                }
+                            }
+                            delete this._trackMap[itemTrackingProperty];
+                        }
+
+                        if (untrackedItems.length > 0) {
+                            const comp = untrackedItems.shift();
+                            if (comp) {
+                                comp.instance.item = cell;
+                                comp.instance.show();
+
+                                this._trackMap[itemTrackingProperty] = comp.instance.id;
+                            }
+                        }
+                    }
+
+                    if (untrackedItems.length) {
+                        for (let j = 0, l1 = untrackedItems.length; j < l1; j++) {
+                            const comp = untrackedItems[j];
+                            comp.instance.hide();
+                        }
+                    }
+
+                    if (rowId !== undefined) {
+                        trackRowMap[rowId] = i;
+                    }
                 }
             }
         }
@@ -117,7 +159,6 @@ export class Tracker<C extends BaseVirtualListItemComponent = any> {
                         return v.instance.id === compId;
                     });
                     if (indexByUntrackedItems > -1) {
-                        this._trackRowMap[itemTrackingProperty] = i;
                         comp.instance.item = item;
 
                         comp.instance.show();
@@ -126,60 +167,10 @@ export class Tracker<C extends BaseVirtualListItemComponent = any> {
                     }
                 }
                 delete this._trackMap[itemTrackingProperty];
-                delete this._trackRowMap[itemTrackingProperty];
             }
 
             if (untrackedItems.length > 0) {
-                const comp = untrackedItems.shift(), item = items[i];
-                if (comp) {
-                    comp.instance.item = item;
-                    comp.instance.show();
-
-                    this._trackRowMap[itemTrackingProperty] = i;
-                    this._trackMap[itemTrackingProperty] = comp.instance.id;
-                }
-            }
-        }
-
-        if (untrackedItems.length) {
-            for (let i = 0, l = untrackedItems.length; i < l; i++) {
-                const comp = untrackedItems[i];
-                comp.instance.hide();
-            }
-        }
-    }
-
-    private trackCellComponents(items: IRenderVirtualListCollection | null | undefined, components: Array<ComponentRef<C>> | null | undefined) {
-        if (!items || !components) {
-            return;
-        }
-
-        const idPropName = this._trackingPropertyName, untrackedItems = [...components];
-
-        for (let i = 0, l = items.length; i < l; i++) {
-            const item = items[i], itemTrackingProperty = (item as any)[idPropName];
-
-            // if (this._trackMap.hasOwnProperty(itemTrackingProperty)) {
-            //     const displayObjectId = this._trackMap[itemTrackingProperty],
-            //         compIndex = this._displayObjectIndexMapById[displayObjectId],
-            //         comp = components[compIndex],
-            //         compId = comp?.instance?.id;
-            //     if (comp !== undefined && compId !== undefined && compId === displayObjectId) {
-            //         const indexByUntrackedItems = untrackedItems.findIndex(v => {
-            //             return v.instance.id === compId;
-            //         });
-            //         if (indexByUntrackedItems > -1) {
-            //             comp.instance.item = item;
-            //             comp.instance.show();
-            //             untrackedItems.splice(indexByUntrackedItems, 1);
-            //             continue;
-            //         }
-            //     }
-            //     delete this._trackMap[itemTrackingProperty];
-            // }
-
-            if (untrackedItems.length > 0) {
-                const comp = untrackedItems.shift(), item = items[i];
+                const comp = untrackedItems.shift();
                 if (comp) {
                     comp.instance.item = item;
                     comp.instance.show();

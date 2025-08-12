@@ -44,4 +44,8 @@ export interface IRenderVirtualListItemConfig {
      * adjacent left cell rowId
      */
     prevRowId: Id | undefined;
+    /**
+     * is border
+     */
+    border: boolean;
 }

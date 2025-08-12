@@ -156,7 +156,6 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
   }
 
   getContentBounds(): ISize {
-    // return this.getBounds();
     const content = this._listItemContentRef();
     if (content) {
       const el: HTMLElement = content.nativeElement,
@@ -168,13 +167,12 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
 
   show() {
     const styles = this._elementRef.nativeElement.style;
-
-    if (styles.visibility === VISIBILITY_VISIBLE) {
+    if (styles.visibility === VISIBILITY_VISIBLE && styles.zIndex !== HIDDEN_ZINDEX) {
       return;
     }
 
     styles.visibility = VISIBILITY_VISIBLE;
-    styles.zIndex = this._data?.config?.zIndex ?? DEFAULT_ZINDEX;
+    styles.zIndex = this._data?.config?.zIndex || DEFAULT_ZINDEX;
   }
 
   hide() {

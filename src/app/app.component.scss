@@ -58,6 +58,14 @@ input {
     }
 }
 
+.grid::part(item-row-border) {
+    background-color: #272727;
+
+    &:hover {
+        background-color: #303030;
+    }
+}
+
 .grid::part(grid-item) {
     outline: 1px solid #2b2b2b;
     transition: outline 10ms linear;

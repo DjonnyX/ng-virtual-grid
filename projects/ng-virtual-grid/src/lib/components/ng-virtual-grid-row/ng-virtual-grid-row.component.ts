@@ -1,16 +1,24 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, ComponentRef, ElementRef, inject, signal, TemplateRef, ViewChild, viewChild, ViewContainerRef } from '@angular/core';
+import {
+  ChangeDetectionStrategy, Component, ComponentRef, ElementRef, inject, signal, TemplateRef,
+  ViewChild, viewChild, ViewContainerRef,
+} from '@angular/core';
 import { IRenderVirtualListItem } from '../../models/render-item.model';
 import { ISize } from '../../types';
 import {
-  DEFAULT_ZINDEX, DISPLAY_BLOCK, DISPLAY_NONE, HIDDEN_ZINDEX, POSITION_ABSOLUTE, POSITION_STICKY, PX,
-  SIZE_100_PERSENT,
-  SIZE_AUTO, TRANSLATE_3D, VISIBILITY_HIDDEN, VISIBILITY_VISIBLE, ZEROS_TRANSLATE_3D,
+  DEFAULT_ZINDEX, HIDDEN_ZINDEX, POSITION_ABSOLUTE, POSITION_STICKY, PX, SIZE_100_PERSENT, SIZE_AUTO,
+  TRANSLATE_3D, VISIBILITY_HIDDEN, VISIBILITY_VISIBLE, ZEROS_TRANSLATE_3D,
 } from '../../const';
 import { BaseVirtualListItemComponent } from '../../models/base-virtual-list-item-component';
 import { Component$1 } from '../../models/component.model';
 import { CaptureSide, ResizeEvent } from '../../directives/reasize-bounds.directive';
 import { NgVirtualGridService } from '../../ng-virtual-grid.service';
+
+const DEFAULT_PART = 'item item-row',
+  PART_ITEM_ODD = ' item-row-odd',
+  PART_ITEM_EVEN = ' item-row-even',
+  PART_ITEM_BORDER = ' item-row-border',
+  PART_ITEM_SNAPPED = ' item-row-snapped';
 
 /**
  * Virtual grid row component
@@ -48,7 +56,8 @@ export class NgVirtualGridRowComponent extends BaseVirtualListItemComponent {
     return this._id;
   }
 
-  odd = signal<boolean>(false);
+  private _part = DEFAULT_PART;
+  get part() { return this._part; }
 
   data = signal<IRenderVirtualListItem | undefined>(undefined);
   private _data: IRenderVirtualListItem | undefined = undefined;
@@ -57,7 +66,7 @@ export class NgVirtualGridRowComponent extends BaseVirtualListItemComponent {
       return;
     }
 
-    this.odd.set((v?.index ?? 0) % 2 === 0);
+    this.updatePartStr(v);
 
     this.update(v);
 
@@ -116,6 +125,23 @@ export class NgVirtualGridRowComponent extends BaseVirtualListItemComponent {
     return null;
   }
 
+  private updatePartStr(v: IRenderVirtualListItem | undefined) {
+    let odd = false;
+    if (v?.index !== undefined) {
+      odd = v.index % 2 === 0;
+    }
+
+    let part = DEFAULT_PART;
+    part += odd ? PART_ITEM_ODD : PART_ITEM_EVEN;
+    if (v ? v.config.snapped : false) {
+      part += PART_ITEM_SNAPPED;
+    }
+    if (v ? v.config.border : false) {
+      part += PART_ITEM_BORDER
+    }
+    this._part = part;
+  }
+
   private update(data: IRenderVirtualListItem | undefined) {
     if (data) {
       const element = this._elementRef.nativeElement, styles = element.style;
@@ -147,7 +173,7 @@ export class NgVirtualGridRowComponent extends BaseVirtualListItemComponent {
   show() {
     const styles = this._elementRef.nativeElement.style;
 
-    if (styles.visibility === VISIBILITY_VISIBLE) {
+    if (styles.visibility === VISIBILITY_VISIBLE && styles.zIndex !== HIDDEN_ZINDEX) {
       return;
     }
 
