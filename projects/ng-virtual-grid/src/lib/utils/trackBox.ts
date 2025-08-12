@@ -10,6 +10,7 @@ import { IColumnsSize, IRowsSize, IVirtualGridColumnCollection, IVirtualGridStic
 import { bufferInterpolation } from "./buffer-interpolation";
 import { BaseVirtualListItemComponent } from "../models/base-virtual-list-item-component";
 import { normalizeDeltaX } from "./delta";
+import { NgVirtualGridRowComponent } from "../components/ng-virtual-grid-row/ng-virtual-grid-row.component";
 
 export const TRACK_BOX_CHANGE_EVENT_NAME = 'change';
 
@@ -131,16 +132,6 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         }
 
         this._rowItems = v;
-    }
-
-    protected _displayComponents: Array<Array<ComponentRef<C>>> | null | undefined;
-
-    set displayComponents(v: Array<Array<ComponentRef<C>>> | null | undefined) {
-        if (this._displayComponents === v) {
-            return;
-        }
-
-        this._displayComponents = v;
     }
 
     protected _rowDisplayComponents: Array<ComponentRef<C>> | null | undefined;
@@ -1117,19 +1108,15 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
      * tracking by propName
      */
     track(): void {
-        if (!this._items || !this._rowItems || !this._displayComponents) {
+        if (!this._items || !this._rowItems) {
             return;
         }
 
-        this._tracker.track(this._rowItems, this._items, this._rowDisplayComponents, this._displayComponents, this.scrollDirectionX);
+        this._tracker.track(this._rowItems, this._items, this._rowDisplayComponents);
     }
 
-    setDisplayObjectIndexMapById(v: { [id: number]: number }): void {
+    setDisplayObjectIndexMapById(v: { [componentId: number]: number }): void {
         this._tracker.displayObjectIndexMapById = v;
-    }
-
-    untrackComponentByIdProperty(component?: C | undefined) {
-        this._tracker.untrackComponentByIdProperty(component);
     }
 
     getItemBounds(id: Id): ISize | undefined {
@@ -1146,15 +1133,15 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
     }
 
     protected cacheElements(): void {
-        if (!this._displayComponents) {
+        if (!this._rowDisplayComponents) {
             return;
         }
 
         const rowDict = this._rowsCache;
-        for (let i = 0, l = this._displayComponents.length; i < l; i++) {
-            const components = this._displayComponents[i];
+        for (const rowIndex in this._rowDisplayComponents) {
+            const row = this._rowDisplayComponents[rowIndex] as unknown as ComponentRef<NgVirtualGridRowComponent>, components = row.instance.components;
             for (let j = 0, l1 = components.length; j < l1; j++) {
-                const component: ComponentRef<C> = components[j], rowId = component.instance.rowId, columnId = component.instance.columnId,
+                const component: ComponentRef<BaseVirtualListItemComponent> = components[j], rowId = component.instance.rowId, columnId = component.instance.columnId,
                     itemId = component.instance.itemId;
                 if (itemId === undefined) {
                     continue;

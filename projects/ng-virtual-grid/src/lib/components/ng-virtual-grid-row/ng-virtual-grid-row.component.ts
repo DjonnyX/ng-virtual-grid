@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, TemplateRef, ViewChild, viewChild, ViewContainerRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ComponentRef, ElementRef, inject, signal, TemplateRef, ViewChild, viewChild, ViewContainerRef } from '@angular/core';
 import { IRenderVirtualListItem } from '../../models/render-item.model';
 import { ISize } from '../../types';
 import {
@@ -36,7 +36,6 @@ export class NgVirtualGridRowComponent extends BaseVirtualListItemComponent {
   public override getContentBounds(): ISize {
     throw new Error('Method not implemented.');
   }
-  private static __nextId: number = 0;
 
   @ViewChild('renderersContainer', { read: ViewContainerRef })
   private _listContainerRef: ViewContainerRef | undefined;
@@ -49,7 +48,7 @@ export class NgVirtualGridRowComponent extends BaseVirtualListItemComponent {
     return this._id;
   }
 
-  odd = false;
+  odd = signal<boolean>(false);
 
   data = signal<IRenderVirtualListItem | undefined>(undefined);
   private _data: IRenderVirtualListItem | undefined = undefined;
@@ -58,7 +57,7 @@ export class NgVirtualGridRowComponent extends BaseVirtualListItemComponent {
       return;
     }
 
-    this.odd = (v?.index ?? 0) % 2 === 0;
+    this.odd.set((v?.index ?? 0) % 2 === 0);
 
     this.update(v);
 
@@ -74,7 +73,7 @@ export class NgVirtualGridRowComponent extends BaseVirtualListItemComponent {
   }
 
   get rowId() {
-    return this._data!.rowId;
+    return this._data?.rowId;
   }
 
   get prevRowId() {
@@ -91,9 +90,7 @@ export class NgVirtualGridRowComponent extends BaseVirtualListItemComponent {
 
   itemRenderer = signal<TemplateRef<any> | undefined>(undefined);
 
-  set renderer(v: TemplateRef<any> | undefined) {
-    this.itemRenderer.set(v);
-  }
+  set renderer(v: TemplateRef<any> | undefined) { }
 
   private _elementRef: ElementRef<HTMLElement> = inject(ElementRef<HTMLElement>);
   get element() {
@@ -102,10 +99,21 @@ export class NgVirtualGridRowComponent extends BaseVirtualListItemComponent {
 
   private _listItemRef = viewChild<ElementRef<HTMLLIElement>>('listItem');
 
+  private _components: Array<ComponentRef<BaseVirtualListItemComponent>> = [];
+  get components() { return this._components; }
+
   constructor() {
     super();
-    this._id = NgVirtualGridRowComponent.__nextId = NgVirtualGridRowComponent.__nextId === Number.MAX_SAFE_INTEGER
-      ? 0 : NgVirtualGridRowComponent.__nextId + 1;
+    this._id = this.service.generateComponentId();
+  }
+
+  createComponent(componentClass: Component$1<BaseVirtualListItemComponent>): ComponentRef<BaseVirtualListItemComponent> | null {
+    if (this._listContainerRef) {
+      const component = this._listContainerRef.createComponent(componentClass);
+      this._components.push(component);
+      return component;
+    }
+    return null;
   }
 
   private update(data: IRenderVirtualListItem | undefined) {

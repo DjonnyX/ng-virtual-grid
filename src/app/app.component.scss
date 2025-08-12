@@ -16,12 +16,35 @@ input {
 }
 
 // reset ng-virtual-grid-item styles
-.grid::part(item) {
-    background-color: #363636;
+.grid::part(grid-item) {
+    background-color: inherit;
     box-sizing: border-box;
+    transition: background-color ease-out 100ms;
 
     &:hover {
-        background-color: #414141;
+        background-color: #4d4d4d;
+        z-index: 2;
+    }
+}
+
+.grid::part(item-row-odd) {
+    background-color: rgb(48, 48, 48);
+    box-sizing: border-box;
+    transition: background-color ease-out 100ms;
+
+    &:hover {
+        background-color: #3f3f3f;
+        z-index: 2;
+    }
+}
+
+.grid::part(item-row-even) {
+    background-color: #363636;
+    box-sizing: border-box;
+    transition: background-color ease-out 100ms;
+
+    &:hover {
+        background-color: #3f3f3f;
         z-index: 2;
     }
 }
@@ -29,13 +52,16 @@ input {
 .grid::part(item-sticky) {
     background-color: #2b2b2b;
     box-sizing: border-box;
+
     &:hover {
         background-color: #242424;
     }
 }
 
 .grid::part(grid-item) {
-    outline: 1px solid #212122;
+    outline: 1px solid #2b2b2b;
+    transition: outline 10ms linear;
+
     &:hover {
         outline: 1px solid rgb(114, 87, 46);
         z-index: 1;
@@ -185,12 +211,6 @@ input {
                 background-color: #264c6e;
             }
         }
-    }
-}
-
-.grid {
-    &::part(grid-item) {
-        transition: outline 10ms linear;
     }
 }
 

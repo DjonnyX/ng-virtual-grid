@@ -66,23 +66,23 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
   }
 
   get itemId() {
-    return this._data?.id;
+    return this._data?.id ?? -1;
   }
 
   get rowId() {
-    return this._data!.rowId;
+    return this._data?.rowId ?? -1;
   }
 
   get prevRowId() {
-    return this._data!.config.prevRowId;
+    return this._data?.config.prevRowId;
   }
 
   get columnId() {
-    return this._data!.columnId;
+    return this._data?.columnId ?? -1;
   }
 
   get prevColumnId() {
-    return this._data!.config.prevColId;
+    return this._data?.config.prevColId;
   }
 
   itemRenderer = signal<TemplateRef<any> | undefined>(undefined);
@@ -102,8 +102,7 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
 
   constructor() {
     super();
-    this._id = NgVirtualGridItemComponent.__nextId = NgVirtualGridItemComponent.__nextId === Number.MAX_SAFE_INTEGER
-      ? 0 : NgVirtualGridItemComponent.__nextId + 1;
+    this._id = this.service.generateComponentId();
 
     this.liId = `li-${this.service.listId}-${this._id}`;
   }

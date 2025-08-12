@@ -9,6 +9,8 @@ import { TrackBox } from './utils/trackBox';
   providedIn: 'root'
 })
 export class NgVirtualGridService {
+  private _nextComponentId: number = 0;
+
   private _$resize = new Subject<ICellResizeEvent>();
   $resize = this._$resize.asObservable();
 
@@ -52,6 +54,11 @@ export class NgVirtualGridService {
 
   initialize(trackBox: TrackBox) {
     this._trackBox = trackBox;
+  }
+
+  generateComponentId() {
+    return this._nextComponentId = this._nextComponentId === Number.MAX_SAFE_INTEGER
+      ? 0 : this._nextComponentId + 1;
   }
 
   onResize(rowId: Id, columnId: Id, width: number, height: number) {

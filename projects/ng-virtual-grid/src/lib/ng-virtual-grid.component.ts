@@ -241,8 +241,6 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
    */
   resizeColumnsEnabled = input<boolean>(DEFAULT_RESIZE_COLUMNS_ENABLED);
 
-  private _displayComponents: Array<Array<ComponentRef<BaseVirtualListItemComponent>>> = [];
-
   private _rowDisplayComponents: Array<ComponentRef<BaseVirtualListItemComponent>> = [];
 
   private _bounds = signal<ISize | null>(null);
@@ -327,7 +325,6 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
     this.$initialized = toObservable(this._initialized);
 
     this._trackBox.rowDisplayComponents = this._rowDisplayComponents;
-    this._trackBox.displayComponents = this._displayComponents;
 
     const $trackBy = toObservable(this.trackBy),
       $rowsSize = toObservable(this.rowsSize),
@@ -584,23 +581,21 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       if (_listContainerRef) {
         const comp = _listContainerRef.createComponent(this._rowComponentClass);
         rowComponents.push(comp);
-        this._componentsResizeObserver.observe(comp.instance.element);
       }
     }
 
     for (let i = 0, l = rowComponents.length; i < l; i++) {
-      if (!this._displayComponents[i]) {
-        this._displayComponents[i] = [];
-      }
       const row = rowComponents[i].instance as NgVirtualGridRowComponent, listContainerRef = row.listContainerRef,
-        components = this._displayComponents[i];
+        components = row.components, _displayItems = displayItems[i];
 
-      if (displayItems[i]) {
+      if (_displayItems) {
         if (listContainerRef) {
-          while (components.length < displayItems[i].length) {
-            const comp = listContainerRef.createComponent(this._itemComponentClass);
-            components.push(comp);
-            this._componentsResizeObserver.observe(comp.instance.element);
+          while (components.length < _displayItems.length) {
+            const comp = row.createComponent(this._itemComponentClass);
+            if (comp) {
+              comp.instance.renderer = this._itemRenderer();
+              this._componentsResizeObserver.observe(comp.instance.element);
+            }
           }
         }
       }
@@ -609,21 +604,26 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
     this.resetRenderers();
   }
 
-  private resetRenderers(itemRenderer?: TemplateRef<HTMLElement>) {
-    const doMap: { [id: number]: number } = {}, components = this._displayComponents;
-    for (let i = 0, l = components.length; i < l; i++) {
-      const cells = components[i];
-      for (let j = 0, l1 = cells.length; j < l1; j++) {
-        const cell = cells[j];
-        if (cell) {
-          const id = cell.instance.id;
-          cell.instance.renderer = itemRenderer || this._itemRenderer();
-          doMap[id] = j;
+  private resetRenderers() {
+    const doMap: { [componentId: number]: number } = {}, rowComponents = this._rowDisplayComponents;
+    for (let i = 0, l = rowComponents.length; i < l; i++) {
+      const row = rowComponents[i] as unknown as ComponentRef<NgVirtualGridRowComponent>;
+      if (row) {
+        const id = row.instance.id, components = row.instance.components;
+        for (let j = 0, l1 = components.length; j < l1; j++) {
+          const cell = components[j];
+          if (cell) {
+            const id = cell.instance.id;
+            doMap[id] = j;
+          }
         }
+        doMap[id] = i;
       }
-
-      this._trackBox.setDisplayObjectIndexMapById(doMap);
     }
+
+
+
+    this._trackBox.setDisplayObjectIndexMapById(doMap);
   }
 
   /**
@@ -834,14 +834,14 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       containerEl.nativeElement.removeEventListener(SCROLL_END, this._onContainerScrollEndHandler);
     }
 
-    if (this._displayComponents) {
-      for (let i = 0, l = this._displayComponents.length; i < l; i++) {
-        const components = this._displayComponents[i];
-        while (components.length > 0) {
-          const comp = components.pop();
-          comp?.destroy();
-        }
-      }
-    }
+    // if (this._displayComponents) {
+    //   for (const rowIndex in this._displayComponents) {
+    //     const components = this._displayComponents[rowIndex];
+    //     while (components.length > 0) {
+    //       const comp = components.pop();
+    //       comp?.destroy();
+    //     }
+    //   }
+    // }
   }
 }
