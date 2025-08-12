@@ -80,11 +80,19 @@ export class ReasizeBoundsDirective {
           element.style.userSelect = 'none';
           return;
         } else if (resizeColumnsEnabled && cx >= 0 && cx <= threshold) {
-          const hostElement = this._service.host?.nativeElement, adjacentId = this.leftLiId(),
-            adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
-          this._pointerDetectService.target = adjacentTarget;
-          if (adjacentTarget) {
-            const adjacentElement = adjacentTarget as HTMLElement, { x, y, width, height } = adjacentElement.getBoundingClientRect();
+          if (this._service.isAjacentResizeCellMode) {
+            const hostElement = this._service.host?.nativeElement, adjacentId = this.leftLiId(),
+              adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
+            this._pointerDetectService.target = adjacentTarget;
+            if (adjacentTarget) {
+              const adjacentElement = adjacentTarget as HTMLElement, { x, y, width, height } = adjacentElement.getBoundingClientRect();
+              _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
+              _$capture.next(CaptureSide.LEFT);
+              _$down.next(true);
+              element.style.cursor = 'col-resize';
+              element.style.userSelect = 'none';
+            }
+          } else {
             _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
             _$capture.next(CaptureSide.LEFT);
             _$down.next(true);
@@ -101,11 +109,19 @@ export class ReasizeBoundsDirective {
           element.style.userSelect = 'none';
           return;
         } else if (resizeRowsEnabled && cy >= 0 && cy <= threshold) {
-          const hostElement = this._service.host?.nativeElement, adjacentId = this.topLiId(),
-            adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
-          this._pointerDetectService.target = adjacentTarget;
-          if (adjacentTarget) {
-            const adjacentElement = adjacentTarget as HTMLElement, { x, y, width, height } = adjacentElement.getBoundingClientRect();
+          if (this._service.isAjacentResizeCellMode) {
+            const hostElement = this._service.host?.nativeElement, adjacentId = this.topLiId(),
+              adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
+            this._pointerDetectService.target = adjacentTarget;
+            if (adjacentTarget) {
+              const adjacentElement = adjacentTarget as HTMLElement, { x, y, width, height } = adjacentElement.getBoundingClientRect();
+              _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
+              _$capture.next(CaptureSide.TOP);
+              _$down.next(true);
+              element.style.cursor = 'row-resize';
+              element.style.userSelect = 'none';
+            }
+          } else {
             _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
             _$capture.next(CaptureSide.TOP);
             _$down.next(true);
@@ -163,14 +179,19 @@ export class ReasizeBoundsDirective {
       filter(([resizeRowsEnabled, resizeColumnsEnabled, down, capture]) => (resizeRowsEnabled || resizeColumnsEnabled) && down && capture !== CaptureSide.NONE),
       map(([resizeRowsEnabled, resizeColumnsEnabled, , capture, start, mouseEvent]) => ({ resizeRowsEnabled, resizeColumnsEnabled, capture, start, ...mouseEvent })),
       tap(({ resizeRowsEnabled, resizeColumnsEnabled, capture, start, clientX, clientY }) => {
-        const width = start.width + (clientX - start.clientX), height = start.height + (clientY - start.clientY),
-          event = new ResizeEvent(
-            resizeColumnsEnabled && (capture === CaptureSide.LEFT || capture === CaptureSide.RIGHT)
-              ? width > this._service.minColumnSize ? width : this._service.minColumnSize : 0,
-            resizeRowsEnabled && (capture === CaptureSide.TOP || capture === CaptureSide.BOTTOM)
-              ? height > this._service.minRowSize ? height : this._service.minRowSize : 0,
-            capture,
-          );
+        const width = start.width + (clientX - start.clientX), height = start.height + (clientY - start.clientY);
+        let w = 0, h = 0;
+        if (resizeColumnsEnabled) {
+          if ((capture === CaptureSide.LEFT || capture === CaptureSide.RIGHT)) {
+            w = width > this._service.minColumnSize ? width : this._service.minColumnSize;
+          }
+        }
+        if (resizeRowsEnabled) {
+          if (capture === CaptureSide.TOP || capture === CaptureSide.BOTTOM) {
+            h = height > this._service.minRowSize ? height : this._service.minRowSize;
+          }
+        }
+        const event = new ResizeEvent(w, h, capture);
         this.resize.emit(event);
       }),
     ).subscribe();

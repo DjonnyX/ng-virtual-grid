@@ -1,23 +1,19 @@
 :host {
+    display: block;
     position: absolute;
-    display: inline-flex;
     left: 0;
     top: 0;
     box-sizing: border-box;
     overflow: hidden;
 }
 
-.ngvg-item__container {
+.ngvg-row__container {
+    display: inline;
     margin: 0;
     padding: 0;
+    overflow: hidden;
     background-color: inherit;
-    width: inherit;
-    height: auto;
-    overflow: auto;
-}
-
-.ngvg-item__content {
     width: auto;
     height: auto;
-    box-sizing: border-box;
+    overflow: hidden;
 }

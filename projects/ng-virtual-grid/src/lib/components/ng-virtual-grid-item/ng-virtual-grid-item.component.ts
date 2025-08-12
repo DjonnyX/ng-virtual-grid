@@ -12,8 +12,8 @@ import { CaptureSide, ReasizeBoundsDirective, ResizeEvent } from '../../directiv
 import { NgVirtualGridService } from '../../ng-virtual-grid.service';
 
 /**
- * Virtual list item component
- * @link https://github.com/DjonnyX/ng-virtual-list/blob/20.x/projects/ng-virtual-list/src/lib/components/ng-virtual-list-item.component.ts
+ * Virtual grid item component
+ * @link https://github.com/DjonnyX/ng-virtual-list/blob/19.x/projects/ng-virtual-grid/src/lib/components/ng-virtual-grid-item.component.ts
  * @author Evgenii Grebennikov
  * @email djonnyx@gmail.com
  */
@@ -24,6 +24,7 @@ import { NgVirtualGridService } from '../../ng-virtual-grid.service';
   styleUrl: './ng-virtual-grid-item.component.scss',
   host: {
     'class': 'ngvg__item',
+    'part': 'grid-item',
   },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -50,14 +51,12 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
       return;
     }
 
-    this._data = v;
-
-    const rowId = this.rowId, colId = Number(this.columnId);
+    const rowId = v?.rowId, colId = Number(v?.columnId);
     this.liId = `li-${this.service.listId}-${rowId}-${colId}`;
-    this.leftLiId = this._data?.config.prevColId !== undefined ? `li-${this.service.listId}-${rowId}-${this._data?.config.prevColId}` : undefined;
-    this.topLiId = this._data?.config.prevRowId !== undefined ? `li-${this.service.listId}-${this._data?.config.prevRowId}-${colId}` : undefined;
+    this.leftLiId = v?.config.prevColId !== undefined ? `li-${this.service.listId}-${rowId}-${v?.config.prevColId}` : undefined;
+    this.topLiId = v?.config.prevRowId !== undefined ? `li-${this.service.listId}-${v?.config.prevRowId}-${colId}` : undefined;
 
-    this.update();
+    this.update(v);
 
     this.data.set(v);
   }
@@ -67,23 +66,23 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
   }
 
   get itemId() {
-    return this._data?.id;
+    return this._data?.id ?? -1;
   }
 
   get rowId() {
-    return this._data!.rowId;
+    return this._data?.rowId ?? -1;
   }
 
   get prevRowId() {
-    return this._data!.config.prevRowId;
+    return this._data?.config.prevRowId;
   }
 
   get columnId() {
-    return this._data!.columnId;
+    return this._data?.columnId ?? -1;
   }
 
   get prevColumnId() {
-    return this._data!.config.prevColId;
+    return this._data?.config.prevColId;
   }
 
   itemRenderer = signal<TemplateRef<any> | undefined>(undefined);
@@ -103,26 +102,24 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
 
   constructor() {
     super();
-    this._id = NgVirtualGridItemComponent.__nextId = NgVirtualGridItemComponent.__nextId === Number.MAX_SAFE_INTEGER
-      ? 0 : NgVirtualGridItemComponent.__nextId + 1;
+    this._id = this.service.generateComponentId();
 
     this.liId = `li-${this.service.listId}-${this._id}`;
   }
 
-  private update() {
-    const data = this._data;
+  private update(data: IRenderVirtualListItem | undefined) {
     if (data) {
+      const isNewItem = this.itemId !== data.id, content = this._listItemContentRef(), elementContent = content?.nativeElement;
+      if (isNewItem) {
+        if (elementContent) {
+          elementContent.style.display = DISPLAY_NONE;
+        }
+      }
+
       const element = this._elementRef.nativeElement, styles = element.style;
       styles.zIndex = data.config.zIndex;
-      if (data.config.snapped) {
-        styles.transform = data.config.sticky === 1 ? ZEROS_TRANSLATE_3D : `${TRANSLATE_3D}(${data.config.isVertical ? 0 : data.measures.x}${PX}, ${data.config.isVertical ? data.measures.y : 0}${PX} , 0)`;
-        if (!data.config.isSnappingMethodAdvanced) {
-          styles.position = POSITION_STICKY;
-        }
-      } else {
-        styles.position = POSITION_ABSOLUTE;
-        styles.transform = `${TRANSLATE_3D}(${data.measures.x}${PX}, ${data.measures.y}${PX} , 0)`;
-      }
+      styles.position = data.config.snapped ? POSITION_STICKY : POSITION_ABSOLUTE;
+      styles.transform = `${TRANSLATE_3D}(${data.measures.x}${PX}, 0 , 0)`;
       styles.height = SIZE_AUTO;
       styles.width = `${data.measures.width}${PX}`;
 
@@ -131,20 +128,28 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
         const liElement = listItem.nativeElement;
         if (this._data?.config.customSize) {
           liElement.style.height = `${data.measures.height}${PX}`;
-          liElement.style.minHeight = 'initial';
+          liElement.style.maxHeight = `${data.measures.height}${PX}`;
+          liElement.style.minHeight = 'unset';
         } else {
           liElement.style.minHeight = `${data.measures.height}${PX}`;
-          liElement.style.height = 'initial';
+          liElement.style.maxHeight = 'unset';
+          liElement.style.height = SIZE_AUTO;
         }
       }
+
+      if (isNewItem && elementContent) {
+        elementContent.style.display = DISPLAY_BLOCK;
+      }
     }
+
+    this._data = data;
   }
 
   getBounds(): ISize {
     const list = this._listItemRef();
     if (list) {
-      const el: HTMLElement = list.nativeElement,
-        { width, height } = el.getBoundingClientRect();
+      const el: HTMLElement = list.nativeElement;
+      const { width, height } = el.getBoundingClientRect();
       return { width, height };
     }
     return { width: this.service.minColumnSize, height: this.service.minRowSize };
@@ -155,31 +160,19 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
     if (content) {
       const el: HTMLElement = content.nativeElement,
         { width, height } = el.getBoundingClientRect();
-
-      const list: HTMLLIElement | undefined = this._listItemRef()?.nativeElement;
-      let borderWX = 0, borderWY = 0;
-      if (list) {
-        const computedStyle = window.getComputedStyle(list);
-        borderWX += parseFloat(computedStyle.borderRightWidth);
-        borderWX += parseFloat(computedStyle.borderLeftWidth);
-        borderWY += parseFloat(computedStyle.borderTopWidth);
-        borderWY += parseFloat(computedStyle.borderBottomWidth);
-      }
-
-      return { width: width + borderWX, height: height + borderWY };
+      return { width: width, height: height };
     }
     return { width: this.service.minColumnSize, height: this.service.minRowSize };
   }
 
   show() {
     const styles = this._elementRef.nativeElement.style;
-
-    if (styles.visibility === VISIBILITY_VISIBLE) {
+    if (styles.visibility === VISIBILITY_VISIBLE && styles.zIndex !== HIDDEN_ZINDEX) {
       return;
     }
 
     styles.visibility = VISIBILITY_VISIBLE;
-    styles.zIndex = this._data?.config?.zIndex ?? DEFAULT_ZINDEX;
+    styles.zIndex = this._data?.config?.zIndex || DEFAULT_ZINDEX;
   }
 
   hide() {
@@ -195,11 +188,19 @@ export class NgVirtualGridItemComponent extends BaseVirtualListItemComponent {
   }
 
   protected onResizeHandler(event: ResizeEvent) {
-    this.service.onResize(
-      event.method === CaptureSide.TOP ? this.prevRowId! : this.rowId!,
-      event.method === CaptureSide.LEFT ? this.prevColumnId! : this.columnId!,
-      event.width, event.height,
-    );
+    if (this.service.isAjacentResizeCellMode) {
+      this.service.onResize(
+        event.method === CaptureSide.TOP ? this.prevRowId! : this.rowId!,
+        event.method === CaptureSide.LEFT ? this.prevColumnId! : this.columnId!,
+        event.width, event.height,
+      );
+    } else {
+      this.service.onResize(
+        this.rowId!,
+        this.columnId!,
+        event.width, event.height,
+      );
+    }
   }
 }
 

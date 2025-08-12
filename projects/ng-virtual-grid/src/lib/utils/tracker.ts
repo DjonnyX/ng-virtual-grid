@@ -1,7 +1,9 @@
 import { ComponentRef } from "@angular/core";
-import { ScrollDirection } from "../models";
+import { ScrollDirection, VirtualGridRow } from "../models";
 import { Id, ISize } from "../types";
 import { BaseVirtualListItemComponent } from "../models/base-virtual-list-item-component";
+import { IRenderVirtualListCollection } from "../models/render-collection.model";
+import { NgVirtualGridRowComponent } from "../components/ng-virtual-grid-row/ng-virtual-grid-row.component";
 
 type TrackingPropertyId = string | number;
 
@@ -24,9 +26,9 @@ export class Tracker<C extends BaseVirtualListItemComponent = any> {
     /**
      * display objects dictionary of indexes by id
      */
-    protected _displayObjectIndexMapById: { [id: number]: number } = {};
+    protected _displayObjectIndexMapById: { [componentId: number]: number } = {};
 
-    set displayObjectIndexMapById(v: { [id: number]: number }) {
+    set displayObjectIndexMapById(v: { [componentId: number]: number }) {
         if (this._displayObjectIndexMapById === v) {
             return;
         }
@@ -41,11 +43,7 @@ export class Tracker<C extends BaseVirtualListItemComponent = any> {
     /**
      * Dictionary displayItems propertyNameId by items propertyNameId
      */
-    protected _trackMap: { [id: TrackingPropertyId]: number } | null = {};
-
-    get trackMap() {
-        return this._trackMap;
-    }
+    protected _trackMap: { [id: TrackingPropertyId]: number } = {};
 
     protected _trackingPropertyName!: string;
 
@@ -60,79 +58,124 @@ export class Tracker<C extends BaseVirtualListItemComponent = any> {
     /**
      * tracking by propName
      */
-    track(items: Array<any>, components: Array<ComponentRef<C>>, snapedComponent: ComponentRef<C> | null | undefined,
-        direction: ScrollDirection): void {
-        if (!items) {
+    track(rows: IRenderVirtualListCollection | null | undefined, items: Array<IRenderVirtualListCollection> | null | undefined,
+        rowComponents: Array<ComponentRef<C>> | null | undefined): void {
+        if (rows && rowComponents) {
+            // НЕОБХОДИМО КОРРЕКТНО ПРОТРЕЧИТЬ ЯЧЕЙКИ!!!
+
+            if (items && rowComponents) {
+                this.trackRowComponents(rows, rowComponents);
+
+                const itemsByRowId: { [rowId: Id]: IRenderVirtualListCollection } = {};
+                for (let i = 0, l = items.length; i < l; i++) {
+                    const cells = items[i];
+                    for (let j = 0, l1 = cells.length; j < l1; j++) {
+                        const cell = cells[j], rowId = cell.rowId;
+                        if (rowId === undefined) {
+                            continue;
+                        }
+                        if (!itemsByRowId.hasOwnProperty(rowId)) {
+                            itemsByRowId[rowId] = [];
+                        }
+                        itemsByRowId[rowId].push(cell);
+                    }
+                }
+
+                const trackRowMap: { [id: Id]: number } = {}, idPropName = this._trackingPropertyName;
+                for (let i = 0, l = rowComponents.length; i < l; i++) {
+                    const rowComponent = rowComponents[i].instance as unknown as NgVirtualGridRowComponent, rowId = rowComponent.itemId;
+                    if (rowId === undefined) {
+                        continue;
+                    }
+                    const components = rowComponent.components, rowItems = itemsByRowId[rowId], untrackedItems = [...components];
+                    if (!rowItems) {
+                        continue;
+                    }
+                    for (let j = 0, l1 = rowItems.length; j < l1; j++) {
+                        const cell = rowItems[j], itemTrackingProperty = (cell as any)[idPropName];
+                        if (this._trackMap.hasOwnProperty(itemTrackingProperty)) {
+                            const displayObjectId = this._trackMap[itemTrackingProperty],
+                                compIndex = this._displayObjectIndexMapById[displayObjectId],
+                                comp = components[compIndex],
+                                compId = comp?.instance?.id;
+                            if (comp !== undefined && compId !== undefined && compId === displayObjectId) {
+                                const indexByUntrackedItems = untrackedItems.findIndex(v => {
+                                    return v.instance.id === compId;
+                                });
+                                if (indexByUntrackedItems > -1) {
+                                    comp.instance.item = cell;
+
+                                    comp.instance.show();
+                                    untrackedItems.splice(indexByUntrackedItems, 1);
+                                    continue;
+                                }
+                            }
+                            delete this._trackMap[itemTrackingProperty];
+                        }
+
+                        if (untrackedItems.length > 0) {
+                            const comp = untrackedItems.shift();
+                            if (comp) {
+                                comp.instance.item = cell;
+                                comp.instance.show();
+
+                                this._trackMap[itemTrackingProperty] = comp.instance.id;
+                            }
+                        }
+                    }
+
+                    if (untrackedItems.length) {
+                        for (let j = 0, l1 = untrackedItems.length; j < l1; j++) {
+                            const comp = untrackedItems[j];
+                            comp.instance.hide();
+                        }
+                    }
+
+                    if (rowId !== undefined) {
+                        trackRowMap[rowId] = i;
+                    }
+                }
+            }
+        }
+    }
+
+    private trackRowComponents(items: IRenderVirtualListCollection | null | undefined, components: Array<ComponentRef<C>> | null | undefined) {
+        if (!items || !components) {
             return;
         }
 
-        const idPropName = this._trackingPropertyName, untrackedItems = [...components], isDown = direction === 0 || direction === 1;
-        let isRegularSnapped = false;
+        const idPropName = this._trackingPropertyName, untrackedItems = [...components];
 
-        for (let i = isDown ? 0 : items.length - 1, l = isDown ? items.length : 0; isDown ? i < l : i >= l; isDown ? i++ : i--) {
-            const item = items[i], itemTrackingProperty = item[idPropName];
+        for (let i = 0, l = items.length; i < l; i++) {
+            const item = items[i], itemTrackingProperty = (item as any)[idPropName];
 
-            if (this._trackMap) {
-                if (this._trackMap.hasOwnProperty(itemTrackingProperty)) {
-                    const diId = this._trackMap[itemTrackingProperty],
-                        compIndex = this._displayObjectIndexMapById[diId], comp = components[compIndex];
+            if (this._trackMap.hasOwnProperty(itemTrackingProperty)) {
+                const displayObjectId = this._trackMap[itemTrackingProperty],
+                    compIndex = this._displayObjectIndexMapById[displayObjectId],
+                    comp = components[compIndex],
+                    compId = comp?.instance?.id;
+                if (comp !== undefined && compId !== undefined && compId === displayObjectId) {
+                    const indexByUntrackedItems = untrackedItems.findIndex(v => {
+                        return v.instance.id === compId;
+                    });
+                    if (indexByUntrackedItems > -1) {
+                        comp.instance.item = item;
 
-                    const compId = comp?.instance?.id;
-                    if (comp !== undefined && compId === diId) {
-                        const indexByUntrackedItems = untrackedItems.findIndex(v => {
-                            return v.instance.id === compId;
-                        });
-                        if (indexByUntrackedItems > -1) {
-                            if (snapedComponent) {
-                                if (item['config']['snapped'] || item['config']['snappedOut']) {
-                                    isRegularSnapped = true;
-                                    snapedComponent.instance.item = item;
-                                    snapedComponent.instance.show();
-                                }
-                            }
-                            comp.instance.item = item;
-
-                            if (snapedComponent) {
-                                if (item['config']['snapped'] || item['config']['snappedOut']) {
-                                    comp.instance.hide();
-                                } else {
-                                    comp.instance.show();
-                                }
-                            } else {
-                                comp.instance.show();
-                            }
-                            untrackedItems.splice(indexByUntrackedItems, 1);
-                            continue;
-                        }
+                        comp.instance.show();
+                        untrackedItems.splice(indexByUntrackedItems, 1);
+                        continue;
                     }
-                    delete this._trackMap[itemTrackingProperty];
                 }
+                delete this._trackMap[itemTrackingProperty];
             }
 
             if (untrackedItems.length > 0) {
-                const comp = untrackedItems.shift(), item = items[i];
+                const comp = untrackedItems.shift();
                 if (comp) {
-                    if (snapedComponent) {
-                        if (item['config']['snapped'] || item['config']['snappedOut']) {
-                            isRegularSnapped = true;
-                            snapedComponent.instance.item = item;
-                            snapedComponent.instance.show();
-                        }
-                    }
                     comp.instance.item = item;
-                    if (snapedComponent) {
-                        if (item['config']['snapped'] || item['config']['snappedOut']) {
-                            comp.instance.hide();
-                        } else {
-                            comp.instance.show();
-                        }
-                    } else {
-                        comp.instance.show();
-                    }
+                    comp.instance.show();
 
-                    if (this._trackMap) {
-                        this._trackMap[itemTrackingProperty] = comp.instance.id;
-                    }
+                    this._trackMap[itemTrackingProperty] = comp.instance.id;
                 }
             }
         }
@@ -141,13 +184,6 @@ export class Tracker<C extends BaseVirtualListItemComponent = any> {
             for (let i = 0, l = untrackedItems.length; i < l; i++) {
                 const comp = untrackedItems[i];
                 comp.instance.hide();
-            }
-        }
-
-        if (!isRegularSnapped) {
-            if (snapedComponent) {
-                snapedComponent.instance.item = null;
-                snapedComponent.instance.hide();
             }
         }
     }
@@ -159,12 +195,12 @@ export class Tracker<C extends BaseVirtualListItemComponent = any> {
 
         const propertyIdName = this._trackingPropertyName;
 
-        if (this._trackMap && (component as any)[propertyIdName] !== undefined) {
+        if ((component as any)[propertyIdName] !== undefined) {
             delete this._trackMap[propertyIdName];
         }
     }
 
     dispose() {
-        this._trackMap = null;
+
     }
 }

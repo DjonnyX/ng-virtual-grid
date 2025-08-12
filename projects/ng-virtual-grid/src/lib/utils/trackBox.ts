@@ -10,6 +10,7 @@ import { IColumnsSize, IRowsSize, IVirtualGridColumnCollection, IVirtualGridStic
 import { bufferInterpolation } from "./buffer-interpolation";
 import { BaseVirtualListItemComponent } from "../models/base-virtual-list-item-component";
 import { normalizeDeltaX } from "./delta";
+import { NgVirtualGridRowComponent } from "../components/ng-virtual-grid-row/ng-virtual-grid-row.component";
 
 export const TRACK_BOX_CHANGE_EVENT_NAME = 'change';
 
@@ -90,7 +91,8 @@ export enum ItemDisplayMethods {
 }
 
 export interface IUpdateCollectionReturns {
-    displayItems: IRenderVirtualListCollection;
+    displayItems: Array<IRenderVirtualListCollection>;
+    rowDisplayItems: IRenderVirtualListCollection;
     totalSize: number;
     totalHeight: number;
     delta: number;
@@ -112,9 +114,9 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
     protected _tracker!: Tracker<C>;
 
-    protected _items: IRenderVirtualListCollection | null | undefined;
+    protected _items: Array<IRenderVirtualListCollection> | null | undefined;
 
-    set items(v: IRenderVirtualListCollection | null | undefined) {
+    set items(v: Array<IRenderVirtualListCollection> | null | undefined) {
         if (this._items === v) {
             return;
         }
@@ -122,34 +124,24 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         this._items = v;
     }
 
-    protected _displayComponents: Array<ComponentRef<C>> | null | undefined;
+    protected _rowItems: IRenderVirtualListCollection | null | undefined;
 
-    set displayComponents(v: Array<ComponentRef<C>> | null | undefined) {
-        if (this._displayComponents === v) {
+    set rowItems(v: IRenderVirtualListCollection | null | undefined) {
+        if (this._rowItems === v) {
             return;
         }
 
-        this._displayComponents = v;
+        this._rowItems = v;
     }
 
-    protected _snapedDisplayComponent: ComponentRef<C> | null | undefined;
+    protected _rowDisplayComponents: Array<ComponentRef<C>> | null | undefined;
 
-    set snapedDisplayComponent(v: ComponentRef<C> | null | undefined) {
-        if (this._snapedDisplayComponent === v) {
+    set rowDisplayComponents(v: Array<ComponentRef<C>> | null | undefined) {
+        if (this._rowDisplayComponents === v) {
             return;
         }
 
-        this._snapedDisplayComponent = v;
-    }
-
-    protected _isSnappingMethodAdvanced: boolean = false;
-
-    set isSnappingMethodAdvanced(v: boolean) {
-        if (this._isSnappingMethodAdvanced === v) {
-            return;
-        }
-
-        this._isSnappingMethodAdvanced = v;
+        this._rowDisplayComponents = v;
     }
 
     /**
@@ -231,11 +223,13 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
     protected _resetBufferSizeTimer: number | undefined;
 
+    protected _isRenderedMap = new CMap<Id, boolean | undefined>();
+
     protected _customSizeMap = new CMap<Id, number | undefined>();
 
     protected _customColumnsSizeMap = new CMap<Id, number | undefined>();
 
-    protected _customRowsSizeMap = new CMap<Id, number | undefined>();
+    protected _customRowsSizeMap = new CMap<Id, number | 'auto' | undefined>();
 
     protected _columnsMap = new CMap<Id, IVirtualGridColumnCollection>();
 
@@ -244,6 +238,22 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
     minColumnSize = DEFAULT_MIN_COLUMN_SIZE;
 
     minRowSize = DEFAULT_MIN_ROW_SIZE;
+
+    protected _scrollBarHorizontalWeight = 0;
+    set scrollBarHorizontalWeight(v: number) {
+        if (this._scrollBarHorizontalWeight !== v) {
+            this._scrollBarHorizontalWeight = v;
+            this.bumpVersion();
+        }
+    }
+
+    protected _scrollBarVerticalWeight = 0;
+    set scrollBarVerticalWeight(v: number) {
+        if (this._scrollBarVerticalWeight !== v) {
+            this._scrollBarVerticalWeight = v;
+            this.bumpVersion();
+        }
+    }
 
     updateRowsSize(v: IRowsSize) {
         if (!v) {
@@ -257,7 +267,10 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                 this._customRowsSizeMap.set(rowId, value);
             }
             if (value !== undefined) {
-                this.set(rowId, { ...this.get(rowId) || {}, height: value } as any);
+                const cacheItem = this.get(rowId) || {};
+                if (value !== 'auto') {
+                    this.set(rowId, { ...cacheItem, height: value } as any);
+                }
             }
         }
     }
@@ -283,7 +296,8 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                     const item = items[i], id = item.id;
                     this._customSizeMap.set(id, value);
                     if (value !== undefined) {
-                        this.set(id, { ...this.get(id) || {}, width: value } as any);
+                        const cacheItem = this.get(id);
+                        this.set(id, { ...cacheItem || {}, width: value } as any);
                     }
                 }
             }
@@ -318,7 +332,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             for (let i = 0, l = currentCollection.length; i < l; i++) {
                 const item = currentCollection[i], subCollection = item.columns as IVirtualGridColumnCollection, rowId = item.id,
                     rowHeight = this._customRowsSizeMap.get(rowId) ?? rowSize;
-                this._map.set(rowId, { width: itemSize, height: rowHeight, method: ItemDisplayMethods.NOT_CHANGED });
+                this._map.set(rowId, { width: itemSize, height: rowHeight === 'auto' ? rowSize : rowHeight, method: ItemDisplayMethods.NOT_CHANGED });
                 for (let j = 0, l1 = subCollection.length; j < l1; j++) {
                     const col = subCollection[j];
                     col.rowId = rowId;
@@ -365,7 +379,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                     const item = currentCollection[i], id = item.id, rowId = item.rowId, columnId = item.columnId,
                         rowHeight = rowId !== undefined ? this._customRowsSizeMap.get(rowId) ?? rowSize : rowSize,
                         itemWidth = columnId !== undefined ? this._customColumnsSizeMap.get(columnId) ?? itemSize : itemSize;
-                    this._map.set(id, { width: itemWidth, height: rowHeight, method: ItemDisplayMethods.CREATE });
+                    this._map.set(id, { width: itemWidth, height: rowHeight === 'auto' ? rowSize : rowHeight, method: ItemDisplayMethods.CREATE });
                 }
             }
             return;
@@ -387,13 +401,13 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                     if (item === collectionDict[id]) {
                         // not changed
                         notChangedMap[item.id] = item;
-                        this._map.set(id, { ...(this._map.get(id) || { width: itemWidth, height: rowHeight }), method: ItemDisplayMethods.NOT_CHANGED });
+                        this._map.set(id, { ...(this._map.get(id) || { width: itemWidth, height: rowHeight === 'auto' ? rowSize : rowHeight }), method: ItemDisplayMethods.NOT_CHANGED });
                         continue;
                     } else {
                         // updated
                         crudDetected = true;
                         updatedMap[item.id] = item;
-                        this._map.set(id, { ...(this._map.get(id) || { width: itemWidth, height: rowHeight }), method: ItemDisplayMethods.UPDATE });
+                        this._map.set(id, { ...(this._map.get(id) || { width: itemWidth, height: rowHeight === 'auto' ? rowSize : rowHeight }), method: ItemDisplayMethods.UPDATE });
                         continue;
                     }
                 }
@@ -413,7 +427,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             if (item && !deletedMap.hasOwnProperty(id) && !updatedMap.hasOwnProperty(id) && !notChangedMap.hasOwnProperty(id)) {
                 // added
                 crudDetected = true;
-                this._map.set(id, { width: itemWidth, height: rowHeight, method: ItemDisplayMethods.CREATE });
+                this._map.set(id, { width: itemWidth, height: rowHeight === 'auto' ? rowSize : rowHeight, method: ItemDisplayMethods.CREATE });
             }
         }
         this._crudDetected = crudDetected;
@@ -444,9 +458,9 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
     /**
      * Updates the collection of display objects
      */
-    updateCollection<I extends { id: Id, rowId?: Id }, C extends Array<I>>(items: C, stickyMap: IVirtualGridStickyMap,
+    updateCollection<I extends { id: Id, rowId?: Id }, C extends Array<I>>(items: C, stickyRowsMap: IVirtualGridStickyMap, stickyColumnsMap: IVirtualGridStickyMap,
         options: IUpdateCollectionOptions<I, C>): IUpdateCollectionReturns {
-        const opt = { stickyMap, ...options }, crudDetected = this._crudDetected, deletedItemsMap = this._deletedItemsMap;
+        const opt = { stickyRowsMap, stickyColumnsMap, ...options }, crudDetected = this._crudDetected, deletedItemsMap = this._deletedItemsMap;
 
         this.cacheElements();
 
@@ -460,14 +474,15 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             collection: items,
             scrollSize: opt.scrollSizeY,
             crudDetected: this._crudDetected,
+            stickyMap: stickyRowsMap,
             itemSize: opt.rowSize,
             deletedItemsMap,
             isVertical: true,
             bufferSize: this._bufferSizeY,
             y: 0,
-        });
+        } as any);
 
-        const rowDisplayItems = this.generateDisplayCollection(items, stickyMap, { ...rowMetrics } as any), deltaXSequence: Array<number> = [];
+        const rowDisplayItems = this.generateDisplayCollection(items, stickyRowsMap, { ...rowMetrics } as any), deltaXSequence: Array<number> = [];
 
         let prevRowId: Id | undefined;
         for (let i = 0, l = rowDisplayItems.length; i < l; i++) {
@@ -478,12 +493,13 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                 collection: columnsCollection,
                 scrollSize: opt.scrollSizeX,
                 crudDetected: this._crudDetected,
+                stickyMap: stickyColumnsMap,
                 deletedItemsMap,
                 isVertical: false,
                 bufferSize: this._bufferSizeX ?? DEFAULT_BUFFER_SIZE,
-                rowSize: customRowSize !== undefined ? customRowSize : this.get(item.id)?.height ?? rowMetrics.rowSize,
+                rowSize: customRowSize !== undefined && customRowSize !== 'auto' ? customRowSize : this.get(item.id)?.height ?? rowMetrics.rowSize,
                 y: item.measures.y,
-            });
+            } as any);
 
             deltaXSequence.push(metrics.delta);
 
@@ -494,8 +510,9 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             this._previousScrollSizeX[rowId] = scrollSize;
             this._bufferSizeX = bufferSize;
 
-            const displayItems = this.generateDisplayCollection(columnsCollection, stickyMap, { ...metrics, rowId }, {
+            const displayItems = this.generateDisplayCollection(columnsCollection, stickyColumnsMap, { ...metrics, rowId }, {
                 prevRowId,
+                rowDisplayObject: item,
             });
 
             displayItemCollection.push(displayItems);
@@ -521,7 +538,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         this._crudDetected = false;
 
         return {
-            displayItems: displayItemCollection.flat(), totalSize: columnsTotalSize, totalHeight: rowMetrics.totalSize,
+            rowDisplayItems, displayItems: displayItemCollection, totalSize: columnsTotalSize, totalHeight: rowMetrics.totalSize,
             delta: rowMetrics.delta, crudDetected,
         };
     }
@@ -678,20 +695,20 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         // If the list is dynamic or there are new elements in the collection, then it switches to the long algorithm.
         let y = 0, stickyCollectionItem: I | undefined = undefined, stickyComponentSize = 0;
         for (let i = 0, l = collection.length; i < l; i++) {
-            const ii = i + 1, collectionItem = collection[i], id = collectionItem.id;
+            const ii = i + 1, collectionItem = collection[i], id = collectionItem.id, sticky = stickyMap ? isVertical ? stickyMap[id] : stickyMap[i] : undefined;
 
             let componentSize = isVertical ? typicalRowSize : typicalItemSize, componentSizeDelta = 0,
                 itemDisplayMethod: ItemDisplayMethods = ItemDisplayMethods.NOT_CHANGED;
             if (map.has(id)) {
                 const bounds = map.get(id) || { width: typicalItemSize, height: typicalItemSize },
                     actualSize = isVertical
-                        ? this._customRowsSizeMap.get(id) ?? this._customSizeMap.get(id) ?? bounds.height
+                        ? this._customRowsSizeMap.get(id) !== 'auto' ? this._customRowsSizeMap.get(id) ?? this._customSizeMap.get(id) ?? bounds.height : this._customSizeMap.get(id) ?? bounds.height
                         : this._customColumnsSizeMap.get(i) ?? this._customSizeMap.get(id) ?? bounds.width,
                     actualBounds: Partial<ISize> = { [sizeProperty]: actualSize };
-                componentSize = actualSize;
+                componentSize = actualSize as number;
                 if (!isVertical && this._columnsStructureMap.get(i)) {
-                    itemDisplayMethod = ItemDisplayMethods.NOT_CHANGED;
-                    map.set(id, { ...bounds, method: ItemDisplayMethods.NOT_CHANGED });
+                    itemDisplayMethod = ItemDisplayMethods.UPDATE;
+                    map.set(id, { ...bounds, method: ItemDisplayMethods.UPDATE });
                 } else {
                     itemDisplayMethod = bounds?.method ?? ItemDisplayMethods.UPDATE;
                     switch (itemDisplayMethod) {
@@ -699,12 +716,12 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                             const snapshotBounds = snapshot.get(id);
                             const componentSnapshotSize = componentSize - (snapshotBounds ? snapshotBounds[sizeProperty] : typicalItemSize);
                             componentSizeDelta = componentSnapshotSize;
-                            map.set(id, { ...bounds, ...actualBounds, method: ItemDisplayMethods.NOT_CHANGED });
+                            map.set(id, { ...bounds, ...actualBounds, method: ItemDisplayMethods.UPDATE });
                             break;
                         }
                         case ItemDisplayMethods.CREATE: {
                             componentSizeDelta = typicalItemSize;
-                            map.set(id, { ...bounds, ...actualBounds, method: ItemDisplayMethods.NOT_CHANGED });
+                            map.set(id, { ...bounds, ...actualBounds, method: ItemDisplayMethods.UPDATE });
                             break;
                         }
                     }
@@ -722,7 +739,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
             if (isFromId) {
                 if (itemById === undefined) {
-                    if (id !== fromItemId && stickyMap && stickyMap[id] === 1) {
+                    if (id !== fromItemId && sticky === 1) {
                         stickyComponentSize = componentSize;
                         stickyCollectionItem = collectionItem;
                     }
@@ -736,7 +753,8 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                                 isTargetInOverscroll = true;
                                 y -= size - componentSize;
                             } else {
-                                if (stickyMap && !stickyMap[collectionItem.id] && y >= scrollSize && y < scrollSize + stickyComponentSize) {
+                                const sticky = isVertical ? stickyMap[collectionItem.id] : stickyMap[i];
+                                if (stickyMap && sticky && y >= scrollSize && y < scrollSize + stickyComponentSize) {
                                     const snappedY = scrollSize - stickyComponentSize;
                                     leftHiddenItemsWeight -= (snappedY - y);
                                     y = snappedY;
@@ -771,7 +789,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                 totalItemsToDisplayEndWeight += componentSize;
                 itemsFromDisplayEndToOffsetEnd = itemsFromStartToDisplayEnd + rightItemsOffset;
 
-                if (y <= scrollSize - componentSize) {
+                if (y <= scrollSize) {
                     switch (itemDisplayMethod) {
                         case ItemDisplayMethods.CREATE: {
                             leftSizeOfAddedItems += componentSizeDelta;
@@ -885,7 +903,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
     }
 
     protected generateDisplayCollection<I extends { id: Id, rowId?: Id }, C extends Array<I>>(items: C, stickyMap: IVirtualGridStickyMap,
-        metrics: IMetrics, options?: { prevRowId?: Id | undefined }): IRenderVirtualListCollection {
+        metrics: IMetrics, options?: { prevRowId?: Id | undefined, rowDisplayObject?: IRenderVirtualListItem }): IRenderVirtualListCollection {
         const {
             width,
             height,
@@ -908,10 +926,11 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
             rowId,
         } = metrics,
             prevRowId = options?.prevRowId,
+            rowDisplayObject = options?.rowDisplayObject,
             displayItems: IRenderVirtualListCollection = [];
 
         if (items.length) {
-            const actualSnippedPosition = snippedPos, isSnappingMethodAdvanced = this.isSnappingMethodAdvanced,
+            const actualSnippedPosition = snippedPos,
                 boundsSize = isVertical ? height : width, actualEndSnippedPosition = boundsSize;
             let pos = startPosition,
                 renderItems = renderItemsLength,
@@ -924,30 +943,32 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                     if (!items[i]) {
                         continue;
                     }
-                    const id = items[i].id, columnId = i, sticky = stickyMap[id], size = this.get(id)?.[sizeProperty] || typicalItemSize;
+                    const id = items[i].id, columnId = i, sticky = isVertical ? stickyMap[id] : stickyMap[i], stickyWithRow = rowDisplayObject?.config.sticky ?? 0,
+                        size = this.get(id)?.[sizeProperty] || typicalItemSize;
                     if (sticky === 1) {
                         const measures = {
                             x: isVertical ? 0 : actualSnippedPosition,
-                            y: isVertical ? actualSnippedPosition : startY ?? 0,
+                            y: isVertical ? 0 : 0,
                             width: isVertical ? normalizedItemWidth : size,
-                            height: rowSize,
+                            height: isVertical ? size : rowSize,
                             delta: 0,
                         }, config = {
-                            customSize: this._customRowsSizeMap.get(rowId) !== undefined || this._customSizeMap.get(id) !== undefined,
+                            customSize: (rowId !== undefined && this._customRowsSizeMap.get(rowId) !== undefined && this._customRowsSizeMap.get(rowId) !== 'auto') ||
+                                this._customSizeMap.get(id) !== undefined,
                             isVertical,
                             sticky,
                             snap,
                             snapped: true,
                             snappedOut: false,
-                            isSnappingMethodAdvanced,
-                            zIndex: '1',
+                            zIndex: stickyWithRow && sticky ? '4' : '2',
                             prevColId: i > 0 ? i - 1 : undefined,
                             prevRowId,
+                            border: i === 0 || i === totalLength - 1,
                         };
 
                         const itemData: I = items[i];
 
-                        stickyItem = { id, rowId, columnId, measures, data: itemData, config };
+                        stickyItem = { index: i, id, rowId, columnId, measures, data: itemData, config };
                         stickyItemIndex = i;
                         stickyItemSize = size;
 
@@ -963,30 +984,32 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                     if (!items[i]) {
                         continue;
                     }
-                    const id = items[i].id, columnId = i, sticky = stickyMap[id], size = this.get(id)?.[sizeProperty] || typicalItemSize;
+                    const id = items[i].id, columnId = i, sticky = isVertical ? stickyMap[id] : stickyMap[i], stickyWithRow = rowDisplayObject?.config.sticky ?? 0,
+                        size = this.get(id)?.[sizeProperty] || typicalItemSize;
                     if (sticky === 2) {
                         const w = isVertical ? normalizedItemWidth : size, h = isVertical ? size : normalizedItemHeight, measures = {
-                            x: isVertical ? 0 : actualEndSnippedPosition - w,
-                            y: isVertical ? actualEndSnippedPosition - h : startY ?? 0,
+                            x: isVertical ? 0 : actualSnippedPosition + actualEndSnippedPosition - w - this._scrollBarHorizontalWeight,
+                            y: isVertical ? actualEndSnippedPosition - h - this._scrollBarVerticalWeight : 0,
                             width: w,
-                            height: rowSize,
+                            height: isVertical ? size : rowSize,
                             delta: 0,
                         }, config = {
-                            customSize: this._customRowsSizeMap.get(rowId) !== undefined || this._customSizeMap.get(id) !== undefined,
+                            customSize: (rowId !== undefined && this._customRowsSizeMap.get(rowId) !== undefined && this._customRowsSizeMap.get(rowId) !== 'auto') ||
+                                this._customSizeMap.get(id) !== undefined,
                             isVertical,
                             sticky,
                             snap,
                             snapped: true,
                             snappedOut: false,
-                            isSnappingMethodAdvanced,
-                            zIndex: '1',
+                            zIndex: stickyWithRow && sticky ? '4' : '2',
                             prevColId: i > 0 ? i - 1 : undefined,
                             prevRowId,
+                            border: i === 0 || i === totalLength - 1,
                         };
 
                         const itemData: I = items[i];
 
-                        endStickyItem = { id, rowId, columnId, measures, data: itemData, config };
+                        endStickyItem = { index: i, id, rowId, columnId, measures, data: itemData, config };
                         endStickyItemIndex = i;
                         endStickyItemSize = size;
 
@@ -1006,49 +1029,48 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
                     continue;
                 }
 
-                const id = items[i].id, columnId = i, size = this.get(id)?.[sizeProperty] || typicalItemSize;
-
+                const id = items[i].id, columnId = i, bounds = this.get(id), size = bounds?.[sizeProperty] || typicalItemSize;
                 if (id !== stickyItem?.id && id !== endStickyItem?.id) {
-
-                    const snapped = snap && (stickyMap[id] === 1 && pos <= scrollSize || stickyMap[id] === 2 && pos >= scrollSize + boundsSize - size),
+                    const w = isVertical ? normalizedItemWidth : size, sticky = isVertical ? stickyMap[id] : stickyMap[i], stickyWithRow = rowDisplayObject?.config.sticky ?? 0, snapped = ((snap && sticky === 1 && pos <= scrollSize) || (snap && sticky === 2 && (pos >= (scrollSize + boundsSize - size)))),
                         measures = {
-                            x: isVertical ? stickyMap[id] === 1 ? 0 : boundsSize - size : pos,
-                            y: isVertical ? pos : stickyMap[id] === 2 ? boundsSize - size : startY ?? 0,
-                            width: isVertical ? normalizedItemWidth : size,
+                            x: isVertical ? 0 : snapped && sticky === 1 ? 0 : snapped && sticky === 2 ? actualSnippedPosition + actualEndSnippedPosition - w - this._scrollBarHorizontalWeight : pos,
+                            y: isVertical ? snapped && sticky === 1 ? 0 : snapped && sticky === 2 ? actualEndSnippedPosition - size - this._scrollBarVerticalWeight : pos : 0,
+                            width: w,
                             height: rowSize,
                             delta: 0,
                         }, config = {
-                            customSize: this._customRowsSizeMap.get(rowId) !== undefined || this._customSizeMap.get(id) !== undefined,
+                            customSize: (rowId !== undefined && this._customRowsSizeMap.get(rowId) !== undefined && this._customRowsSizeMap.get(rowId) !== 'auto') ||
+                                this._customSizeMap.get(id) !== undefined,
                             isVertical,
-                            sticky: stickyMap[id],
+                            sticky,
                             snap,
                             snapped: false,
                             snappedOut: false,
-                            isSnappingMethodAdvanced,
-                            zIndex: '0',
+                            zIndex: sticky || stickyWithRow ? String(sticky || stickyWithRow) : '0',
                             prevColId: i > 0 ? i - 1 : undefined,
                             prevRowId,
+                            border: i === 0 || i === totalLength - 1,
                         };
 
                     if (snapped) {
-                        config.zIndex = '2';
+                        config.zIndex = '3';
                     }
 
                     const itemData: I = items[i];
 
-                    const item: IRenderVirtualListItem = { id, rowId, columnId, measures, data: itemData, config };
-                    if (!nextSticky && stickyItemIndex < i && stickyMap[id] === 1 && (pos <= scrollSize + size + stickyItemSize)) {
+                    const item: IRenderVirtualListItem = { index: i, id, rowId, columnId, measures, data: itemData, config };
+                    if (snap && !nextSticky && stickyItemIndex < i && sticky === 1 && (pos <= scrollSize + size + stickyItemSize)) {
                         item.measures.x = isVertical ? 0 : snapped ? actualSnippedPosition : pos;
                         item.measures.y = isVertical ? snapped ? actualSnippedPosition : pos : 0;
                         nextSticky = item;
                         nextSticky.config.snapped = snapped;
                         nextSticky.measures.delta = isVertical ? (item.measures.y - scrollSize) : (item.measures.x - scrollSize);
-                        nextSticky.config.zIndex = '3';
-                    } else if (!nextEndSticky && endStickyItemIndex > i && stickyMap[id] === 2 && (pos >= scrollSize + boundsSize - size - endStickyItemSize)) {
+                        nextSticky.config.zIndex = '4';
+                    } else if (snap && !nextEndSticky && endStickyItemIndex > i && sticky === 2 && (pos >= scrollSize + boundsSize - size - endStickyItemSize)) {
                         item.measures.x = isVertical ? 0 : snapped ? actualEndSnippedPosition - size : pos;
                         item.measures.y = isVertical ? snapped ? actualEndSnippedPosition - size : pos : 0;
                         nextEndSticky = item;
-                        nextEndSticky.config.zIndex = '3';
+                        nextEndSticky.config.zIndex = '4';
                         nextEndSticky.config.snapped = snapped;
                         nextEndSticky.measures.delta = isVertical ? (item.measures.y - scrollSize) : (item.measures.x - scrollSize);
                     }
@@ -1096,19 +1118,15 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
      * tracking by propName
      */
     track(): void {
-        if (!this._items || !this._displayComponents) {
+        if (!this._items || !this._rowItems) {
             return;
         }
 
-        this._tracker.track(this._items, this._displayComponents, this._snapedDisplayComponent, this.scrollDirectionX);
+        this._tracker.track(this._rowItems, this._items, this._rowDisplayComponents);
     }
 
-    setDisplayObjectIndexMapById(v: { [id: number]: number }): void {
+    setDisplayObjectIndexMapById(v: { [componentId: number]: number }): void {
         this._tracker.displayObjectIndexMapById = v;
-    }
-
-    untrackComponentByIdProperty(component?: C | undefined) {
-        this._tracker.untrackComponentByIdProperty(component);
     }
 
     getItemBounds(id: Id): ISize | undefined {
@@ -1118,41 +1136,58 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         return undefined;
     }
 
+    private _rowsCache: { [id: Id]: { [colId: Id]: number } } = {};
+
+    getCacheByRowId(id: Id) {
+        return this._isRenderedMap.get(id) && this.has(id) ? this.get(id)?.height : 'auto';
+    }
+
     protected cacheElements(): void {
-        if (!this._displayComponents) {
+        if (!this._rowDisplayComponents) {
             return;
         }
 
-        const rowDict: { [id: Id]: number } = {};
-        for (let i = 0, l = this._displayComponents.length; i < l; i++) {
-            const component: ComponentRef<C> = this._displayComponents[i], rowId = component.instance.rowId, columnId = component.instance.columnId,
-                itemId = component.instance.itemId;
-            if (itemId === undefined) {
-                continue;
-            }
-            const itemCache = this.get(itemId);
-            if (columnId !== undefined && !this._columnsStructureMap.has(columnId)) {
-                this._columnsStructureMap.set(columnId, this._columnsStructureMap.get(columnId) || itemCache?.method === ItemDisplayMethods.NOT_CHANGED);
-            }
-            if (this._customSizeMap.get(itemId) !== undefined || (rowId !== undefined && this._customRowsSizeMap.get(rowId) !== undefined)) {
-                continue;
-            }
-            const bounds = component.instance.getBounds();
-            this._map.set(itemId, { ...itemCache, ...bounds } as any);
-            if (rowId !== undefined) {
-                if (!rowDict.hasOwnProperty(rowId)) {
-                    rowDict[rowId] = this.minRowSize;
+        const rowDict = this._rowsCache;
+        for (const rowIndex in this._rowDisplayComponents) {
+            const row = this._rowDisplayComponents[rowIndex] as unknown as ComponentRef<NgVirtualGridRowComponent>, components = row.instance.components;
+            for (let j = 0, l1 = components.length; j < l1; j++) {
+                const component: ComponentRef<BaseVirtualListItemComponent> = components[j], rowId = component.instance.rowId, columnId = component.instance.columnId,
+                    itemId = component.instance.itemId;
+                if (itemId === undefined) {
+                    continue;
                 }
-                const bounds = component.instance.getContentBounds();
-                rowDict[rowId] = Math.max(rowDict[rowId], bounds.height);
+                const itemCache = this.get(itemId);
+                if (columnId !== undefined && !this._columnsStructureMap.has(columnId)) {
+                    this._columnsStructureMap.set(columnId, this._columnsStructureMap.get(columnId) || itemCache?.method === ItemDisplayMethods.NOT_CHANGED || itemCache?.method === ItemDisplayMethods.UPDATE);
+                }
+                if (this._customSizeMap.get(itemId) ||
+                    (rowId !== undefined && this._customRowsSizeMap.get(rowId) !== 'auto' && this._customRowsSizeMap.get(rowId))) {
+                    continue;
+                }
+                const bounds = component.instance.getBounds();
+                this._isRenderedMap.set(itemId, true);
+                this._map.set(itemId, { ...itemCache, ...bounds } as any);
+                if (rowId !== undefined) {
+                    if (!rowDict.hasOwnProperty(rowId)) {
+                        rowDict[rowId] = {};
+                    }
+                    const bounds = component.instance.getContentBounds();
+                    rowDict[rowId][itemId] = bounds.height;
+                }
             }
         }
-        for (let id in rowDict) {
-            if (this._customRowsSizeMap.get(id) !== undefined) {
+        for (let rowId in rowDict) {
+            const row = rowDict[rowId], customRowSize = this._customRowsSizeMap.get(rowId);
+            if (customRowSize !== undefined && customRowSize !== 'auto') {
                 continue;
             }
-            const rowBounds = this.get(id);
-            this._map.set(id, { ...rowBounds, width: rowBounds?.width, height: rowDict[id] } as any);
+            let maxSize = this.minRowSize;
+            for (let colId in row) {
+                maxSize = Math.max(maxSize, row[colId]);
+            }
+            const rowBounds = this.get(rowId);
+            this._isRenderedMap.set(rowId, true);
+            this._map.set(rowId, { ...rowBounds, width: rowBounds?.width, height: maxSize } as any);
         }
     }
 

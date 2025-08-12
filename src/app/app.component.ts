@@ -6,13 +6,14 @@ import { IColumnsSize, IRowsSize, IVirtualGridCollection, IVirtualGridColumnColl
 import { Id } from '../../projects/ng-virtual-grid/src/lib/types';
 import { PersistentStore } from './utils';
 
-const ROWS = 1000, COLUMNS = 100;
+const ROWS = 1000, COLUMNS = 100, DYNAMIC_ROWS = 2000, DYNAMIC_COLUMNS = 50;
 
 interface IRowData { }
 
 interface IColumnData {
   value: string;
-  isBorder?: boolean;
+  isBorderStart?: boolean;
+  isBorderEnd?: boolean;
 }
 
 const CHARS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
@@ -22,7 +23,7 @@ const generateLetter = () => {
 }
 
 const generateWord = () => {
-  const length = 5 + Math.floor(Math.random() * 50), result = [];
+  const length = 5 + Math.floor(Math.random() * 20), result = [];
   while (result.length < length) {
     result.push(generateLetter());
   }
@@ -30,7 +31,7 @@ const generateWord = () => {
 };
 
 const generateText = () => {
-  const length = 1 + Math.floor(Math.random() * 8), result = [];
+  const length = 1 + Math.floor(Math.random() * 10), result = [];
   while (result.length < length) {
     result.push(generateWord());
   }
@@ -51,7 +52,8 @@ const generateNumber = () => {
 }
 
 const GROUP_DYNAMIC_ITEMS: IVirtualGridCollection<IRowData, IColumnData> = [],
-  GROUP_DYNAMIC_ITEMS_STICKY_MAP: IVirtualGridStickyMap = {},
+  GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP: IVirtualGridStickyMap = {},
+  GROUP_DYNAMIC_ITEMS_STICKY_COLUMNS_MAP: IVirtualGridStickyMap = {},
   GROUP_DYNAMIC_COLUMNS_SIZE_MAP: IColumnsSize = {},
   GROUP_DYNAMIC_ROWS_SIZE_MAP: IRowsSize = {};
 
@@ -59,33 +61,43 @@ const GROUP_ITEMS: IVirtualGridCollection<IRowData, IColumnData> = [],
   GROUP_ITEMS_STICKY_MAP: IVirtualGridStickyMap = {};
 
 let index = 0;
-for (let i = 0, l = ROWS; i < l; i++) {
+for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
   const columns: IVirtualGridColumnCollection<IColumnData> = [];
   const rowId = index;
   index++;
-  const type = i === 0 || Math.random() > .895 ? 'group-header' : 'item';
-  for (let j = 0, l1 = COLUMNS; j < l1; j++) {
+  if (i === 0) {
+    GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP[rowId] = 1;
+  } else if (i === l - 20) {
+    GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP[rowId] = 1;
+  } else if (i === l - 1) {
+    GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP[rowId] = 2;
+  }
+  for (let j = 0, l1 = DYNAMIC_COLUMNS; j < l1; j++) {
     index++;
     const id = index;
-    GROUP_DYNAMIC_ITEMS_STICKY_MAP[id] = type === 'group-header' ? 1 : 0;
     if (j === 0 || j === l1 - 1) {
+      if (i === 0 || i === l - 1) {
+        if (j === 0) {
+          GROUP_DYNAMIC_ITEMS_STICKY_COLUMNS_MAP[j] = 1;
+        } else if (j === l1 - 1) {
+          GROUP_DYNAMIC_ITEMS_STICKY_COLUMNS_MAP[j] = 2;
+        }
+      }
       GROUP_DYNAMIC_COLUMNS_SIZE_MAP[j] = 36;
     }
-    let value: string, isBorder: boolean;
-    if ((i === 0 && j === 0) || (i === 0 && j === l1 - 1) || (i === l - 1 && j === 0) || (i === l - 1 && j === l1 - 1)) {
+    let value: string, isBorderStart: boolean = false, isBorderEnd: boolean = false;
+    if ((i === 0 && j === 0) || (i === 0 && j === l1 - 1)) {
       value = '№';
-      isBorder = true;
+    } else if ((i === l - 1 && j === 0) || (i === l - 1 && j === l1 - 1)) {
+      value = '';
     } else if (i === 0 || i === l - 1) {
       value = String(j);
-      isBorder = true;
     } else if (j === 0 || j === l1 - 1) {
       value = String(i);
-      isBorder = true;
     } else {
       value = generateText();
-      isBorder = false;
     }
-    columns.push({ id: id, value, isBorder });
+    columns.push({ id: id, value, isBorderStart, isBorderEnd });
   }
   if (i === 0 || i === l - 1) {
     GROUP_DYNAMIC_ROWS_SIZE_MAP[rowId] = 40;
@@ -140,7 +152,8 @@ export class AppComponent {
   groupItemsStickyMap = GROUP_ITEMS_STICKY_MAP;
 
   groupDynamicItems = GROUP_DYNAMIC_ITEMS;
-  groupDynamicItemsStickyMap = GROUP_DYNAMIC_ITEMS_STICKY_MAP;
+  groupDynamicItemsStickyRowsMap = GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP;
+  groupDynamicItemsStickyColumnsMap = GROUP_DYNAMIC_ITEMS_STICKY_COLUMNS_MAP;
   groupDynamicColumnsSize = getDynamicColumnsSize();
   groupDynamicRowsSize = getDynamicRowsSize();
 

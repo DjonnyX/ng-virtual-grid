@@ -5,14 +5,14 @@
     <p class="l">Animation of elements is supported.</p>
     <p class="l m">&#64;author: djonnyx&#64;gmail.com</p>
     <img class="logo" [src]="logo" />
-    <div class="version"><span>v 19.0.0-beta-15</span></div>
+    <div class="version"><span>v 19.0.0-beta-17</span></div>
   </div>
 
   <div class="vl-section">
     <div class="vl-section__container">
       <h2>Virtual grid</h2>
-      <ng-virtual-grid class="grid" [items]="groupItems" [itemRenderer]="itemRenderer" [columnSize]="90" [rowSize]="40"
-        [bufferSize]="5"></ng-virtual-grid> <!-- [stickyMap]="groupItemsStickyMap" -->
+      <ng-virtual-grid class="grid regular" [items]="groupItems" [itemRenderer]="itemRenderer" [columnSize]="90"
+        [rowSize]="38" [bufferSize]="0"></ng-virtual-grid>
     </div>
   </div>
 
@@ -21,16 +21,17 @@
       <h2>Virtual grid (dynamic row size with resize)</h2>
       <ng-virtual-grid class="grid" [resizeRowsEnabled]="true" [resizeColumnsEnabled]="true" [items]="groupDynamicItems"
         [columnsSize]="groupDynamicColumnsSize" [rowsSize]="groupDynamicRowsSize" [itemRenderer]="itemRenderer"
-        [minColumnSize]="36" [minRowSize]="36" [columnSize]="300" [rowSize]="100" [bufferSize]="5"
+        cellResizeMode="adjacent" [minColumnSize]="32" [minRowSize]="32" [columnSize]="300" [rowSize]="32"
+        [bufferSize]="0" [snap]="true" [stickyRowsMap]="groupDynamicItemsStickyRowsMap"
         (onRowsSizeChanged)="onRowsSizeChangedHandler($event)"
         (onColumnsSizeChanged)="onColumnsSizeChangedHandler($event)"></ng-virtual-grid>
-      <!-- [stickyMap]="groupDynamicItemsStickyMap" -->
     </div>
   </div>
 
   <ng-template #itemRenderer let-data="data" let-measures="measures">
     @if (data) {
-    <div class="grid__item-container" [part]="data.isBorder?'border':'simple'" [class.border]="data.isBorder">
+    <div class="grid__item-container" [part]="data.isBorderStart?'border-start':data.isBorderEnd?'border-end':'simple'"
+      [class.border]="data.isBorder">
       <span>{{data.value}}</span>
     </div>
     }

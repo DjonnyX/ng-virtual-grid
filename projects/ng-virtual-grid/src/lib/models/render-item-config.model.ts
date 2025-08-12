@@ -15,7 +15,7 @@ export interface IRenderVirtualListItemConfig {
     /**
      * If greater than 0, the element will have a sticky position with the given zIndex.
      */
-    sticky: number;
+    sticky: 0 | 1 | 2;
     /**
      * Specifies whether the element will snap.
      */
@@ -33,10 +33,6 @@ export interface IRenderVirtualListItemConfig {
      */
     isVertical: boolean;
     /**
-     * Returns true if the snapping method is advanced
-     */
-    isSnappingMethodAdvanced: boolean;
-    /**
      * z-index
      */
     zIndex: string;
@@ -48,4 +44,8 @@ export interface IRenderVirtualListItemConfig {
      * adjacent left cell rowId
      */
     prevRowId: Id | undefined;
+    /**
+     * is border
+     */
+    border: boolean;
 }
