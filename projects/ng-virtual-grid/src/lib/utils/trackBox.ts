@@ -541,8 +541,6 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
 
         this._crudDetected = false;
 
-        console.log(displayItemCollection)
-
         return {
             rowDisplayItems, displayItems: displayItemCollection, totalSize: columnsTotalSize, totalHeight: rowMetrics.totalSize,
             delta: rowMetrics.delta, crudDetected,
