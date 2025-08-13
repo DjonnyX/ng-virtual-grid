@@ -2,7 +2,7 @@ import { Component, viewChild, ViewEncapsulation } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgVirtualGridComponent } from '../../projects/ng-virtual-grid/src/public-api';
 import { LOGO } from './const';
-import { IColumnsSize, IRowsSize, IVirtualGridCollection, IVirtualGridColumnCollection, IVirtualGridStickyMap, VirtualGridRow } from '../../projects/ng-virtual-grid/src/lib/models';
+import { IColumnsSize, IRowsSize, IVirtualGridCollection, IVirtualGridColumnCollection, IVirtualGridColumnConfigMap, IVirtualGridRowConfigMap, VirtualGridRow } from '../../projects/ng-virtual-grid/src/lib/models';
 import { Id } from '../../projects/ng-virtual-grid/src/lib/types';
 import { PersistentStore } from './utils';
 
@@ -52,35 +52,44 @@ const generateNumber = () => {
 }
 
 const GROUP_DYNAMIC_ITEMS: IVirtualGridCollection<IRowData, IColumnData> = [],
-  GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP: IVirtualGridStickyMap = {},
-  GROUP_DYNAMIC_ITEMS_STICKY_COLUMNS_MAP: IVirtualGridStickyMap = {},
+  GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP: IVirtualGridRowConfigMap = {},
+  GROUP_DYNAMIC_ITEMS_COLUMN_CONFIG_MAP: IVirtualGridColumnConfigMap = {},
   GROUP_DYNAMIC_COLUMNS_SIZE_MAP: IColumnsSize = {},
   GROUP_DYNAMIC_ROWS_SIZE_MAP: IRowsSize = {};
 
 const GROUP_ITEMS: IVirtualGridCollection<IRowData, IColumnData> = [],
-  GROUP_ITEMS_STICKY_MAP: IVirtualGridStickyMap = {};
+  GROUP_ITEMS_STICKY_MAP: IVirtualGridRowConfigMap = {};
 
 let index = 0;
 for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
   const columns: IVirtualGridColumnCollection<IColumnData> = [];
   const rowId = index;
   index++;
-  if (i === 0) {
-    GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP[rowId] = 1;
-  } else if (i === l - 20) {
-    GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP[rowId] = 1;
-  } else if (i === l - 1) {
-    GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP[rowId] = 2;
+  if (i === 0 || i === l - 20 || i === l - 1) {
+    if (!GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId]) {
+      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId] = {};
+    }
+    if (i === 0) {
+      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId].sticky = 1;
+      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId].resizable = false;
+    } else if (i === l - 20) {
+      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId].sticky = 1;
+      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId].resizable = false;
+    } else if (i === l - 1) {
+      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId].sticky = 2;
+      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId].resizable = false;
+    }
   }
   for (let j = 0, l1 = DYNAMIC_COLUMNS; j < l1; j++) {
     index++;
     const id = index;
     if (j === 0 || j === l1 - 1) {
       if (i === 0 || i === l - 1) {
+        GROUP_DYNAMIC_ITEMS_COLUMN_CONFIG_MAP[j] = {};
         if (j === 0) {
-          GROUP_DYNAMIC_ITEMS_STICKY_COLUMNS_MAP[j] = 1;
+          GROUP_DYNAMIC_ITEMS_COLUMN_CONFIG_MAP[j].resizable = false;
         } else if (j === l1 - 1) {
-          GROUP_DYNAMIC_ITEMS_STICKY_COLUMNS_MAP[j] = 2;
+          GROUP_DYNAMIC_ITEMS_COLUMN_CONFIG_MAP[j].resizable = false;
         }
       }
       GROUP_DYNAMIC_COLUMNS_SIZE_MAP[j] = 36;
@@ -114,7 +123,9 @@ for (let i = 0, l = ROWS; i < l; i++) {
   for (let j = 0, l1 = COLUMNS; j < l1; j++) {
     index1++;
     const id = index1;
-    GROUP_ITEMS_STICKY_MAP[id] = type === 'group-header' ? 1 : 0;
+    GROUP_ITEMS_STICKY_MAP[id] = {
+      sticky: type === 'group-header' ? 1 : 0,
+    };
     columns.push({ id: id, value: generateNumber() });
   }
   GROUP_ITEMS.push({ id: rowId, columns });
@@ -152,8 +163,8 @@ export class AppComponent {
   groupItemsStickyMap = GROUP_ITEMS_STICKY_MAP;
 
   groupDynamicItems = GROUP_DYNAMIC_ITEMS;
-  groupDynamicItemsStickyRowsMap = GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP;
-  groupDynamicItemsStickyColumnsMap = GROUP_DYNAMIC_ITEMS_STICKY_COLUMNS_MAP;
+  groupDynamicItemsRowConfigMap = GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP;
+  groupDynamicItemsColumnConfigMap = GROUP_DYNAMIC_ITEMS_COLUMN_CONFIG_MAP;
   groupDynamicColumnsSize = getDynamicColumnsSize();
   groupDynamicRowsSize = getDynamicRowsSize();
 

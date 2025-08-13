@@ -97,7 +97,7 @@ export class ReasizeBoundsDirective {
           element.style.cursor = 'col-resize';
           element.style.userSelect = 'none';
           return;
-        } else if (resizeColumnsEnabled && cx >= 0 && cx <= threshold) {
+        } else if (this._service.isAjacentResizeCellMode && resizeColumnsEnabled && cx >= 0 && cx <= threshold) {
           if (this._service.isAjacentResizeCellMode) {
             const hostElement = this._service.host?.nativeElement, adjacentId = this.leftLiId(),
               adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
@@ -126,7 +126,7 @@ export class ReasizeBoundsDirective {
           element.style.cursor = 'row-resize';
           element.style.userSelect = 'none';
           return;
-        } else if (resizeRowsEnabled && cy >= 0 && cy <= threshold) {
+        } else if (this._service.isAjacentResizeCellMode && resizeRowsEnabled && cy >= 0 && cy <= threshold) {
           if (this._service.isAjacentResizeCellMode) {
             const hostElement = this._service.host?.nativeElement, adjacentId = this.topLiId(),
               adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
@@ -174,7 +174,7 @@ export class ReasizeBoundsDirective {
           element.style.cursor = 'col-resize';
           element.style.userSelect = 'none';
           return;
-        } else if (resizeColumnsEnabled && cx >= 0 && cx <= threshold) {
+        } else if (this._service.isAjacentResizeCellMode && resizeColumnsEnabled && cx >= 0 && cx <= threshold) {
           element.style.cursor = 'col-resize';
           element.style.userSelect = 'none';
           return;
@@ -182,7 +182,7 @@ export class ReasizeBoundsDirective {
           element.style.cursor = 'row-resize';
           element.style.userSelect = 'none';
           return;
-        } else if (resizeRowsEnabled && cy >= 0 && cy <= threshold) {
+        } else if (this._service.isAjacentResizeCellMode && resizeRowsEnabled && cy >= 0 && cy <= threshold) {
           element.style.cursor = 'row-resize';
           element.style.userSelect = 'none';
           return;

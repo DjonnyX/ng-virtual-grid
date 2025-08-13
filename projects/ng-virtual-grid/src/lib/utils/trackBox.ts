@@ -9,7 +9,7 @@ import {
     DEFAULT_BUFFER_SIZE, DEFAULT_COLUMN_SIZE, DEFAULT_MIN_COLUMN_SIZE, DEFAULT_MIN_ROW_SIZE, DEFAULT_ROW_SIZE,
     HEIGHT_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME, X_PROP_NAME, Y_PROP_NAME,
 } from "../const";
-import { IColumnsSize, IRowsSize, IVirtualGridColumnCollection, IVirtualGridStickyMap, VirtualGridRow } from "../models";
+import { IColumnsSize, IRowsSize, IVirtualGridColumnCollection, IVirtualGridRowConfigMap, VirtualGridRow } from "../models";
 import { bufferInterpolation } from "./buffer-interpolation";
 import { BaseVirtualGridItemComponent } from "../models/base-virtual-grid-item-component";
 import { normalizeDeltaX } from "./delta";
@@ -440,9 +440,9 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
     /**
      * Finds the position of a collection element by the given Id
      */
-    getItemPosition<I extends { id: Id }, C extends Array<I>>(id: Id, stickyMap: IVirtualGridStickyMap,
+    getItemPosition<I extends { id: Id }, C extends Array<I>>(id: Id, cellConfigMap: IVirtualGridRowConfigMap,
         options: IGetItemPositionOptions<I, C>): IPoint {
-        const opt = { fromItemId: id, stickyMap, ...options };
+        const opt = { fromItemId: id, cellConfigMap, ...options };
         this._defaultBufferSize = opt.bufferSize;
         this._maxBufferSize = opt.maxBufferSize;
 
@@ -461,9 +461,9 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
     /**
      * Updates the collection of display objects
      */
-    updateCollection<I extends { id: Id, rowId?: Id }, C extends Array<I>>(items: C, stickyRowsMap: IVirtualGridStickyMap, stickyColumnsMap: IVirtualGridStickyMap,
+    updateCollection<I extends { id: Id, rowId?: Id }, C extends Array<I>>(items: C, cellConfigRowsMap: IVirtualGridRowConfigMap, cellConfigColumnsMap: IVirtualGridRowConfigMap,
         options: IUpdateCollectionOptions<I, C>): IUpdateCollectionReturns {
-        const opt = { stickyRowsMap, stickyColumnsMap, ...options }, crudDetected = this._crudDetected, deletedItemsMap = this._deletedItemsMap;
+        const opt = { cellConfigRowsMap, cellConfigColumnsMap, ...options }, crudDetected = this._crudDetected, deletedItemsMap = this._deletedItemsMap;
 
         this.cacheElements();
 
@@ -477,7 +477,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
             collection: items,
             scrollSize: opt.scrollSizeY,
             crudDetected: this._crudDetected,
-            stickyMap: stickyRowsMap,
+            cellConfigMap: cellConfigRowsMap,
             itemSize: opt.rowSize,
             deletedItemsMap,
             isVertical: true,
@@ -485,7 +485,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
             y: 0,
         } as any);
 
-        const rowDisplayItems = this.generateDisplayCollection(items, stickyRowsMap, { ...rowMetrics } as any), deltaXSequence: Array<number> = [];
+        const rowDisplayItems = this.generateDisplayCollection(items, cellConfigRowsMap, { ...rowMetrics } as any), deltaXSequence: Array<number> = [];
 
         let prevRowId: Id | undefined;
         for (let i = 0, l = rowDisplayItems.length; i < l; i++) {
@@ -496,7 +496,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                 collection: columnsCollection,
                 scrollSize: opt.scrollSizeX,
                 crudDetected: this._crudDetected,
-                stickyMap: stickyColumnsMap,
+                cellConfigMap: cellConfigColumnsMap,
                 deletedItemsMap,
                 isVertical: false,
                 bufferSize: this._bufferSizeX ?? DEFAULT_BUFFER_SIZE,
@@ -513,9 +513,10 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
             this._previousScrollSizeX[rowId] = scrollSize;
             this._bufferSizeX = bufferSize;
 
-            const displayItems = this.generateDisplayCollection(columnsCollection, stickyColumnsMap, { ...metrics, rowId }, {
+            const displayItems = this.generateDisplayCollection(columnsCollection, cellConfigColumnsMap, { ...metrics, rowId }, {
                 prevRowId,
                 rowDisplayObject: item,
+                rowResizable: cellConfigRowsMap[i]?.resizable,
             });
 
             displayItemCollection.push(displayItems);
@@ -539,6 +540,8 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
         this._deletedItemsMap = {};
 
         this._crudDetected = false;
+
+        console.log(displayItemCollection)
 
         return {
             rowDisplayItems, displayItems: displayItemCollection, totalSize: columnsTotalSize, totalHeight: rowMetrics.totalSize,
@@ -641,9 +644,9 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
      */
     protected recalculateMetrics<I extends { id: Id }, C extends Array<I>>(options: IRecalculateMetricsOptions<I, C>): IMetrics {
         const { fromItemId, bounds, collection, isVertical, itemSize, rowSize: typicalRowSize,
-            bufferSize: actualBufferSize, scrollSize, snap, stickyMap, enabledBufferOptimization,
+            bufferSize: actualBufferSize, scrollSize, snap, cellConfigMap, enabledBufferOptimization,
             deletedItemsMap, y: startY, rowId } = options as IRecalculateMetricsOptions<I, C> & {
-                stickyMap: IVirtualGridStickyMap,
+                cellConfigMap: IVirtualGridRowConfigMap,
             };
 
         const bufferSize = actualBufferSize,
@@ -698,7 +701,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
         // If the list is dynamic or there are new elements in the collection, then it switches to the long algorithm.
         let y = 0, stickyCollectionItem: I | undefined = undefined, stickyComponentSize = 0;
         for (let i = 0, l = collection.length; i < l; i++) {
-            const ii = i + 1, collectionItem = collection[i], id = collectionItem.id, sticky = stickyMap ? isVertical ? stickyMap[id] : stickyMap[i] : undefined;
+            const ii = i + 1, collectionItem = collection[i], id = collectionItem.id, sticky = cellConfigMap ? isVertical ? cellConfigMap[id]?.sticky ?? 0 : cellConfigMap[i]?.sticky ?? 0 : undefined;
 
             let componentSize = isVertical ? typicalRowSize : typicalItemSize, componentSizeDelta = 0,
                 itemDisplayMethod: ItemDisplayMethods = ItemDisplayMethods.NOT_CHANGED;
@@ -750,14 +753,14 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                     if (id === fromItemId) {
                         isFromItemIdFound = true;
                         targetDisplayItemIndex = i;
-                        if (stickyCollectionItem && stickyMap) {
+                        if (stickyCollectionItem && cellConfigMap) {
                             const { num } = this.getElementNumToEnd(i, collection, map, typicalItemSize, size, isVertical);
                             if (num > 0) {
                                 isTargetInOverscroll = true;
                                 y -= size - componentSize;
                             } else {
-                                const sticky = isVertical ? stickyMap[collectionItem.id] : stickyMap[i];
-                                if (stickyMap && sticky && y >= scrollSize && y < scrollSize + stickyComponentSize) {
+                                const sticky = isVertical ? cellConfigMap[collectionItem.id]?.sticky ?? 0 : cellConfigMap[i]?.sticky ?? 0;
+                                if (cellConfigMap && sticky && y >= scrollSize && y < scrollSize + stickyComponentSize) {
                                     const snappedY = scrollSize - stickyComponentSize;
                                     leftHiddenItemsWeight -= (snappedY - y);
                                     y = snappedY;
@@ -905,8 +908,15 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
         this.bumpVersion();
     }
 
-    protected generateDisplayCollection<I extends { id: Id, rowId?: Id }, C extends Array<I>>(items: C, stickyMap: IVirtualGridStickyMap,
-        metrics: IMetrics, options?: { prevRowId?: Id | undefined, rowDisplayObject?: IRenderVirtualGridItem }): IRenderVirtualGridCollection {
+    protected generateDisplayCollection<I extends { id: Id, rowId?: Id }, C extends Array<I>>(
+        items: C,
+        cellConfigMap: IVirtualGridRowConfigMap,
+        metrics: IMetrics,
+        options?: {
+            prevRowId?: Id | undefined;
+            rowDisplayObject?: IRenderVirtualGridItem;
+            rowResizable: boolean | undefined;
+        }): IRenderVirtualGridCollection {
         const {
             width,
             height,
@@ -928,6 +938,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
             startY,
             rowId,
         } = metrics,
+            rowResizable = options?.rowResizable,
             prevRowId = options?.prevRowId,
             rowDisplayObject = options?.rowDisplayObject,
             displayItems: IRenderVirtualGridCollection = [];
@@ -946,7 +957,10 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                     if (!items[i]) {
                         continue;
                     }
-                    const id = items[i].id, columnId = i, sticky = isVertical ? stickyMap[id] : stickyMap[i], stickyWithRow = rowDisplayObject?.config.sticky ?? 0,
+                    const id = items[i].id, columnId = i,
+                        sticky = isVertical ? cellConfigMap[id]?.sticky ?? 0 : cellConfigMap[i]?.sticky ?? 0,
+                        columnResizable = isVertical ? cellConfigMap[id]?.resizable : cellConfigMap[i]?.resizable,
+                        stickyWithRow = rowDisplayObject?.config.sticky ?? 0,
                         size = this.get(id)?.[sizeProperty] || typicalItemSize;
                     if (sticky === 1) {
                         const measures = {
@@ -960,6 +974,8 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                                 this._customSizeMap.get(id) !== undefined,
                             isVertical,
                             sticky,
+                            columnResizable,
+                            rowResizable,
                             snap,
                             snapped: true,
                             snappedOut: false,
@@ -987,7 +1003,10 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                     if (!items[i]) {
                         continue;
                     }
-                    const id = items[i].id, columnId = i, sticky = isVertical ? stickyMap[id] : stickyMap[i], stickyWithRow = rowDisplayObject?.config.sticky ?? 0,
+                    const id = items[i].id, columnId = i,
+                        sticky = isVertical ? cellConfigMap[id]?.sticky ?? 0 : cellConfigMap[i]?.sticky ?? 0,
+                        columnResizable = isVertical ? cellConfigMap[id]?.resizable : cellConfigMap[i]?.resizable,
+                        stickyWithRow = rowDisplayObject?.config.sticky ?? 0,
                         size = this.get(id)?.[sizeProperty] || typicalItemSize;
                     if (sticky === 2) {
                         const w = isVertical ? normalizedItemWidth : size, h = isVertical ? size : normalizedItemHeight, measures = {
@@ -1001,6 +1020,8 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                                 this._customSizeMap.get(id) !== undefined,
                             isVertical,
                             sticky,
+                            columnResizable,
+                            rowResizable,
                             snap,
                             snapped: true,
                             snappedOut: false,
@@ -1034,7 +1055,10 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
 
                 const id = items[i].id, columnId = i, bounds = this.get(id), size = bounds?.[sizeProperty] || typicalItemSize;
                 if (id !== stickyItem?.id && id !== endStickyItem?.id) {
-                    const w = isVertical ? normalizedItemWidth : size, sticky = isVertical ? stickyMap[id] : stickyMap[i], stickyWithRow = rowDisplayObject?.config.sticky ?? 0, snapped = ((snap && sticky === 1 && pos <= scrollSize) || (snap && sticky === 2 && (pos >= (scrollSize + boundsSize - size)))),
+                    const w = isVertical ? normalizedItemWidth : size, sticky = isVertical ? cellConfigMap[id]?.sticky ?? 0 : cellConfigMap[i]?.sticky ?? 0,
+                        columnResizable = isVertical ? cellConfigMap[id]?.resizable : cellConfigMap[i]?.resizable,
+                        stickyWithRow = rowDisplayObject?.config.sticky ?? 0,
+                        snapped = ((snap && sticky === 1 && pos <= scrollSize) || (snap && sticky === 2 && (pos >= (scrollSize + boundsSize - size)))),
                         measures = {
                             x: isVertical ? 0 : snapped && sticky === 1 ? 0 : snapped && sticky === 2 ? actualSnippedPosition + actualEndSnippedPosition - w - this._scrollBarHorizontalWeight : pos,
                             y: isVertical ? snapped && sticky === 1 ? 0 : snapped && sticky === 2 ? actualEndSnippedPosition - size - this._scrollBarVerticalWeight : pos : 0,
@@ -1046,6 +1070,8 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                                 this._customSizeMap.get(id) !== undefined,
                             isVertical,
                             sticky,
+                            columnResizable,
+                            rowResizable,
                             snap,
                             snapped: false,
                             snappedOut: false,
