@@ -94,7 +94,7 @@ Template:
 <ng-virtual-grid class="grid" [resizeRowsEnabled]="true" [resizeColumnsEnabled]="true" [items]="groupDynamicItems"
         [columnsSize]="groupDynamicColumnsSize" [rowsSize]="groupDynamicRowsSize" [itemRenderer]="itemRenderer"
         cellResizeMode="adjacent" [minColumnSize]="32" [minRowSize]="32" [columnSize]="300" [rowSize]="32"
-        [bufferSize]="0" [snap]="true" [stickyRowsMap]="groupDynamicItemsStickyRowsMap"
+        [bufferSize]="0" [snap]="true" [cellConfigRowsMap]="groupDynamicItemsRowConfigMap"
         (onRowsSizeChanged)="onRowsSizeChangedHandler($event)"
         (onColumnsSizeChanged)="onColumnsSizeChangedHandler($event)"></ng-virtual-grid>
 
@@ -111,7 +111,7 @@ Template:
 Component:
 ```ts
 import { Component } from '@angular/core';
-import { NgVirtualGridComponent, IColumnsSize, IRowsSize, IVirtualGridCollection, IVirtualGridColumnCollection, IVirtualGridStickyMap, Id } from 'ng-virtual-grid';
+import { NgVirtualGridComponent, IColumnsSize, IRowsSize, IVirtualGridCollection, IVirtualGridColumnCollection, IVirtualGridRowConfigMap, Id } from 'ng-virtual-grid';
 import { PersistentStore } from './utils';
 
 const DYNAMIC_ROWS = 2000, DYNAMIC_COLUMNS = 50;
@@ -153,12 +153,12 @@ const generateText = () => {
 };
 
 const GROUP_DYNAMIC_ITEMS: IVirtualGridCollection<IRowData, IColumnData> = [],
-  GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP: IVirtualGridStickyMap = {},
+  GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP: IVirtualGridRowConfigMap = {},
   GROUP_DYNAMIC_COLUMNS_SIZE_MAP: IColumnsSize = {},
   GROUP_DYNAMIC_ROWS_SIZE_MAP: IRowsSize = {};
 
 const GROUP_ITEMS: IVirtualGridCollection<IRowData, IColumnData> = [],
-  GROUP_ITEMS_STICKY_MAP: IVirtualGridStickyMap = {};
+  GROUP_ITEMS_STICKY_MAP: IVirtualGridRowConfigMap = {};
 
 let index = 0;
 for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
@@ -166,11 +166,17 @@ for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
   const rowId = index;
   index++;
   if (i === 0) {
-    GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP[rowId] = 1;
+    GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId] = {
+        sticky: 1,
+    };
   } else if (i === l - 20) {
-    GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP[rowId] = 1;
+    GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId] = {
+        sticky: 1,
+    };
   } else if (i === l - 1) {
-    GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP[rowId] = 2;
+    GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId] = {
+        sticky: 2,
+    };
   }
   for (let j = 0, l1 = DYNAMIC_COLUMNS; j < l1; j++) {
     index++;
@@ -222,7 +228,7 @@ export class AppComponent {
   readonly logo = LOGO;
 
   groupDynamicItems = GROUP_DYNAMIC_ITEMS;
-  groupDynamicItemsStickyRowsMap = GROUP_DYNAMIC_ITEMS_STICKY_ROWS_MAP;
+  groupDynamicItemsRowConfigMap = GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP;
   groupDynamicColumnsSize = getDynamicColumnsSize();
   groupDynamicRowsSize = getDynamicRowsSize();
 
@@ -334,6 +340,7 @@ Inputs
 |---|---|---|
 | id | number | Readonly. Returns the unique identifier of the component. | 
 | items | [IVirtualGridCollection](https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/models/collection.model.ts) | Collection of grid items. The collection of elements must be immutable. |
+| cellResizeMode | [CellResizeMode](https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/enums/cell-resize-mode.ts) = "self" | Cell resize mode. Default value is "self". |
 | columnSize | number? = 24 | Typical column size. Default value is 24. |
 | rowSize | number? = 24 | Typical row size. Default value is 24. |
 | minColumnSize | number? = 12 | Minimum column size. Default value is 12. |
@@ -341,7 +348,7 @@ Inputs
 | bufferSize | number? = 2 | Number of elements outside the scope of visibility. Default value is 2. |
 | maxBufferSize | number? = 2 | Maximum number of elements outside the scope of visibility. Default value is 2. If maxBufferSize is set to be greater than bufferSize, then adaptive buffer mode is enabled. The greater the scroll size, the more elements are allocated for rendering. |
 | itemRenderer | TemplateRef | Rendering element template. |
-| stickyRowsMap | [IVirtualGridStickyMap?](https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/models/sticky-map.model.ts) | Dictionary zIndex by id of the grid row element. If the value is not set or equal to 0, then a simple element is displayed, if the value is greater than 0, then the sticky position mode is enabled for the element. 1 - position start, 2 - position end. |
+| stickyRowsMap | [IVirtualGridRowConfigMap?](https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/models/sticky-map.model.ts) | Dictionary zIndex by id of the grid row element. If the value is not set or equal to 0, then a simple element is displayed, if the value is greater than 0, then the sticky position mode is enabled for the element. 1 - position start, 2 - position end. |
 | snap | boolean? = false | Determines whether elements will snap. Default value is "false". |
 | enabledBufferOptimization | boolean? = true | Experimental! Enables buffer optimization. Can only be used if items in the collection are not added or updated. |
 
