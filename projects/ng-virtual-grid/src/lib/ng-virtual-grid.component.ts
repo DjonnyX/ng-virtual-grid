@@ -123,15 +123,14 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   private _itemRenderer = signal<TemplateRef<any> | undefined>(undefined);
 
   /**
-   * Dictionary zIndex by id of the grid row element.
-   * If the value is not set or equal to 0, then a simple element is displayed,
-   * if the value is greater than 0, then the sticky position mode is enabled for the element. 1 - position start, 2 - position end.
+   * Dictionary sticky and resizable by id of the grid row element.
+   * If the sticky value is not set or equal to 0, then a simple element is displayed, if the value is greater than 0, 
+   * then the sticky position mode is enabled for the element. 1 - position start, 2 - position end.
    */
   cellConfigRowsMap = input<IVirtualGridRowConfigMap>({});
 
   /**
-   * Dictionary zIndex by id of the list element. If the value is not set or equal to 0,
-   * then a simple element is displayed, if the value is greater than 0, then the sticky position mode is enabled for the element.
+   * Dictionary resizable by id of the grid column element.
    */
   cellConfigColumnsMap = input<IVirtualGridColumnConfigMap>({});
 
