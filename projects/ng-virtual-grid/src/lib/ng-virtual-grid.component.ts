@@ -9,8 +9,8 @@ import { combineLatest, debounceTime, distinctUntilChanged, filter, map, Observa
 import { NgVirtualGridItemComponent } from './components/ng-virtual-grid-item/ng-virtual-grid-item.component';
 import {
   BEHAVIOR_AUTO, BEHAVIOR_INSTANT,
-  DEFAULT_ENABLED_BUFFER_OPTIMIZATION, DEFAULT_BUFFER_SIZE, DEFAULT_GRID_SIZE, DEFAULT_SNAP, DEFAULT_SNAPPING_METHOD,
-  HEIGHT_PROP_NAME, LEFT_PROP_NAME, MAX_SCROLL_TO_ITERATIONS, PX, SCROLL, SCROLL_END, TOP_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME,
+  DEFAULT_ENABLED_BUFFER_OPTIMIZATION, DEFAULT_BUFFER_SIZE, DEFAULT_GRID_SIZE, DEFAULT_SNAP, HEIGHT_PROP_NAME, LEFT_PROP_NAME,
+  MAX_SCROLL_TO_ITERATIONS, PX, SCROLL, SCROLL_END, TOP_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME,
   DEFAULT_MAX_BUFFER_SIZE,
   DEFAULT_ROW_SIZE,
   DEFAULT_COLUMN_SIZE,
@@ -21,11 +21,11 @@ import {
 } from './const';
 import { IColumnsSize, IRowsSize, IScrollEvent, IVirtualGridCollection, IVirtualGridStickyMap } from './models';
 import { Id, ISize } from './types';
-import { IRenderVirtualListCollection } from './models/render-collection.model';
+import { IRenderVirtualGridCollection } from './models/render-collection.model';
 import { CellResizeMode, CellResizeModes } from './enums';
 import { ScrollEvent, toggleClassName } from './utils';
 import { IGetItemPositionOptions, IUpdateCollectionOptions, TRACK_BOX_CHANGE_EVENT_NAME, TrackBox } from './utils/trackBox';
-import { BaseVirtualListItemComponent } from './models/base-virtual-list-item-component';
+import { BaseVirtualGridItemComponent } from './models/base-virtual-grid-item-component';
 import { Component$1 } from './models/component.model';
 import { NgVirtualGridService } from './ng-virtual-grid.service';
 import { PointerDetectService } from './service/pointer-detect.service';
@@ -36,7 +36,7 @@ import { NgVirtualGridRowComponent } from './components/ng-virtual-grid-row/ng-v
  * Virtual list component.
  * Maximum performance for extremely large lists.
  * It is based on algorithms for virtualization of screen objects.
- * @link https://github.com/DjonnyX/ng-virtual-list/blob/20.x/projects/ng-virtual-list/src/lib/ng-virtual-list.component.ts
+ * @link https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/ng-virtual-list.component.ts
  * @author Evgenii Grebennikov
  * @email djonnyx@gmail.com
  */
@@ -70,12 +70,12 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   private _list = viewChild<ElementRef<HTMLUListElement>>('list');
 
   /**
-   * Fires when the list has been scrolled.
+   * Fires when the grid has been scrolled.
    */
   onScroll = output<IScrollEvent>();
 
   /**
-   * Fires when the list has completed scrolling.
+   * Fires when the grid has completed scrolling.
    */
   onScrollEnd = output<IScrollEvent>();
 
@@ -96,7 +96,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   } as any;
 
   /**
-   * Collection of list items.
+   * Collection of grid items.
    */
   items = input.required<IVirtualGridCollection>({
     ...this._itemsOptions,
@@ -123,8 +123,9 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   private _itemRenderer = signal<TemplateRef<any> | undefined>(undefined);
 
   /**
-   * Dictionary zIndex by id of the list element. If the value is not set or equal to 0,
-   * then a simple element is displayed, if the value is greater than 0, then the sticky position mode is enabled for the element.
+   * Dictionary zIndex by id of the grid row element.
+   * If the value is not set or equal to 0, then a simple element is displayed,
+   * if the value is greater than 0, then the sticky position mode is enabled for the element. 1 - position start, 2 - position end.
    */
   stickyRowsMap = input<IVirtualGridStickyMap>({});
 
@@ -132,7 +133,8 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
    * Dictionary zIndex by id of the list element. If the value is not set or equal to 0,
    * then a simple element is displayed, if the value is greater than 0, then the sticky position mode is enabled for the element.
    */
-  stickyColumnsMap = input<IVirtualGridStickyMap>({});
+  // stickyColumnsMap = input<IVirtualGridStickyMap>({});
+  protected stickyColumnsMap = signal<IVirtualGridStickyMap>({});
 
   private _columnSizeOptions = {
     transform: (v: number | undefined) => {
@@ -222,26 +224,31 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   maxBufferSize = input<number>(DEFAULT_MAX_BUFFER_SIZE, { ...this._maxBufferSizeTransform });
 
   /**
-   * 
+   * Column size map.
    */
   columnsSize = input<IColumnsSize>({});
 
   /**
-   * 
+   * Row size map.
    */
   rowsSize = input<IRowsSize>({});
 
   /**
-   * 
+   * Determines whether row sizes will be changed. Default value is "false".
    */
   resizeRowsEnabled = input<boolean>(DEFAULT_RESIZE_ROWS_ENABLED);
 
   /**
-   * 
+   * Determines whether column sizes will be changed. Default value is "false".
    */
   resizeColumnsEnabled = input<boolean>(DEFAULT_RESIZE_COLUMNS_ENABLED);
 
-  private _rowDisplayComponents: Array<ComponentRef<BaseVirtualListItemComponent>> = [];
+  /**
+   * The name of the property by which tracking is performed
+   */
+  trackBy = input<string>(TRACK_BY_PROPERTY_NAME);
+
+  private _rowDisplayComponents: Array<ComponentRef<BaseVirtualGridItemComponent>> = [];
 
   private _bounds = signal<ISize | null>(null);
 
@@ -282,19 +289,14 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   readonly $initialized!: Observable<boolean>;
 
   /**
-   * The name of the property by which tracking is performed
-   */
-  trackBy = input<string>(TRACK_BY_PROPERTY_NAME);
-
-  /**
    * Base class of the element row component
    */
-  private _rowComponentClass: Component$1<BaseVirtualListItemComponent> = NgVirtualGridRowComponent;
+  private _rowComponentClass: Component$1<BaseVirtualGridItemComponent> = NgVirtualGridRowComponent;
 
   /**
    * Base class of the element component
    */
-  private _itemComponentClass: Component$1<BaseVirtualListItemComponent> = NgVirtualGridItemComponent;
+  private _itemComponentClass: Component$1<BaseVirtualGridItemComponent> = NgVirtualGridItemComponent;
 
   /**
    * Base class trackBox
@@ -563,7 +565,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
     }
   }
 
-  private createDisplayComponentsIfNeed(displayItems: Array<IRenderVirtualListCollection> | null, rowDisplayItems: IRenderVirtualListCollection | null) {
+  private createDisplayComponentsIfNeed(displayItems: Array<IRenderVirtualGridCollection> | null, rowDisplayItems: IRenderVirtualGridCollection | null) {
     if (!displayItems || !rowDisplayItems || !this._listContainerRef) {
       this._trackBox.setDisplayObjectIndexMapById({});
       return;

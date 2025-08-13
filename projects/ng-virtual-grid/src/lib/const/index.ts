@@ -1,5 +1,3 @@
-import { SnappingMethods } from "../enums";
-
 export const DEFAULT_COLUMN_SIZE = 24;
 
 export const DEFAULT_MIN_COLUMN_SIZE = 12;
@@ -27,8 +25,6 @@ export const TRACK_BY_PROPERTY_NAME = 'id';
 export const DISPLAY_OBJECTS_LENGTH_MESUREMENT_ERROR = 1;
 
 export const MAX_SCROLL_TO_ITERATIONS = 5;
-
-export const DEFAULT_SNAPPING_METHOD = SnappingMethods.NORMAL;
 
 // presets
 

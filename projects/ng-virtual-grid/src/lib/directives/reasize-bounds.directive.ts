@@ -5,6 +5,12 @@ import { DEFAULT_RESIZE_COLUMNS_ENABLED, DEFAULT_RESIZE_ROWS_ENABLED } from '../
 import { PointerDetectService } from '../service/pointer-detect.service';
 import { NgVirtualGridService } from '../ng-virtual-grid.service';
 
+/**
+ * Resize event
+ * @link https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/directives/reasize-bounds.directive.ts
+ * @author Evgenii Grebennikov
+ * @email djonnyx@gmail.com
+ */
 export class ResizeEvent {
   private _width: number = 0;
   get width() { return this._width; }
@@ -22,6 +28,12 @@ export class ResizeEvent {
   }
 }
 
+/**
+ * Resize capture type
+ * @link https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/directives/reasize-bounds.directive.ts
+ * @author Evgenii Grebennikov
+ * @email djonnyx@gmail.com
+ */
 export enum CaptureSide {
   NONE,
   LEFT,
@@ -30,6 +42,12 @@ export enum CaptureSide {
   BOTTOM,
 };
 
+/**
+ * Resize bounds directive
+ * @link https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/directives/reasize-bounds.directive.ts
+ * @author Evgenii Grebennikov
+ * @email djonnyx@gmail.com
+ */
 @Directive({
   selector: '[reasizeBounds]'
 })
