@@ -2,7 +2,7 @@ import { Id } from "../types";
 import { IVirtualGridColumnCollection } from "./collection-columns.model";
 
 /**
- * Virtual grid element model
+ * Virtual grid row model
  * @link https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/models/collection-row.model.ts
  * @author Evgenii Grebennikov
  * @email djonnyx@gmail.com

@@ -1,14 +1,17 @@
 import { ComponentRef } from "@angular/core";
-import { IRenderVirtualListCollection, } from "../models/render-collection.model";
-import { IRenderVirtualListItem } from "../models/render-item.model";
+import { IRenderVirtualGridCollection, } from "../models/render-collection.model";
+import { IRenderVirtualGridItem } from "../models/render-item.model";
 import { Id } from "../types/id";
 import { CacheMap, CMap } from "./cacheMap";
 import { Tracker } from "./tracker";
-import { IPoint, IRect, ISize } from "../types";
-import { DEFAULT_BUFFER_SIZE, DEFAULT_COLUMN_SIZE, DEFAULT_MIN_COLUMN_SIZE, DEFAULT_MIN_ROW_SIZE, DEFAULT_ROW_SIZE, HEIGHT_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME, X_PROP_NAME, Y_PROP_NAME } from "../const";
+import { IPoint, ISize } from "../types";
+import {
+    DEFAULT_BUFFER_SIZE, DEFAULT_COLUMN_SIZE, DEFAULT_MIN_COLUMN_SIZE, DEFAULT_MIN_ROW_SIZE, DEFAULT_ROW_SIZE,
+    HEIGHT_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME, X_PROP_NAME, Y_PROP_NAME,
+} from "../const";
 import { IColumnsSize, IRowsSize, IVirtualGridColumnCollection, IVirtualGridStickyMap, VirtualGridRow } from "../models";
 import { bufferInterpolation } from "./buffer-interpolation";
-import { BaseVirtualListItemComponent } from "../models/base-virtual-list-item-component";
+import { BaseVirtualGridItemComponent } from "../models/base-virtual-grid-item-component";
 import { normalizeDeltaX } from "./delta";
 import { NgVirtualGridRowComponent } from "../components/ng-virtual-grid-row/ng-virtual-grid-row.component";
 
@@ -91,8 +94,8 @@ export enum ItemDisplayMethods {
 }
 
 export interface IUpdateCollectionReturns {
-    displayItems: Array<IRenderVirtualListCollection>;
-    rowDisplayItems: IRenderVirtualListCollection;
+    displayItems: Array<IRenderVirtualGridCollection>;
+    rowDisplayItems: IRenderVirtualGridCollection;
     totalSize: number;
     totalHeight: number;
     delta: number;
@@ -105,18 +108,18 @@ const DEFAULT_BUFFER_EXTREMUM_THRESHOLD = 15,
 
 /**
  * An object that performs tracking, calculations and caching.
- * @link https://github.com/DjonnyX/ng-virtual-list/blob/20.x/projects/ng-virtual-list/src/lib/utils/trackBox.ts
+ * @link https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/utils/trackBox.ts
  * @author Evgenii Grebennikov
  * @email djonnyx@gmail.com
  */
-export class TrackBox<C extends BaseVirtualListItemComponent = any>
+export class TrackBox<C extends BaseVirtualGridItemComponent = any>
     extends CacheMap<Id, ISize & { method?: ItemDisplayMethods }, CacheMapEvents, CacheMapListeners> {
 
     protected _tracker!: Tracker<C>;
 
-    protected _items: Array<IRenderVirtualListCollection> | null | undefined;
+    protected _items: Array<IRenderVirtualGridCollection> | null | undefined;
 
-    set items(v: Array<IRenderVirtualListCollection> | null | undefined) {
+    set items(v: Array<IRenderVirtualGridCollection> | null | undefined) {
         if (this._items === v) {
             return;
         }
@@ -124,9 +127,9 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         this._items = v;
     }
 
-    protected _rowItems: IRenderVirtualListCollection | null | undefined;
+    protected _rowItems: IRenderVirtualGridCollection | null | undefined;
 
-    set rowItems(v: IRenderVirtualListCollection | null | undefined) {
+    set rowItems(v: IRenderVirtualGridCollection | null | undefined) {
         if (this._rowItems === v) {
             return;
         }
@@ -903,7 +906,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
     }
 
     protected generateDisplayCollection<I extends { id: Id, rowId?: Id }, C extends Array<I>>(items: C, stickyMap: IVirtualGridStickyMap,
-        metrics: IMetrics, options?: { prevRowId?: Id | undefined, rowDisplayObject?: IRenderVirtualListItem }): IRenderVirtualListCollection {
+        metrics: IMetrics, options?: { prevRowId?: Id | undefined, rowDisplayObject?: IRenderVirtualGridItem }): IRenderVirtualGridCollection {
         const {
             width,
             height,
@@ -927,15 +930,15 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         } = metrics,
             prevRowId = options?.prevRowId,
             rowDisplayObject = options?.rowDisplayObject,
-            displayItems: IRenderVirtualListCollection = [];
+            displayItems: IRenderVirtualGridCollection = [];
 
         if (items.length) {
             const actualSnippedPosition = snippedPos,
                 boundsSize = isVertical ? height : width, actualEndSnippedPosition = boundsSize;
             let pos = startPosition,
                 renderItems = renderItemsLength,
-                stickyItem: IRenderVirtualListItem | undefined, nextSticky: IRenderVirtualListItem | undefined, stickyItemIndex = -1,
-                stickyItemSize = 0, endStickyItem: IRenderVirtualListItem | undefined, nextEndSticky: IRenderVirtualListItem | undefined,
+                stickyItem: IRenderVirtualGridItem | undefined, nextSticky: IRenderVirtualGridItem | undefined, stickyItemIndex = -1,
+                stickyItemSize = 0, endStickyItem: IRenderVirtualGridItem | undefined, nextEndSticky: IRenderVirtualGridItem | undefined,
                 endStickyItemIndex = -1, endStickyItemSize = 0;
 
             if (snap) {
@@ -1058,7 +1061,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
 
                     const itemData: I = items[i];
 
-                    const item: IRenderVirtualListItem = { index: i, id, rowId, columnId, measures, data: itemData, config };
+                    const item: IRenderVirtualGridItem = { index: i, id, rowId, columnId, measures, data: itemData, config };
                     if (snap && !nextSticky && stickyItemIndex < i && sticky === 1 && (pos <= scrollSize + size + stickyItemSize)) {
                         item.measures.x = isVertical ? 0 : snapped ? actualSnippedPosition : pos;
                         item.measures.y = isVertical ? snapped ? actualSnippedPosition : pos : 0;
@@ -1151,7 +1154,7 @@ export class TrackBox<C extends BaseVirtualListItemComponent = any>
         for (const rowIndex in this._rowDisplayComponents) {
             const row = this._rowDisplayComponents[rowIndex] as unknown as ComponentRef<NgVirtualGridRowComponent>, components = row.instance.components;
             for (let j = 0, l1 = components.length; j < l1; j++) {
-                const component: ComponentRef<BaseVirtualListItemComponent> = components[j], rowId = component.instance.rowId, columnId = component.instance.columnId,
+                const component: ComponentRef<BaseVirtualGridItemComponent> = components[j], rowId = component.instance.rowId, columnId = component.instance.columnId,
                     itemId = component.instance.itemId;
                 if (itemId === undefined) {
                     continue;

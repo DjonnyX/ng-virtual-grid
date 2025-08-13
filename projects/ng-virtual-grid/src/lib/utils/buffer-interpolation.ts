@@ -8,6 +8,12 @@ export interface IExtraOptions {
     bufferSize?: number;
 }
 
+/**
+ * bufferInterpolation
+ * @link https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/models/buffer-interpolation.ts
+ * @author Evgenii Grebennikov
+ * @email djonnyx@gmail.com
+ */
 export const bufferInterpolation = (currentBufferValue: number, array: Array<number>, value: number, extra?: IExtraOptions) => {
     const {
         extremumThreshold = DEFAULT_EXTRA.extremumThreshold,

@@ -1,13 +1,13 @@
 import { Id } from "../types";
 
 /**
- * Object with configuration parameters for IRenderVirtualListItem
- * @link https://github.com/DjonnyX/ng-virtual-list/blob/20.x/projects/ng-virtual-list/src/lib/models/render-item-config.model.ts
+ * Object with configuration parameters for IRenderVirtualGridItem
+ * @link https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/models/render-item-config.model.ts
  * @author Evgenii Grebennikov
  * @email djonnyx@gmail.com
  * 
  */
-export interface IRenderVirtualListItemConfig {
+export interface IRenderVirtualGridItemConfig {
     /**
      * Determines whether the content has custom dimensions.
      */
