@@ -18,6 +18,8 @@ npm i ng-virtual-grid
 
 ### Virtual grid with regular cells
 
+![Preview](https://github.com/user-attachments/assets/d3d080c8-93f8-4954-8f08-5a75c3defe8c)
+
 Template:
 ```html
 <ng-virtual-grid class="grid regular" [items]="groupItems" [itemRenderer]="itemRenderer" [columnSize]="90"
@@ -84,6 +86,8 @@ export class AppComponent {
 ```
 
 ### Virtual grid with dynamic row size and cell resizing
+
+![Preview](https://github.com/user-attachments/assets/99c81b7e-6b62-4e4c-b57e-40996d3aa487)
 
 Template:
 ```html
