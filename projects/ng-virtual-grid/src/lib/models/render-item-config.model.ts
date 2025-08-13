@@ -13,6 +13,14 @@ export interface IRenderVirtualGridItemConfig {
      */
     customSize: boolean;
     /**
+     * Determines whether the cell can be resized by vertical.
+     */
+    rowResizable: boolean | undefined;
+    /**
+     * Determines whether the cell can be resized by horizontal.
+     */
+    columnResizable: boolean | undefined;
+    /**
      * If greater than 0, the element will have a sticky position with the given zIndex.
      */
     sticky: 0 | 1 | 2;

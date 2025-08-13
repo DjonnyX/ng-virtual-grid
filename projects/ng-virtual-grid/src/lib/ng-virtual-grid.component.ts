@@ -19,7 +19,7 @@ import {
   DEFAULT_MIN_ROW_SIZE,
   DEFAULT_MIN_COLUMN_SIZE,
 } from './const';
-import { IColumnsSize, IRowsSize, IScrollEvent, IVirtualGridCollection, IVirtualGridStickyMap } from './models';
+import { IColumnsSize, IRowsSize, IScrollEvent, IVirtualGridCollection, IVirtualGridColumnConfigMap, IVirtualGridRowConfigMap } from './models';
 import { Id, ISize } from './types';
 import { IRenderVirtualGridCollection } from './models/render-collection.model';
 import { CellResizeMode, CellResizeModes } from './enums';
@@ -127,14 +127,13 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
    * If the value is not set or equal to 0, then a simple element is displayed,
    * if the value is greater than 0, then the sticky position mode is enabled for the element. 1 - position start, 2 - position end.
    */
-  stickyRowsMap = input<IVirtualGridStickyMap>({});
+  cellConfigRowsMap = input<IVirtualGridRowConfigMap>({});
 
   /**
    * Dictionary zIndex by id of the list element. If the value is not set or equal to 0,
    * then a simple element is displayed, if the value is greater than 0, then the sticky position mode is enabled for the element.
    */
-  // stickyColumnsMap = input<IVirtualGridStickyMap>({});
-  protected stickyColumnsMap = signal<IVirtualGridStickyMap>({});
+  cellConfigColumnsMap = input<IVirtualGridColumnConfigMap>({});
 
   private _columnSizeOptions = {
     transform: (v: number | undefined) => {
@@ -197,9 +196,9 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   minRowSize = input<number>(DEFAULT_MIN_ROW_SIZE, { ...this._minRowSizeOptions });
 
   /**
-   * Cell resize mode
+   * Cell resize mode. Default value is "self".
    */
-  cellResizeMode = input<CellResizeMode>(CellResizeModes.ADJACENT);
+  cellResizeMode = input<CellResizeMode>(CellResizeModes.SELF);
 
   /**
    * Number of elements outside the scope of visibility. Default value is 2.
@@ -445,10 +444,10 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       $maxBufferSize = toObservable(this.maxBufferSize).pipe(
         map(v => v < 0 ? DEFAULT_BUFFER_SIZE : v),
       ),
-      $stickyRowsMap = toObservable(this.stickyRowsMap).pipe(
+      $cellConfigRowsMap = toObservable(this.cellConfigRowsMap).pipe(
         map(v => !v ? {} : v),
       ),
-      $stickyColumnsMap = toObservable(this.stickyColumnsMap).pipe(
+      $cellConfigColumnsMap = toObservable(this.cellConfigColumnsMap).pipe(
         map(v => !v ? {} : v),
       ),
       $snap = toObservable(this.snap),
@@ -463,14 +462,14 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       }),
     ).subscribe();
 
-    combineLatest([this.$initialized, $bounds, $items, $stickyRowsMap, $stickyColumnsMap, $scrollSizeX, $scrollSizeY, $columnSize, $rowSize,
+    combineLatest([this.$initialized, $bounds, $items, $cellConfigRowsMap, $cellConfigColumnsMap, $scrollSizeX, $scrollSizeY, $columnSize, $rowSize,
       $bufferSize, $maxBufferSize, $snap, $enabledBufferOptimization, $cacheVersion,
     ]).pipe(
       takeUntilDestroyed(),
       distinctUntilChanged(),
       filter(([initialized]) => !!initialized),
       switchMap(([,
-        bounds, items, stickyRowsMap, stickyColumnsMap, scrollSizeX, scrollSizeY, columnSize, rowSize, bufferSize, maxBufferSize,
+        bounds, items, cellConfigRowsMap, cellConfigColumnsMap, scrollSizeX, scrollSizeY, columnSize, rowSize, bufferSize, maxBufferSize,
         snap, enabledBufferOptimization, cacheVersion,
       ]) => {
         const container = this._container();
@@ -482,7 +481,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
               bounds: { width, height }, itemSize: columnSize, rowSize,
               bufferSize, maxBufferSize, scrollSizeX: actualScrollSizeX, scrollSizeY: actualScrollSizeY, snap, enabledBufferOptimization,
             },
-            { displayItems, rowDisplayItems, totalSize, totalHeight } = this._trackBox.updateCollection(items, stickyRowsMap, stickyColumnsMap, opts);
+            { displayItems, rowDisplayItems, totalSize, totalHeight } = this._trackBox.updateCollection(items, cellConfigRowsMap, cellConfigColumnsMap, opts);
 
           this.resetBoundsSize(false, totalSize);
           this.resetBoundsSize(true, totalHeight);
