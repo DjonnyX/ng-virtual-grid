@@ -1,3 +1,9 @@
+/**
+ * DeltaX normalization function.
+ * @link https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/utils/delta.ts
+ * @author Evgenii Grebennikov
+ * @email djonnyx@gmail.com
+ */
 export const normalizeDeltaX = (deltaSequence: Array<number>): number => {
     let result = 0;
     const dict: { [value: number]: number } = {};

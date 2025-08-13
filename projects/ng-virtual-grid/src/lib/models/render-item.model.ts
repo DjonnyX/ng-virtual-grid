@@ -1,15 +1,15 @@
 import { IRect } from "../types";
 import { Id } from "../types/id";
-import { IVirtualListItem } from "./item.model";
-import { IRenderVirtualListItemConfig } from "./render-item-config.model";
+import { IVirtualGridItem } from "./item.model";
+import { IRenderVirtualGridItemConfig } from "./render-item-config.model";
 
 /**
- * List screen element model
- * @link https://github.com/DjonnyX/ng-virtual-list/blob/20.x/projects/ng-virtual-list/src/lib/models/render-item.model.ts
+ * Grid screen element model
+ * @link https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/models/render-item.model.ts
  * @author Evgenii Grebennikov
  * @email djonnyx@gmail.com
  */
-export interface IRenderVirtualListItem {
+export interface IRenderVirtualGridItem {
     /**
      * Element index.
      */
@@ -38,9 +38,9 @@ export interface IRenderVirtualListItem {
     /**
      * Element data.
      */
-    data: IVirtualListItem;
+    data: IVirtualGridItem;
     /**
-     * Object with configuration parameters for IRenderVirtualListItem.
+     * Object with configuration parameters for IRenderVirtualGridItem.
      */
-    config: IRenderVirtualListItemConfig;
+    config: IRenderVirtualGridItemConfig;
 };

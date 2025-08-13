@@ -1,12 +1,12 @@
 import { Id } from "../types/id";
 
 /**
- * Virtual list element model
- * @link https://github.com/DjonnyX/ng-virtual-list/blob/20.x/projects/ng-virtual-list/src/lib/models/item.model.ts
+ * Virtual grid element model
+ * @link https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/models/item.model.ts
  * @author Evgenii Grebennikov
  * @email djonnyx@gmail.com
  */
-export type IVirtualListItem<E = Object> = E & {
+export type IVirtualGridItem<E = Object> = E & {
     /**
      * Unique identifier of the element.
      */

@@ -1,13 +1,13 @@
 import { ComponentRef } from "@angular/core";
 import { ScrollDirection, VirtualGridRow } from "../models";
 import { Id, ISize } from "../types";
-import { BaseVirtualListItemComponent } from "../models/base-virtual-list-item-component";
-import { IRenderVirtualListCollection } from "../models/render-collection.model";
+import { BaseVirtualGridItemComponent } from "../models/base-virtual-grid-item-component";
+import { IRenderVirtualGridCollection } from "../models/render-collection.model";
 import { NgVirtualGridRowComponent } from "../components/ng-virtual-grid-row/ng-virtual-grid-row.component";
 
 type TrackingPropertyId = string | number;
 
-export interface IVirtualListItemComponent<I = any> {
+export interface IVirtualGridItemComponent<I = any> {
     getBounds(): ISize;
     itemId: Id;
     id: number;
@@ -18,11 +18,11 @@ export interface IVirtualListItemComponent<I = any> {
 
 /**
  * Tracks display items by property
- * @link https://github.com/DjonnyX/ng-virtual-list/blob/20.x/projects/ng-virtual-list/src/lib/utils/tracker.ts
+ * @link https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/utils/tracker.ts
  * @author Evgenii Grebennikov
  * @email djonnyx@gmail.com
  */
-export class Tracker<C extends BaseVirtualListItemComponent = any> {
+export class Tracker<C extends BaseVirtualGridItemComponent = any> {
     /**
      * display objects dictionary of indexes by id
      */
@@ -58,7 +58,7 @@ export class Tracker<C extends BaseVirtualListItemComponent = any> {
     /**
      * tracking by propName
      */
-    track(rows: IRenderVirtualListCollection | null | undefined, items: Array<IRenderVirtualListCollection> | null | undefined,
+    track(rows: IRenderVirtualGridCollection | null | undefined, items: Array<IRenderVirtualGridCollection> | null | undefined,
         rowComponents: Array<ComponentRef<C>> | null | undefined): void {
         if (rows && rowComponents) {
             // НЕОБХОДИМО КОРРЕКТНО ПРОТРЕЧИТЬ ЯЧЕЙКИ!!!
@@ -66,7 +66,7 @@ export class Tracker<C extends BaseVirtualListItemComponent = any> {
             if (items && rowComponents) {
                 this.trackRowComponents(rows, rowComponents);
 
-                const itemsByRowId: { [rowId: Id]: IRenderVirtualListCollection } = {};
+                const itemsByRowId: { [rowId: Id]: IRenderVirtualGridCollection } = {};
                 for (let i = 0, l = items.length; i < l; i++) {
                     const cells = items[i];
                     for (let j = 0, l1 = cells.length; j < l1; j++) {
@@ -139,7 +139,7 @@ export class Tracker<C extends BaseVirtualListItemComponent = any> {
         }
     }
 
-    private trackRowComponents(items: IRenderVirtualListCollection | null | undefined, components: Array<ComponentRef<C>> | null | undefined) {
+    private trackRowComponents(items: IRenderVirtualGridCollection | null | undefined, components: Array<ComponentRef<C>> | null | undefined) {
         if (!items || !components) {
             return;
         }
