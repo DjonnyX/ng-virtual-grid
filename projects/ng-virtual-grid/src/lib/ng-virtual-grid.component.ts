@@ -584,18 +584,21 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       }
     }
 
+    let maxDisplayItemsLength = 0;
+    for (let i = 0, l = displayItems.length; i < l; i++) {
+      const items = displayItems[i];
+      maxDisplayItemsLength = Math.max(maxDisplayItemsLength, items?.length ?? 0);
+    }
     for (let i = 0, l = rowComponents.length; i < l; i++) {
       const row = rowComponents[i].instance as NgVirtualGridRowComponent, listContainerRef = row.listContainerRef,
-        components = row.components, _displayItems = displayItems[i];
+        components = row.components;
 
-      if (_displayItems) {
-        if (listContainerRef) {
-          while (components.length < _displayItems.length) {
-            const comp = row.createComponent(this._itemComponentClass);
-            if (comp) {
-              comp.instance.renderer = this._itemRenderer();
-              this._componentsResizeObserver.observe(comp.instance.element);
-            }
+      if (listContainerRef) {
+        while (components.length < maxDisplayItemsLength) {
+          const comp = row.createComponent(this._itemComponentClass);
+          if (comp) {
+            comp.instance.renderer = this._itemRenderer();
+            this._componentsResizeObserver.observe(comp.instance.element);
           }
         }
       }
@@ -620,8 +623,6 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
         doMap[id] = i;
       }
     }
-
-
 
     this._trackBox.setDisplayObjectIndexMapById(doMap);
   }

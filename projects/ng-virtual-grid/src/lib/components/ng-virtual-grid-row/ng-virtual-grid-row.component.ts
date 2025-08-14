@@ -137,7 +137,7 @@ export class NgVirtualGridRowComponent extends BaseVirtualGridItemComponent {
       part += PART_ITEM_SNAPPED;
     }
     if (v ? v.config.border : false) {
-      part += PART_ITEM_BORDER
+      part += PART_ITEM_BORDER;
     }
     this._part = part;
   }
