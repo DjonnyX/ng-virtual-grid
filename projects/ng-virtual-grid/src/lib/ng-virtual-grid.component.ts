@@ -480,12 +480,12 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
               bounds: { width, height }, itemSize: columnSize, rowSize,
               bufferSize, maxBufferSize, scrollSizeX: actualScrollSizeX, scrollSizeY: actualScrollSizeY, snap, enabledBufferOptimization,
             },
-            { displayItems, rowDisplayItems, totalSize, totalHeight } = this._trackBox.updateCollection(items, cellConfigRowsMap, cellConfigColumnsMap, opts);
+            { displayItems, rowDisplayItems, totalSize, totalHeight, columnsLength } = this._trackBox.updateCollection(items, cellConfigRowsMap, cellConfigColumnsMap, opts);
 
           this.resetBoundsSize(false, totalSize);
           this.resetBoundsSize(true, totalHeight);
 
-          this.createDisplayComponentsIfNeed(displayItems, rowDisplayItems);
+          this.createDisplayComponentsIfNeed(displayItems, rowDisplayItems, columnsLength);
 
           this.tracking();
 
@@ -563,7 +563,11 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
     }
   }
 
-  private createDisplayComponentsIfNeed(displayItems: Array<IRenderVirtualGridCollection> | null, rowDisplayItems: IRenderVirtualGridCollection | null) {
+  private createDisplayComponentsIfNeed(
+    displayItems: Array<IRenderVirtualGridCollection> | null,
+    rowDisplayItems: IRenderVirtualGridCollection | null,
+    columnsLength: number,
+  ) {
     if (!displayItems || !rowDisplayItems || !this._listContainerRef) {
       this._trackBox.setDisplayObjectIndexMapById({});
       return;
@@ -584,11 +588,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       }
     }
 
-    let maxDisplayItemsLength = 0;
-    for (let i = 0, l = displayItems.length; i < l; i++) {
-      const items = displayItems[i];
-      maxDisplayItemsLength = Math.max(maxDisplayItemsLength, items?.length ?? 0);
-    }
+    let maxDisplayItemsLength = columnsLength;
     for (let i = 0, l = rowComponents.length; i < l; i++) {
       const row = rowComponents[i].instance as NgVirtualGridRowComponent, listContainerRef = row.listContainerRef,
         components = row.components;
