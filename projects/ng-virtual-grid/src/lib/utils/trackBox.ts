@@ -94,6 +94,7 @@ export enum ItemDisplayMethods {
 }
 
 export interface IUpdateCollectionReturns {
+    columnsLength: number;
     displayItems: Array<IRenderVirtualGridCollection>;
     rowDisplayItems: IRenderVirtualGridCollection;
     totalSize: number;
@@ -470,7 +471,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
         this._defaultBufferSize = opt.bufferSize;
         this._maxBufferSize = opt.maxBufferSize;
 
-        let columnsTotalSize = 0, displayItemCollection = Array<any>();
+        let columnsTotalSize = 0, columnsLength = 0, displayItemCollection = Array<any>();
 
         const rowMetrics = this.recalculateMetrics({
             ...opt,
@@ -519,6 +520,8 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                 rowResizable: cellConfigRowsMap[i]?.resizable,
             });
 
+            columnsLength = Math.max(displayItems.length, columnsLength);
+
             displayItemCollection.push(displayItems);
 
             prevRowId = item.id;
@@ -543,7 +546,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
 
         return {
             rowDisplayItems, displayItems: displayItemCollection, totalSize: columnsTotalSize, totalHeight: rowMetrics.totalSize,
-            delta: rowMetrics.delta, crudDetected,
+            delta: rowMetrics.delta, crudDetected, columnsLength,
         };
     }
 
