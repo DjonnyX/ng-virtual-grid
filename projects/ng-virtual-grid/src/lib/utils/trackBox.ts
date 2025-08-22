@@ -107,6 +107,46 @@ const DEFAULT_BUFFER_EXTREMUM_THRESHOLD = 15,
     DEFAULT_MAX_BUFFER_SEQUENCE_LENGTH = 30,
     DEFAULT_RESET_BUFFER_SIZE_TIMEOUT = 10000;
 
+const FLEXIBLE_COLUMN_PATTERN = /^([\d]+fr)$/, PERCENTAGE_COLUMN_PATTERN = /^([\d]+%)$/;
+
+const isFlexibleColumn = (value: number | `${number}%` | `${number}fr` | undefined) => {
+    if (value === undefined || typeof value === 'number') {
+        return false;
+    }
+    return FLEXIBLE_COLUMN_PATTERN.test(value);
+};
+
+const isPercentageColumn = (value: number | `${number}%` | `${number}fr` | undefined) => {
+    if (value === undefined || typeof value === 'number') {
+        return false;
+    }
+    return PERCENTAGE_COLUMN_PATTERN.test(value);
+};
+
+const parseColumnValue = (value: number | `${number}%` | `${number}fr` | undefined, boundsWidth: number): number => {
+    const isFlexible = isFlexibleColumn(value), isPercentage = isPercentageColumn(value);
+    if (isFlexible || isPercentage) {
+        const v = parseFloat(String(value).replace('fr', '').replace('%', ''));
+        return (boundsWidth * v) / (isPercentage ? 100 : 1);
+    }
+    return value as number;
+}
+
+const getColumnsSizeWithExclude = (v: IColumnsSize, boundsWidth: number, minColumnSize: number, excludeIds: Array<Id>) => {
+    let result = 0;
+    for (let columnId in v) {
+        if (excludeIds.includes(columnId)) {
+            continue;
+        }
+        const value = v[columnId],
+            isFlexible = isFlexibleColumn(value),
+            isPercentage = isFlexibleColumn(value),
+            val = parseColumnValue(value, boundsWidth);
+        result += val < minColumnSize ? minColumnSize : val;
+    }
+    return result;
+};
+
 /**
  * An object that performs tracking, calculations and caching.
  * @link https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/utils/trackBox.ts
@@ -243,22 +283,6 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
 
     minRowSize = DEFAULT_MIN_ROW_SIZE;
 
-    protected _scrollBarHorizontalWeight = 0;
-    set scrollBarHorizontalWeight(v: number) {
-        if (this._scrollBarHorizontalWeight !== v) {
-            this._scrollBarHorizontalWeight = v;
-            this.bumpVersion();
-        }
-    }
-
-    protected _scrollBarVerticalWeight = 0;
-    set scrollBarVerticalWeight(v: number) {
-        if (this._scrollBarVerticalWeight !== v) {
-            this._scrollBarVerticalWeight = v;
-            this.bumpVersion();
-        }
-    }
-
     updateRowsSize(v: IRowsSize) {
         if (!v) {
             return;
@@ -283,25 +307,27 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
         return this.get(id)?.height ?? DEFAULT_ROW_SIZE;
     }
 
-    updateColumnSize(v: IColumnsSize) {
+    updateColumnSize(v: IColumnsSize, boundsWidth: number) {
         if (!v) {
             return;
         }
+        const bw = boundsWidth;
         for (let columnId in v) {
             const value = v[columnId], items = this._columnsMap.get(columnId);
             this._columnsStructureMap.set(columnId, value !== undefined);
+            const isFlexible = isFlexibleColumn(value), isPercentage = isFlexibleColumn(value),
+                val = parseColumnValue(value, bw) - (isFlexible ? getColumnsSizeWithExclude(v, bw, this.minColumnSize, [columnId]) : 0);
             if (value === undefined) {
                 this._customColumnsSizeMap.delete(columnId);
             } else {
-                this._customColumnsSizeMap.set(columnId, value);
+                this._customColumnsSizeMap.set(columnId, val);
             }
             if (Array.isArray(items)) {
                 for (let i = 0, l = items.length; i < l; i++) {
                     const item = items[i], id = item.id;
-                    this._customSizeMap.set(id, value);
-                    if (value !== undefined) {
+                    if (val !== undefined) {
                         const cacheItem = this.get(id);
-                        this.set(id, { ...cacheItem || {}, width: value } as any);
+                        this.set(id, { ...cacheItem || {}, width: val } as any);
                     }
                 }
             }
@@ -1011,8 +1037,8 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                         size = this.get(id)?.[sizeProperty] || typicalItemSize;
                     if (sticky === 2) {
                         const w = isVertical ? normalizedItemWidth : size, h = isVertical ? size : normalizedItemHeight, measures = {
-                            x: isVertical ? 0 : actualSnippedPosition + actualEndSnippedPosition - w - this._scrollBarHorizontalWeight,
-                            y: isVertical ? actualEndSnippedPosition - h - this._scrollBarVerticalWeight : 0,
+                            x: isVertical ? 0 : actualSnippedPosition + actualEndSnippedPosition - w,
+                            y: isVertical ? actualEndSnippedPosition - h : 0,
                             width: w,
                             height: isVertical ? size : rowSize,
                             delta: 0,
@@ -1061,8 +1087,8 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                         stickyWithRow = rowDisplayObject?.config.sticky ?? 0,
                         snapped = ((snap && sticky === 1 && pos <= scrollSize) || (snap && sticky === 2 && (pos >= (scrollSize + boundsSize - size)))),
                         measures = {
-                            x: isVertical ? 0 : snapped && sticky === 1 ? 0 : snapped && sticky === 2 ? actualSnippedPosition + actualEndSnippedPosition - w - this._scrollBarHorizontalWeight : pos,
-                            y: isVertical ? snapped && sticky === 1 ? 0 : snapped && sticky === 2 ? actualEndSnippedPosition - size - this._scrollBarVerticalWeight : pos : 0,
+                            x: isVertical ? 0 : snapped && sticky === 1 ? 0 : snapped && sticky === 2 ? actualSnippedPosition + actualEndSnippedPosition - w : pos,
+                            y: isVertical ? snapped && sticky === 1 ? 0 : snapped && sticky === 2 ? actualEndSnippedPosition - size : pos : 0,
                             width: w,
                             height: rowSize,
                             delta: 0,

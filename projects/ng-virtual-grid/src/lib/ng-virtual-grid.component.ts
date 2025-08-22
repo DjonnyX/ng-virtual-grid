@@ -254,6 +254,10 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
 
   private _scrollSizeY = signal<number>(0);
 
+  private _scrollBarHorizontalWeight = 0;
+
+  private _scrollBarVerticalWeight = 0;
+
   private _resizeObserver: ResizeObserver | null = null;
 
   private _componentsResizeObserver = new ResizeObserver(() => {
@@ -261,11 +265,13 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   });
 
   private _onResizeHandler = () => {
+    this.calculateScrollBars();
+
     const bounds = this._container()?.nativeElement?.getBoundingClientRect();
     if (bounds) {
-      this._bounds.set({ width: bounds.width, height: bounds.height });
+      this._bounds.set({ width: bounds.width - this._scrollBarHorizontalWeight, height: bounds.height - this._scrollBarVerticalWeight });
     } else {
-      this._bounds.set({ width: DEFAULT_GRID_SIZE, height: DEFAULT_GRID_SIZE });
+      this._bounds.set({ width: DEFAULT_GRID_SIZE - this._scrollBarHorizontalWeight, height: DEFAULT_GRID_SIZE - this._scrollBarVerticalWeight });
     }
   }
 
@@ -383,39 +389,6 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       }),
     ).subscribe();
 
-    $columnsSize.pipe(
-      takeUntilDestroyed(),
-      distinctUntilChanged(),
-      tap(v => {
-        this._trackBox.updateColumnSize(v);
-      }),
-    ).subscribe();
-
-    this._service.$resize.pipe(
-      takeUntilDestroyed(),
-      distinctUntilChanged(),
-      tap(v => {
-        const { rowId, columnId, width, height } = v;
-        if (height !== 0 && rowId !== undefined) {
-          const data: IRowsSize = { [rowId]: height };
-          this._trackBox.updateRowsSize(data);
-          this.onRowsSizeChanged.emit(data);
-        }
-        if (width !== 0 && columnId !== undefined) {
-          const data: IColumnsSize = { [columnId]: width }, items = this.items();
-          let rowData: { [id: Id]: number | 'auto' } = {};
-          for (let i = 0, l = items.length; i < l; i++) {
-            const row = items[i], rowId = row.id;
-            rowData[rowId] = this._trackBox.getCacheByRowId(rowId) ?? 'auto';
-          }
-          this._trackBox.updateRowsSize(rowData);
-          this._trackBox.updateColumnSize(data);
-          this.onRowsSizeChanged.emit(rowData);
-          this.onColumnsSizeChanged.emit(data);
-        }
-      }),
-    ).subscribe();
-
     $trackBy.pipe(
       takeUntilDestroyed(),
       debounceTime(50),
@@ -453,6 +426,43 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       $enabledBufferOptimization = toObservable(this.enabledBufferOptimization),
       $cacheVersion = toObservable(this._cacheVersion);
 
+    combineLatest([this.$initialized, $bounds, $columnsSize]).pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      filter(([init]) => !!init),
+      map(([, bounds, columnsSize]) => ({ bounds, columnsSize })),
+      tap(({ bounds, columnsSize }) => {
+        this._trackBox.updateColumnSize(columnsSize, bounds.width);
+      }),
+    ).subscribe();
+
+    combineLatest([this.$initialized, $bounds, this._service.$resize]).pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      filter(([init]) => !!init),
+      map(([, bounds, resizeValue]) => ({ bounds, resizeValue })),
+      tap(({ bounds, resizeValue }) => {
+        const { rowId, columnId, width, height } = resizeValue;
+        if (height !== 0 && rowId !== undefined) {
+          const data: IRowsSize = { [rowId]: height };
+          this._trackBox.updateRowsSize(data);
+          this.onRowsSizeChanged.emit(data);
+        }
+        if (width !== 0 && columnId !== undefined) {
+          const data: IColumnsSize = { [columnId]: width }, items = this.items();
+          let rowData: { [id: Id]: number | 'auto' } = {};
+          for (let i = 0, l = items.length; i < l; i++) {
+            const row = items[i], rowId = row.id;
+            rowData[rowId] = this._trackBox.getCacheByRowId(rowId) ?? 'auto';
+          }
+          this._trackBox.updateRowsSize(rowData);
+          this._trackBox.updateColumnSize(data, bounds.width);
+          this.onRowsSizeChanged.emit(rowData);
+          this.onColumnsSizeChanged.emit(data);
+        }
+      }),
+    ).subscribe();
+
     combineLatest([$items, $rowSize, $columnSize]).pipe(
       takeUntilDestroyed(),
       distinctUntilChanged(),
@@ -488,8 +498,6 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
           this.createDisplayComponentsIfNeed(displayItems, rowDisplayItems, columnsLength);
 
           this.tracking();
-
-          this.calculateScrollBars();
 
           const deltaX = this._trackBox.deltaX, deltaY = this._trackBox.deltaY;
           actualScrollSizeX = actualScrollSizeX + deltaX;
@@ -538,17 +546,11 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   }
 
   private calculateScrollBars() {
-    let scrollBarHorizontalWeight = 0;
-    let scrollBarVerticalWeight = 0;
-
     const container = this._container()?.nativeElement;
     if (container) {
-      scrollBarHorizontalWeight = container.offsetWidth - container.clientWidth;
-      scrollBarVerticalWeight = container.offsetHeight - container.clientHeight;
+      this._scrollBarHorizontalWeight = container.offsetWidth - container.clientWidth;
+      this._scrollBarVerticalWeight = container.offsetHeight - container.clientHeight;
     }
-
-    this._trackBox.scrollBarHorizontalWeight = scrollBarHorizontalWeight;
-    this._trackBox.scrollBarVerticalWeight = scrollBarVerticalWeight;
   }
 
   private listenCacheChangesIfNeed(value: boolean) {

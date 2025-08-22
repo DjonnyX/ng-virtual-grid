@@ -10,5 +10,5 @@ export interface IColumnsSize {
     /**
      * Column width by columnId
      */
-    [columnId: Id]: number | undefined;
+    [columnId: Id]: number | `${number}%` | `${number}fr` | undefined;
 }
