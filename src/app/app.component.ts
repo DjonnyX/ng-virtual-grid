@@ -57,6 +57,12 @@ const GROUP_DYNAMIC_ITEMS: IVirtualGridCollection<IRowData, IColumnData> = [],
   GROUP_DYNAMIC_COLUMNS_SIZE_MAP: IColumnsSize = {},
   GROUP_DYNAMIC_ROWS_SIZE_MAP: IRowsSize = {};
 
+const GROUP_DYNAMIC_ITEMS1: IVirtualGridCollection<IRowData, IColumnData> = [],
+  GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP1: IVirtualGridRowConfigMap = {},
+  GROUP_DYNAMIC_ITEMS_COLUMN_CONFIG_MAP1: IVirtualGridColumnConfigMap = {},
+  GROUP_DYNAMIC_COLUMNS_SIZE_MAP1: IColumnsSize = {},
+  GROUP_DYNAMIC_ROWS_SIZE_MAP1: IRowsSize = {};
+
 const GROUP_ITEMS: IVirtualGridCollection<IRowData, IColumnData> = [],
   GROUP_ITEMS_STICKY_MAP: IVirtualGridRowConfigMap = {};
 
@@ -70,9 +76,6 @@ for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
       GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId] = {};
     }
     if (i === 0) {
-      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId].sticky = 1;
-      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId].resizable = false;
-    } else if (i === l - 20) {
       GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId].sticky = 1;
       GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId].resizable = false;
     } else if (i === l - 1) {
@@ -112,6 +115,53 @@ for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
     GROUP_DYNAMIC_ROWS_SIZE_MAP[rowId] = 40;
   }
   GROUP_DYNAMIC_ITEMS.push({ id: rowId, columns });
+}
+
+let index2 = 0;
+for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
+  const columns: IVirtualGridColumnCollection<IColumnData> = [];
+  const rowId = index2;
+  index2++;
+  if (i === 0 || i === l - 20 || i === l - 1) {
+    if (!GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP1[rowId]) {
+      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP1[rowId] = {};
+    }
+    if (i === 0) {
+      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP1[rowId].sticky = 1;
+      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP1[rowId].resizable = false;
+    } else if (i === l - 1) {
+      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP1[rowId].sticky = 2;
+      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP1[rowId].resizable = false;
+    }
+  }
+  for (let j = 0, l1 = 3; j < l1; j++) {
+    index2++;
+    const id = index2;
+    GROUP_DYNAMIC_ITEMS_COLUMN_CONFIG_MAP1[j] = { resizable: false };
+    if (j === 0 || j === l1 - 1) {
+      GROUP_DYNAMIC_COLUMNS_SIZE_MAP1[j] = 36;
+    }
+    if (j === 1) {
+      GROUP_DYNAMIC_COLUMNS_SIZE_MAP1[j] = '1fr';
+    }
+    let value: string, isBorderStart: boolean = false, isBorderEnd: boolean = false;
+    if ((i === 0 && j === 0) || (i === 0 && j === l1 - 1)) {
+      value = '№';
+    } else if ((i === l - 1 && j === 0) || (i === l - 1 && j === l1 - 1)) {
+      value = '';
+    } else if (i === 0 || i === l - 1) {
+      value = String(j);
+    } else if (j === 0 || j === l1 - 1) {
+      value = String(i);
+    } else {
+      value = generateText();
+    }
+    columns.push({ id: id, value, isBorderStart, isBorderEnd });
+  }
+  if (i === 0 || i === l - 1) {
+    GROUP_DYNAMIC_ROWS_SIZE_MAP1[rowId] = 40;
+  }
+  GROUP_DYNAMIC_ITEMS1.push({ id: rowId, columns });
 }
 
 let index1 = 0;
@@ -167,6 +217,12 @@ export class AppComponent {
   groupDynamicItemsColumnConfigMap = GROUP_DYNAMIC_ITEMS_COLUMN_CONFIG_MAP;
   groupDynamicColumnsSize = getDynamicColumnsSize();
   groupDynamicRowsSize = getDynamicRowsSize();
+
+  groupDynamicItems1 = GROUP_DYNAMIC_ITEMS1;
+  groupDynamicItemsRowConfigMap1 = GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP1;
+  groupDynamicItemsColumnConfigMap1 = GROUP_DYNAMIC_ITEMS_COLUMN_CONFIG_MAP1;
+  groupDynamicColumnsSize1 = { ...GROUP_DYNAMIC_COLUMNS_SIZE_MAP1 };
+  groupDynamicRowsSize1 = { ...GROUP_DYNAMIC_ROWS_SIZE_MAP1 };
 
   private _minId: Id = this.groupDynamicItems.length > 0 ? this.groupDynamicItems[0].id : 0;
   get minId() { return this._minId; };
