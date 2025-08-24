@@ -1,9 +1,9 @@
 import { ComponentRef } from "@angular/core";
-import { ScrollDirection, VirtualGridRow } from "../models";
 import { Id, ISize } from "../types";
 import { BaseVirtualGridItemComponent } from "../models/base-virtual-grid-item-component";
 import { IRenderVirtualGridCollection } from "../models/render-collection.model";
 import { NgVirtualGridRowComponent } from "../components/ng-virtual-grid-row/ng-virtual-grid-row.component";
+import { CMap } from "./cacheMap";
 
 type TrackingPropertyId = string | number;
 
@@ -43,7 +43,7 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
     /**
      * Dictionary displayItems propertyNameId by items propertyNameId
      */
-    protected _trackMap: { [id: TrackingPropertyId]: number } = {};
+    protected _trackMap = new CMap<TrackingPropertyId, number>();
 
     protected _trackingPropertyName!: string;
 
@@ -61,80 +61,9 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
     track(rows: IRenderVirtualGridCollection | null | undefined, items: Array<IRenderVirtualGridCollection> | null | undefined,
         rowComponents: Array<ComponentRef<C>> | null | undefined): void {
         if (rows && rowComponents) {
-            // НЕОБХОДИМО КОРРЕКТНО ПРОТРЕЧИТЬ ЯЧЕЙКИ!!!
-
             if (items && rowComponents) {
                 this.trackRowComponents(rows, rowComponents);
-
-                const itemsByRowId: { [rowId: Id]: IRenderVirtualGridCollection } = {};
-                for (let i = 0, l = items.length; i < l; i++) {
-                    const cells = items[i];
-                    for (let j = 0, l1 = cells.length; j < l1; j++) {
-                        const cell = cells[j], rowId = cell.rowId;
-                        if (rowId === undefined) {
-                            continue;
-                        }
-                        if (!itemsByRowId.hasOwnProperty(rowId)) {
-                            itemsByRowId[rowId] = [];
-                        }
-                        itemsByRowId[rowId].push(cell);
-                    }
-                }
-
-                const trackRowMap: { [id: Id]: number } = {}, idPropName = this._trackingPropertyName;
-                for (let i = 0, l = rowComponents.length; i < l; i++) {
-                    const rowComponent = rowComponents[i].instance as unknown as NgVirtualGridRowComponent, rowId = rowComponent.itemId;
-                    if (rowId === undefined) {
-                        continue;
-                    }
-                    const components = rowComponent.components, rowItems = itemsByRowId[rowId], untrackedItems = [...components];
-                    if (!rowItems) {
-                        continue;
-                    }
-                    for (let j = 0, l1 = rowItems.length; j < l1; j++) {
-                        const cell = rowItems[j], itemTrackingProperty = (cell as any)[idPropName];
-                        if (this._trackMap.hasOwnProperty(itemTrackingProperty)) {
-                            const displayObjectId = this._trackMap[itemTrackingProperty],
-                                compIndex = this._displayObjectIndexMapById[displayObjectId],
-                                comp = components[compIndex],
-                                compId = comp?.instance?.id;
-                            if (comp !== undefined && compId !== undefined && compId === displayObjectId) {
-                                const indexByUntrackedItems = untrackedItems.findIndex(v => {
-                                    return v.instance.id === compId;
-                                });
-                                if (indexByUntrackedItems > -1) {
-                                    comp.instance.item = cell;
-
-                                    comp.instance.show();
-                                    untrackedItems.splice(indexByUntrackedItems, 1);
-                                    continue;
-                                }
-                            }
-                            delete this._trackMap[itemTrackingProperty];
-                        }
-
-                        if (untrackedItems.length > 0) {
-                            const comp = untrackedItems.shift();
-                            if (comp) {
-                                comp.instance.item = cell;
-                                comp.instance.show();
-
-                                this._trackMap[itemTrackingProperty] = comp.instance.id;
-                            }
-                        }
-                    }
-
-                    if (untrackedItems.length) {
-                        for (let j = 0, l1 = untrackedItems.length; j < l1; j++) {
-                            const comp = untrackedItems[j];
-                            comp.instance.hide();
-                        }
-                    }
-
-                    if (rowId !== undefined) {
-                        trackRowMap[rowId] = i;
-                    }
-                }
+                this.trackColumnComponents(items, rowComponents);
             }
         }
     }
@@ -144,13 +73,12 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
             return;
         }
 
-        const idPropName = this._trackingPropertyName, untrackedItems = [...components];
-
+        const idPropName = this._trackingPropertyName, untrackedItems = [...components], newTrackItems = [];
         for (let i = 0, l = items.length; i < l; i++) {
             const item = items[i], itemTrackingProperty = (item as any)[idPropName];
 
-            if (this._trackMap.hasOwnProperty(itemTrackingProperty)) {
-                const displayObjectId = this._trackMap[itemTrackingProperty],
+            if (this._trackMap.has(itemTrackingProperty)) {
+                const displayObjectId = this._trackMap.get(itemTrackingProperty),
                     compIndex = this._displayObjectIndexMapById[displayObjectId],
                     comp = components[compIndex],
                     compId = comp?.instance?.id;
@@ -160,30 +88,125 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
                     });
                     if (indexByUntrackedItems > -1) {
                         comp.instance.item = item;
-
                         comp.instance.show();
+
                         untrackedItems.splice(indexByUntrackedItems, 1);
                         continue;
                     }
                 }
-                delete this._trackMap[itemTrackingProperty];
+                this._trackMap.delete(itemTrackingProperty);
             }
 
+            if (untrackedItems.length > 0) {
+                newTrackItems.push(item);
+            }
+        }
+
+        for (let i = 0, l = newTrackItems.length; i < l; i++) {
+            const item = newTrackItems[i], itemTrackingProperty = (item as any)[idPropName];
             if (untrackedItems.length > 0) {
                 const comp = untrackedItems.shift();
                 if (comp) {
                     comp.instance.item = item;
                     comp.instance.show();
 
-                    this._trackMap[itemTrackingProperty] = comp.instance.id;
+                    this._trackMap.set(itemTrackingProperty, comp.instance.id);
                 }
             }
         }
 
-        if (untrackedItems.length) {
+        if (untrackedItems.length > 0) {
             for (let i = 0, l = untrackedItems.length; i < l; i++) {
                 const comp = untrackedItems[i];
+                comp.instance.item = null;
                 comp.instance.hide();
+
+                this._trackMap.delete(comp.instance.id);
+            }
+        }
+    }
+
+    trackColumnComponents(items: Array<IRenderVirtualGridCollection> | null | undefined, rowComponents: Array<ComponentRef<C>> | null | undefined) {
+        if (!items || !rowComponents) {
+            return;
+        }
+        const itemsByRowId: { [rowId: Id]: IRenderVirtualGridCollection } = {};
+        for (let i = 0, l = items.length; i < l; i++) {
+            const cells = items[i];
+            for (let j = 0, l1 = cells.length; j < l1; j++) {
+                const cell = cells[j], rowId = cell.rowId;
+                if (rowId === undefined) {
+                    continue;
+                }
+                if (!itemsByRowId.hasOwnProperty(rowId)) {
+                    itemsByRowId[rowId] = [];
+                }
+                itemsByRowId[rowId].push(cell);
+            }
+        }
+
+        const trackRowMap: { [id: Id]: number } = {}, idPropName = this._trackingPropertyName;
+        for (let i = 0, l = rowComponents.length; i < l; i++) {
+            const rowComponent = rowComponents[i].instance as unknown as NgVirtualGridRowComponent, rowId = rowComponent.itemId;
+            if (rowId === undefined) {
+                continue;
+            }
+            const components = rowComponent.components, rowItems = itemsByRowId[rowId], untrackedItems = [...components], newTrackItems = [];
+            if (!rowItems) {
+                continue;
+            }
+            for (let j = 0, l1 = rowItems.length; j < l1; j++) {
+                const cell = rowItems[j], itemTrackingProperty = (cell as any)[idPropName];
+                if (this._trackMap.has(itemTrackingProperty)) {
+                    const displayObjectId = this._trackMap.get(itemTrackingProperty),
+                        compIndex = this._displayObjectIndexMapById[displayObjectId],
+                        comp = components[compIndex],
+                        compId = comp?.instance?.id;
+                    if (comp !== undefined && compId !== undefined && compId === displayObjectId) {
+                        const indexByUntrackedItems = untrackedItems.findIndex(v => {
+                            return v.instance.id === compId;
+                        });
+                        if (indexByUntrackedItems > -1) {
+                            comp.instance.item = cell;
+                            comp.instance.show();
+
+                            untrackedItems.splice(indexByUntrackedItems, 1);
+                            continue;
+                        }
+                    }
+                    this._trackMap.delete(itemTrackingProperty);
+                }
+
+                if (untrackedItems.length > 0) {
+                    newTrackItems.push(cell);
+                }
+            }
+
+            for (let i = 0, l = newTrackItems.length; i < l; i++) {
+                const cell = newTrackItems[i], itemTrackingProperty = (cell as any)[idPropName];
+                if (untrackedItems.length > 0) {
+                    const comp = untrackedItems.shift();
+                    if (comp) {
+                        comp.instance.item = cell;
+                        comp.instance.show();
+
+                        this._trackMap.set(itemTrackingProperty, comp.instance.id);
+                    }
+                }
+            }
+
+            if (untrackedItems.length > 0) {
+                for (let j = 0, l1 = untrackedItems.length; j < l1; j++) {
+                    const comp = untrackedItems[j];
+                    comp.instance.item = null;
+                    comp.instance.hide();
+
+                    this._trackMap.delete(comp.instance.id);
+                }
+            }
+
+            if (rowId !== undefined) {
+                trackRowMap[rowId] = i;
             }
         }
     }
@@ -196,11 +219,13 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
         const propertyIdName = this._trackingPropertyName;
 
         if ((component as any)[propertyIdName] !== undefined) {
-            delete this._trackMap[propertyIdName];
+            this._trackMap.delete(propertyIdName);
         }
     }
 
     dispose() {
-
+        if (this._trackMap) {
+            this._trackMap.clear();
+        }
     }
 }
