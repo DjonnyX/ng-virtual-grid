@@ -10,42 +10,75 @@ export interface IScrollEvent {
     /**
      * Scroll area offset
      */
-    scrollSize: number;
+    scrollSizeX: number;
+    /**
+     * Scroll area offset
+     */
+    scrollSizeY: number;
     /**
      * Full size of the scroll area
      */
-    scrollWeight: number;
+    scrollWeightX: number;
+    /**
+     * Full size of the scroll area
+     */
+    scrollWeightY: number;
     /**
      * Viewport size
      */
-    size: number;
+    width: number;
     /**
-     * Size of the list of elements
+     * Viewport size
      */
-    listSize: number;
+    height: number;
     /**
-     * Specifies whether the list orientation is vertical.
+     * Size of the grid of elements
      */
-    isVertical: boolean;
+    gridWidth: number;
     /**
-     * A value of -1 indicates the direction is up or left (if the list direction is horizontal).
-     * A value of 1 indicates the direction is down or right (if the list direction is horizontal).
+     * Size of the grid of elements
      */
-    direction: ScrollDirection;
+    gridHeight: number;
     /**
-     * If true then indicates that the list has been scrolled to the end.
+     * A value of -1 indicates the direction is up or left (if the grid direction is horizontal).
+     * A value of 1 indicates the direction is down or right (if the grid direction is horizontal).
      */
-    isStart: boolean;
+    directionX: ScrollDirection;
     /**
-     * If true then indicates that the list has been scrolled to the end.
+     * A value of -1 indicates the direction is up or left (if the grid direction is horizontal).
+     * A value of 1 indicates the direction is down or right (if the grid direction is horizontal).
      */
-    isEnd: boolean;
+    directionY: ScrollDirection;
+    /**
+     * If true then indicates that the grid has been scrolled to the end.
+     */
+    isStartX: boolean;
+    /**
+     * If true then indicates that the grid has been scrolled to the end.
+     */
+    isStartY: boolean;
+    /**
+     * If true then indicates that the grid has been scrolled to the end.
+     */
+    isEndX: boolean;
+    /**
+     * If true then indicates that the grid has been scrolled to the end.
+     */
+    isEndY: boolean;
     /**
      * Delta of marked and unmarked area
      */
-    delta: number;
+    deltaX: number;
+    /**
+     * Delta of marked and unmarked area
+     */
+    deltaY: number;
     /**
      * Scroll delta
      */
-    scrollDelta: number;
+    scrollDeltaX: number;
+    /**
+     * Scroll delta
+     */
+    scrollDeltaY: number;
 }

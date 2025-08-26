@@ -71,7 +71,7 @@ export interface IRecalculateMetricsOptions<I extends { id: Id }, C extends Arra
 }
 
 export interface IGetItemPositionOptions<I extends { id: Id }, C extends Array<I>>
-    extends Omit<IRecalculateMetricsOptions<I, C>, 'previousTotalSize' | 'crudDetected' | 'deletedItemsMap'> { }
+    extends Omit<IRecalculateMetricsOptions<I, C>, 'previousTotalSize' | 'crudDetected' | 'deletedItemsMap'> {}
 
 export interface IUpdateCollectionOptions<I extends { id: Id }, C extends Array<I>>
     extends Omit<IRecalculateMetricsOptions<I, C>, 'collection' | 'previousTotalSize' | 'crudDetected' | 'deletedItemsMap' | 'scrollSize'
@@ -240,8 +240,11 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
 
     protected _previousScrollSizeY = 0;
 
-    protected _scrollDelta: number = 0;
-    get scrollDelta() { return this._scrollDelta; }
+    protected _scrollDeltaX: number = 0;
+    get scrollDeltaX() { return this._scrollDeltaX; }
+
+    protected _scrollDeltaY: number = 0;
+    get scrollDeltaY() { return this._scrollDeltaY; }
 
     isAdaptiveBuffer = true;
 
@@ -382,7 +385,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
     }
 
     /**
-     * Update the cache of items from the list
+     * Update the cache of items from the grid
      */
     protected updateCache<I extends { id: Id; rowId?: Id, columnId?: Id; }, C extends Array<I>>(
         previousCollection: C | null | undefined, currentCollection: C | null | undefined, rowSize: number, itemSize: number): void {
@@ -467,22 +470,57 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
     /**
      * Finds the position of a collection element by the given Id
      */
-    getItemPosition<I extends { id: Id }, C extends Array<I>>(id: Id, cellConfigMap: IVirtualGridRowConfigMap,
+    getItemPosition<I extends { id: Id }, C extends Array<I>>(id: Id, items: C, cellConfigRowsMap: IVirtualGridRowConfigMap, cellConfigColumnsMap: IVirtualGridRowConfigMap,
         options: IGetItemPositionOptions<I, C>): IPoint {
-        const opt = { fromItemId: id, cellConfigMap, ...options };
-        this._defaultBufferSize = opt.bufferSize;
-        this._maxBufferSize = opt.maxBufferSize;
+        // const opt = { fromItemId: id, cellConfigRowsMap, ...options }, crudDetected = this._crudDetected, deletedItemsMap = this._deletedItemsMap;
+        // this._defaultBufferSize = opt.bufferSize;
+        // this._maxBufferSize = opt.maxBufferSize;
 
-        const { scrollSize, isFromItemIdFound } = this.recalculateMetrics({
-            ...opt,
-            crudDetected: this._crudDetected,
-            deletedItemsMap: this._deletedItemsMap,
-            y: 0,
-        });
+        // const rowMetrics = this.recalculateMetrics({
+        //     ...opt,
+        //     collection: items,
+        //     scrollSize: opt.scrollSizeY,
+        //     crudDetected,
+        //     cellConfigMap: cellConfigRowsMap,
+        //     itemSize: opt.rowSize,
+        //     deletedItemsMap,
+        //     isVertical: true,
+        //     bufferSize: this._bufferSizeY,
+        //     y: 0,
+        // } as any);
+
+        // for (let i = 0, l = items.length; i < l; i++) {
+        //     const item = items[i], rowId = item.id, columnsCollection = ((item as any).data as VirtualGridRow).columns,
+        //         customRowSize = this._customRowsSizeMap.get(item.id);
+        //     const metrics = this.recalculateMetrics({
+        //         ...opt,
+        //         collection: columnsCollection,
+        //         scrollSize: opt.scrollSizeX,
+        //         crudDetected: this._crudDetected,
+        //         cellConfigMap: cellConfigColumnsMap,
+        //         deletedItemsMap,
+        //         isVertical: false,
+        //         bufferSize: this._bufferSizeX ?? DEFAULT_BUFFER_SIZE,
+        //         rowSize: customRowSize !== undefined && customRowSize !== 'auto' ? customRowSize : this.get(item.id)?.height ?? rowMetrics.rowSize,
+        //         y: item.measures.y,
+        //     } as any);
+
+        // }
+
+        // // const { scrollSize, isFromItemIdFound } = this.recalculateMetrics({
+        // //     ...opt,
+        // //     crudDetected: this._crudDetected,
+        // //     deletedItemsMap: this._deletedItemsMap,
+        // //     y: 0,
+        // // });
+        // return {
+        //     x: isFromItemIdFound ? scrollSize : -1,
+        //     y: 0,
+        // };
         return {
-            x: isFromItemIdFound ? scrollSize : -1,
+            x: 0,
             y: 0,
-        };
+        }
     }
 
     /**
@@ -503,7 +541,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
             ...opt,
             collection: items,
             scrollSize: opt.scrollSizeY,
-            crudDetected: this._crudDetected,
+            crudDetected,
             cellConfigMap: cellConfigRowsMap,
             itemSize: opt.rowSize,
             deletedItemsMap,
@@ -667,7 +705,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
     }
 
     /**
-     * Calculates list metrics
+     * Calculates grid metrics
      */
     protected recalculateMetrics<I extends { id: Id }, C extends Array<I>>(options: IRecalculateMetricsOptions<I, C>): IMetrics {
         const { fromItemId, bounds, collection, isVertical, itemSize, rowSize: typicalRowSize,
@@ -725,7 +763,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
             isFromItemIdFound = false,
             rowSize = typicalRowSize;
 
-        // If the list is dynamic or there are new elements in the collection, then it switches to the long algorithm.
+        // If the grid is dynamic or there are new elements in the collection, then it switches to the long algorithm.
         let y = 0, stickyCollectionItem: I | undefined = undefined, stickyComponentSize = 0;
         for (let i = 0, l = collection.length; i < l; i++) {
             const ii = i + 1, collectionItem = collection[i], id = collectionItem.id, sticky = cellConfigMap ? isVertical ? cellConfigMap[id]?.sticky ?? 0 : cellConfigMap[i]?.sticky ?? 0 : undefined;

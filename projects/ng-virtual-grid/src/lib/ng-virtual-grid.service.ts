@@ -44,7 +44,7 @@ export class NgVirtualGridService {
 
   isAjacentResizeCellMode: boolean = false;
 
-  listId = 0;
+  gridId = 0;
 
   host: ElementRef<HTMLUListElement> | undefined;
 
