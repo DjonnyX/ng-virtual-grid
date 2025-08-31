@@ -52,9 +52,9 @@ export class NgVirtualGridItemComponent extends BaseVirtualGridItemComponent {
     }
 
     const rowId = v?.rowId, colId = Number(v?.columnId);
-    this.liId = `li-${this.service.listId}-${rowId}-${colId}`;
-    this.leftLiId = v?.config.prevColId !== undefined ? `li-${this.service.listId}-${rowId}-${v?.config.prevColId}` : undefined;
-    this.topLiId = v?.config.prevRowId !== undefined ? `li-${this.service.listId}-${v?.config.prevRowId}-${colId}` : undefined;
+    this.liId = `g-${this.service.gridId}-${rowId}-${colId}`;
+    this.leftLiId = v?.config.prevColId !== undefined ? `g-${this.service.gridId}-${rowId}-${v?.config.prevColId}` : undefined;
+    this.topLiId = v?.config.prevRowId !== undefined ? `g-${this.service.gridId}-${v?.config.prevRowId}-${colId}` : undefined;
 
     this.update(v);
 
@@ -104,7 +104,7 @@ export class NgVirtualGridItemComponent extends BaseVirtualGridItemComponent {
     super();
     this._id = this.service.generateComponentId();
 
-    this.liId = `li-${this.service.listId}-${this._id}`;
+    this.liId = `li-${this.service.gridId}-${this._id}`;
   }
 
   private update(data: IRenderVirtualGridItem | undefined) {

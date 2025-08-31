@@ -43,7 +43,12 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
     /**
      * Dictionary displayItems propertyNameId by items propertyNameId
      */
-    protected _trackMap = new CMap<TrackingPropertyId, number>();
+    protected _trackRowMap = new CMap<TrackingPropertyId, number>();
+
+    /**
+     * Dictionary displayItems propertyNameId by items propertyNameId
+     */
+    protected _trackCellMap = new CMap<TrackingPropertyId, number>();
 
     protected _trackingPropertyName!: string;
 
@@ -77,8 +82,8 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
         for (let i = 0, l = items.length; i < l; i++) {
             const item = items[i], itemTrackingProperty = (item as any)[idPropName];
 
-            if (this._trackMap.has(itemTrackingProperty)) {
-                const displayObjectId = this._trackMap.get(itemTrackingProperty),
+            if (this._trackRowMap.has(itemTrackingProperty)) {
+                const displayObjectId = this._trackRowMap.get(itemTrackingProperty),
                     compIndex = this._displayObjectIndexMapById[displayObjectId],
                     comp = components[compIndex],
                     compId = comp?.instance?.id;
@@ -94,7 +99,7 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
                         continue;
                     }
                 }
-                this._trackMap.delete(itemTrackingProperty);
+                this._trackRowMap.delete(itemTrackingProperty);
             }
 
             if (untrackedItems.length > 0) {
@@ -110,7 +115,7 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
                     comp.instance.item = item;
                     comp.instance.show();
 
-                    this._trackMap.set(itemTrackingProperty, comp.instance.id);
+                    this._trackRowMap.set(itemTrackingProperty, comp.instance.id);
                 }
             }
         }
@@ -121,7 +126,7 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
                 comp.instance.item = null;
                 comp.instance.hide();
 
-                this._trackMap.delete(comp.instance.id);
+                this._trackRowMap.delete(comp.instance.id);
             }
         }
     }
@@ -157,8 +162,8 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
             }
             for (let j = 0, l1 = rowItems.length; j < l1; j++) {
                 const cell = rowItems[j], itemTrackingProperty = (cell as any)[idPropName];
-                if (this._trackMap.has(itemTrackingProperty)) {
-                    const displayObjectId = this._trackMap.get(itemTrackingProperty),
+                if (this._trackCellMap.has(itemTrackingProperty)) {
+                    const displayObjectId = this._trackCellMap.get(itemTrackingProperty),
                         compIndex = this._displayObjectIndexMapById[displayObjectId],
                         comp = components[compIndex],
                         compId = comp?.instance?.id;
@@ -174,7 +179,7 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
                             continue;
                         }
                     }
-                    this._trackMap.delete(itemTrackingProperty);
+                    this._trackCellMap.delete(itemTrackingProperty);
                 }
 
                 if (untrackedItems.length > 0) {
@@ -182,15 +187,15 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
                 }
             }
 
-            for (let i = 0, l = newTrackItems.length; i < l; i++) {
-                const cell = newTrackItems[i], itemTrackingProperty = (cell as any)[idPropName];
+            for (let j = 0, l1 = newTrackItems.length; j < l1; j++) {
+                const cell = newTrackItems[j], itemTrackingProperty = (cell as any)[idPropName];
                 if (untrackedItems.length > 0) {
                     const comp = untrackedItems.shift();
                     if (comp) {
                         comp.instance.item = cell;
                         comp.instance.show();
 
-                        this._trackMap.set(itemTrackingProperty, comp.instance.id);
+                        this._trackCellMap.set(itemTrackingProperty, comp.instance.id);
                     }
                 }
             }
@@ -201,7 +206,7 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
                     comp.instance.item = null;
                     comp.instance.hide();
 
-                    this._trackMap.delete(comp.instance.id);
+                    this._trackCellMap.delete(comp.instance.id);
                 }
             }
 
@@ -219,13 +224,16 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
         const propertyIdName = this._trackingPropertyName;
 
         if ((component as any)[propertyIdName] !== undefined) {
-            this._trackMap.delete(propertyIdName);
+            this._trackCellMap.delete(propertyIdName);
         }
     }
 
     dispose() {
-        if (this._trackMap) {
-            this._trackMap.clear();
+        if (this._trackRowMap) {
+            this._trackRowMap.clear();
+        }
+        if (this._trackCellMap) {
+            this._trackCellMap.clear();
         }
     }
 }
