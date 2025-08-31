@@ -60,7 +60,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
 
   private _service = inject(NgVirtualGridService);
 
-  private _pointerDetectservice = inject(PointerDetectService);
+  private _pointerDetectService = inject(PointerDetectService);
 
   @ViewChild('renderersContainer', { read: ViewContainerRef })
   private _gridContainerRef: ViewContainerRef | undefined;
@@ -325,7 +325,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
 
     this._service.gridId = this._id;
     this._service.initialize(this._trackBox);
-    this._pointerDetectservice.capture();
+    this._pointerDetectService.capture();
 
     this._initialized = signal<boolean>(false);
     this.$initialized = toObservable(this._initialized);
