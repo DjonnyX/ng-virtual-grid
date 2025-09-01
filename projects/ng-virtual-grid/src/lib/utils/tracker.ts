@@ -4,6 +4,7 @@ import { BaseVirtualGridItemComponent } from "../models/base-virtual-grid-item-c
 import { IRenderVirtualGridCollection } from "../models/render-collection.model";
 import { NgVirtualGridRowComponent } from "../components/ng-virtual-grid-row/ng-virtual-grid-row.component";
 import { CMap } from "./cacheMap";
+import { DIG_M_1, DIG_0, DIG_1 } from "../const";
 
 type TrackingPropertyId = string | number;
 
@@ -79,7 +80,7 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
         }
 
         const idPropName = this._trackingPropertyName, untrackedItems = [...components], newTrackItems = [];
-        for (let i = 0, l = items.length; i < l; i++) {
+        for (let i = DIG_0, l = items.length; i < l; i++) {
             const item = items[i], itemTrackingProperty = (item as any)[idPropName];
 
             if (this._trackRowMap.has(itemTrackingProperty)) {
@@ -91,25 +92,25 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
                     const indexByUntrackedItems = untrackedItems.findIndex(v => {
                         return v.instance.id === compId;
                     });
-                    if (indexByUntrackedItems > -1) {
+                    if (indexByUntrackedItems > DIG_M_1) {
                         comp.instance.item = item;
                         comp.instance.show();
 
-                        untrackedItems.splice(indexByUntrackedItems, 1);
+                        untrackedItems.splice(indexByUntrackedItems, DIG_1);
                         continue;
                     }
                 }
                 this._trackRowMap.delete(itemTrackingProperty);
             }
 
-            if (untrackedItems.length > 0) {
+            if (untrackedItems.length > DIG_0) {
                 newTrackItems.push(item);
             }
         }
 
-        for (let i = 0, l = newTrackItems.length; i < l; i++) {
+        for (let i = DIG_0, l = newTrackItems.length; i < l; i++) {
             const item = newTrackItems[i], itemTrackingProperty = (item as any)[idPropName];
-            if (untrackedItems.length > 0) {
+            if (untrackedItems.length > DIG_0) {
                 const comp = untrackedItems.shift();
                 if (comp) {
                     comp.instance.item = item;
@@ -120,8 +121,8 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
             }
         }
 
-        if (untrackedItems.length > 0) {
-            for (let i = 0, l = untrackedItems.length; i < l; i++) {
+        if (untrackedItems.length > DIG_0) {
+            for (let i = DIG_0, l = untrackedItems.length; i < l; i++) {
                 const comp = untrackedItems[i];
                 comp.instance.item = null;
                 comp.instance.hide();
@@ -136,9 +137,9 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
             return;
         }
         const itemsByRowId: { [rowId: Id]: IRenderVirtualGridCollection } = {};
-        for (let i = 0, l = items.length; i < l; i++) {
+        for (let i = DIG_0, l = items.length; i < l; i++) {
             const cells = items[i];
-            for (let j = 0, l1 = cells.length; j < l1; j++) {
+            for (let j = DIG_0, l1 = cells.length; j < l1; j++) {
                 const cell = cells[j], rowId = cell.rowId;
                 if (rowId === undefined) {
                     continue;
@@ -151,7 +152,7 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
         }
 
         const trackRowMap: { [id: Id]: number } = {}, idPropName = this._trackingPropertyName;
-        for (let i = 0, l = rowComponents.length; i < l; i++) {
+        for (let i = DIG_0, l = rowComponents.length; i < l; i++) {
             const rowComponent = rowComponents[i].instance as unknown as NgVirtualGridRowComponent, rowId = rowComponent.itemId;
             if (rowId === undefined) {
                 continue;
@@ -160,7 +161,7 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
             if (!rowItems) {
                 continue;
             }
-            for (let j = 0, l1 = rowItems.length; j < l1; j++) {
+            for (let j = DIG_0, l1 = rowItems.length; j < l1; j++) {
                 const cell = rowItems[j], itemTrackingProperty = (cell as any)[idPropName];
                 if (this._trackCellMap.has(itemTrackingProperty)) {
                     const displayObjectId = this._trackCellMap.get(itemTrackingProperty),
@@ -171,25 +172,25 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
                         const indexByUntrackedItems = untrackedItems.findIndex(v => {
                             return v.instance.id === compId;
                         });
-                        if (indexByUntrackedItems > -1) {
+                        if (indexByUntrackedItems > DIG_M_1) {
                             comp.instance.item = cell;
                             comp.instance.show();
 
-                            untrackedItems.splice(indexByUntrackedItems, 1);
+                            untrackedItems.splice(indexByUntrackedItems, DIG_1);
                             continue;
                         }
                     }
                     this._trackCellMap.delete(itemTrackingProperty);
                 }
 
-                if (untrackedItems.length > 0) {
+                if (untrackedItems.length > DIG_0) {
                     newTrackItems.push(cell);
                 }
             }
 
-            for (let j = 0, l1 = newTrackItems.length; j < l1; j++) {
+            for (let j = DIG_0, l1 = newTrackItems.length; j < l1; j++) {
                 const cell = newTrackItems[j], itemTrackingProperty = (cell as any)[idPropName];
-                if (untrackedItems.length > 0) {
+                if (untrackedItems.length > DIG_0) {
                     const comp = untrackedItems.shift();
                     if (comp) {
                         comp.instance.item = cell;
@@ -200,8 +201,8 @@ export class Tracker<C extends BaseVirtualGridItemComponent = any> {
                 }
             }
 
-            if (untrackedItems.length > 0) {
-                for (let j = 0, l1 = untrackedItems.length; j < l1; j++) {
+            if (untrackedItems.length > DIG_0) {
+                for (let j = DIG_0, l1 = untrackedItems.length; j < l1; j++) {
                     const comp = untrackedItems[j];
                     comp.instance.item = null;
                     comp.instance.hide();
