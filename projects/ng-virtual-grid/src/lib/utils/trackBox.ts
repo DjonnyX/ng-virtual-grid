@@ -323,7 +323,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
             if (value !== undefined) {
                 const cacheItem = this.get(rowId) || {};
                 if (value !== SIZE_AUTO) {
-                    this.set(rowId, { ...cacheItem, height: value } as any);
+                    this.set(rowId, { ...cacheItem, height: value, method: ItemDisplayMethods.UPDATE } as any);
                 }
             }
         }
@@ -353,7 +353,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                     const item = items[i], id = item.id;
                     if (val !== undefined) {
                         const cacheItem = this.get(id);
-                        this.set(id, { ...cacheItem || {}, width: val } as any);
+                        this.set(id, { ...cacheItem || {}, width: val, method: ItemDisplayMethods.UPDATE } as any);
                     }
                 }
             }
@@ -1293,7 +1293,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
     private _rowsCache: { [id: Id]: { [colId: Id]: number } } = {};
 
     getCacheByRowId(id: Id) {
-        return this._isRenderedMap.get(id) && this.has(id) ? this.get(id)?.height : SIZE_AUTO;
+        return this._isRenderedMap.get(id) && this._customRowsSizeMap.has(id) ? this._customRowsSizeMap.get(id) ?? SIZE_AUTO : SIZE_AUTO;
     }
 
     protected cacheElements(): void {
@@ -1322,7 +1322,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                 }
                 const bounds = component.instance.getBounds();
                 this._isRenderedMap.set(itemId, true);
-                this._map.set(itemId, { ...itemCache, ...bounds } as any);
+                this._map.set(itemId, { ...itemCache, height: bounds.height } as any);
                 if (rowId !== undefined) {
                     if (!rowDict.hasOwnProperty(rowId)) {
                         rowDict[rowId] = {};

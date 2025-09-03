@@ -11,19 +11,15 @@ import {
   BEHAVIOR_AUTO, BEHAVIOR_INSTANT,
   DEFAULT_ENABLED_BUFFER_OPTIMIZATION, DEFAULT_BUFFER_SIZE, DEFAULT_GRID_SIZE, DEFAULT_SNAP, HEIGHT_PROP_NAME, LEFT_PROP_NAME,
   MAX_SCROLL_TO_ITERATIONS, PX, SCROLL, SCROLL_END, TOP_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME,
-  DEFAULT_MAX_BUFFER_SIZE,
-  DEFAULT_ROW_SIZE,
-  DEFAULT_COLUMN_SIZE,
-  DEFAULT_RESIZE_ROWS_ENABLED,
-  DEFAULT_RESIZE_COLUMNS_ENABLED,
-  DEFAULT_MIN_ROW_SIZE,
-  DEFAULT_MIN_COLUMN_SIZE,
+  DEFAULT_MAX_BUFFER_SIZE, DEFAULT_ROW_SIZE, DEFAULT_COLUMN_SIZE, DEFAULT_RESIZE_ROWS_ENABLED,
+  DEFAULT_RESIZE_COLUMNS_ENABLED, DEFAULT_MIN_ROW_SIZE, DEFAULT_MIN_COLUMN_SIZE,
 } from './const';
 import { IColumnsSize, IRowsSize, IScrollEvent, IVirtualGridCollection, IVirtualGridColumnConfigMap, IVirtualGridRowConfigMap } from './models';
 import { Id, ISize } from './types';
+import { RowSize } from './types/row-size';
 import { IRenderVirtualGridCollection } from './models/render-collection.model';
 import { CellResizeMode, CellResizeModes } from './enums';
-import { ScrollEvent, toggleClassName } from './utils';
+import { ScrollEvent } from './utils';
 import { IGetItemPositionOptions, IUpdateCollectionOptions, TRACK_BOX_CHANGE_EVENT_NAME, TrackBox } from './utils/trackBox';
 import { BaseVirtualGridItemComponent } from './models/base-virtual-grid-item-component';
 import { Component$1 } from './models/component.model';
@@ -450,10 +446,10 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
         }
         if (width !== 0 && columnId !== undefined) {
           const data: IColumnsSize = { [columnId]: width }, items = this.items();
-          let rowData: { [id: Id]: number | 'auto' } = {};
+          let rowData: { [id: Id]: RowSize } = {};
           for (let i = 0, l = items.length; i < l; i++) {
             const row = items[i], rowId = row.id;
-            rowData[rowId] = this._trackBox.getCacheByRowId(rowId) ?? 'auto';
+            rowData[rowId] = this._trackBox.getCacheByRowId(rowId);
           }
           this._trackBox.updateRowsSize(rowData);
           this._trackBox.updateColumnSize(data, bounds.width);
