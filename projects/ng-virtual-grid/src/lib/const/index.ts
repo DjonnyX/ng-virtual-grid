@@ -48,7 +48,11 @@ export const VISIBILITY_HIDDEN = 'hidden';
 
 export const SIZE_100_PERSENT = '100%';
 
+export const SIZE_PERSENT = '%';
+
 export const SIZE_AUTO = 'auto';
+
+export const SIZE_FR = 'fr';
 
 export const POSITION_ABSOLUTE = 'absolute';
 
@@ -79,3 +83,8 @@ export const PX = 'px';
 export const SCROLL = 'scroll';
 
 export const SCROLL_END = 'scrollend';
+
+export const DIG_M_1 = -1,
+    DIG_0 = 0,
+    DIG_1 = 1,
+    DIG_2 = 2;

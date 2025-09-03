@@ -107,7 +107,7 @@ for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
     } else if (j === 0 || j === l1 - 1) {
       value = String(i);
     } else {
-      value = generateText();
+      value = `${id} ${generateText()}`;
     }
     columns.push({ id: id, value, isBorderStart, isBorderEnd });
   }
@@ -154,7 +154,7 @@ for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
     } else if (j === 0 || j === l1 - 1) {
       value = String(i);
     } else {
-      value = generateText();
+      value = `${id} ${generateText()}`;
     }
     columns.push({ id: id, value, isBorderStart, isBorderEnd });
   }
@@ -205,9 +205,7 @@ const getDynamicColumnsSize = () => {
 export class AppComponent {
   readonly logo = LOGO;
 
-  protected _listContainerRef = viewChild('virtualList', { read: NgVirtualGridComponent });
-
-  protected _dynamicListContainerRef = viewChild('dynamicList', { read: NgVirtualGridComponent });
+  protected _gridContainerRef = viewChild('grid', { read: NgVirtualGridComponent });
 
   groupItems = GROUP_ITEMS;
   groupItemsStickyMap = GROUP_ITEMS_STICKY_MAP;
@@ -232,25 +230,10 @@ export class AppComponent {
 
   itemId: Id = this._minId;
 
-  private _minDlId: Id = this.groupDynamicItems.length > 0 ? this.groupDynamicItems[0].id : 0;
-  get minDlId() { return this._minDlId; };
-
-  private _maxDlId: Id = this.groupDynamicItems.length > 0 ? this.groupDynamicItems[this.groupDynamicItems.length - 1].id : 0;
-  get maxDlId() { return this._maxDlId; };
-
-  dlItemId: Id = this._minDlId;
-
   onButtonScrollToIdClickHandler = (e: Event) => {
-    const list = this._listContainerRef();
-    if (list && this.itemId !== undefined) {
-      list.scrollTo(this.itemId, 'smooth');
-    }
-  }
-
-  onButtonScrollDLToIdClickHandler = (e: Event) => {
-    const list = this._dynamicListContainerRef();
-    if (list && this.dlItemId !== undefined) {
-      list.scrollTo(this.dlItemId, 'instant');
+    const grid = this._gridContainerRef();
+    if (grid && this.itemId !== undefined) {
+      grid.scrollTo(this.itemId, 'instant');
     }
   }
 

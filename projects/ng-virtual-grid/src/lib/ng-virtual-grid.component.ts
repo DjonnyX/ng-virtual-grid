@@ -665,79 +665,86 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   }
 
   private scrollToExecutor(id: Id, behavior: ScrollBehavior, iteration: number = 0, isLastIteration = false) {
-    // const items = this.items();
-    // if (!items || !items.length) {
-    //   return;
-    // }
+    const items = this.items();
+    if (!items || !items.length) {
+      return;
+    }
 
-    // const container = this._container(), columnSize = this.columnSize();
-    // if (container) {
-    //   this.clearScrollToRepeatExecutionTimeout();
+    const container = this._container(), columnSize = this.columnSize();
+    if (container) {
+      this.clearScrollToRepeatExecutionTimeout();
 
-    //     if (container) {
-    //       container.nativeElement.removeEventListener(SCROLL, this._onScrollHandler);
-    //     }
+      if (container) {
+        container.nativeElement.removeEventListener(SCROLL, this._onScrollHandler);
+      }
 
-    //     const { width, height } = this._bounds() || { width: DEFAULT_GRID_SIZE, height: DEFAULT_GRID_SIZE },
-    //       stickyMap = this.stickyMap(), items = this.items(), deltaX = this._trackBox.deltaX,
-    //       deltaY = this._trackBox.deltaY,
-    //       opts: IGetItemPositionOptions<any, IVirtualGridCollection> = {
-    //         bounds: { width, height }, collection: items, columnSize,
-    //         bufferSize: this.bufferSize(), maxBufferSize: this.maxBufferSize(),
-    //         scrollSizeX: container.nativeElement.scrollLeft + deltaX,
-    //         scrollSizeY: container.nativeElement.scrollTop + deltaY,
-    //         snap: this.snap(), fromItemId: id, enabledBufferOptimization: this.enabledBufferOptimization(),
-    //       },
-    //       scrollSize = this._trackBox.getItemPosition(id, stickyMap, opts),
-    //       params: ScrollToOptions = { [isVertical ? TOP_PROP_NAME : LEFT_PROP_NAME]: scrollSize, behavior };
+      const { width, height } = this._bounds() || { width: DEFAULT_GRID_SIZE, height: DEFAULT_GRID_SIZE },
+        items = this.items(), deltaX = this._trackBox.deltaX,
+        cellConfigRowsMap = this.cellConfigRowsMap(),
+        cellConfigColumnsMap = this.cellConfigColumnsMap(),
+        deltaY = this._trackBox.deltaY,
+        opts: IGetItemPositionOptions<any, IVirtualGridCollection> = {
+          bounds: { width, height }, itemSize: columnSize, rowSize: this.rowSize(),
+          bufferSize: this.bufferSize(), maxBufferSize: this.maxBufferSize(),
+          scrollSizeX: container.nativeElement.scrollLeft + deltaX,
+          scrollSizeY: container.nativeElement.scrollTop + deltaY,
+          snap: this.snap(), fromItemId: id, enabledBufferOptimization: this.enabledBufferOptimization(),
+        },
+        { x: scrollX, y: scrollY } = this._trackBox.getItemPosition(id, items, cellConfigRowsMap, cellConfigColumnsMap, opts),
+        params: ScrollToOptions = { [LEFT_PROP_NAME]: scrollX, [TOP_PROP_NAME]: scrollY, behavior };
 
-    //     if (scrollSize === -1) {
-    //       container.nativeElement.addEventListener(SCROLL, this._onScrollHandler);
-    //       return;
-    //     }
+      if (Number.isNaN(scrollX) || scrollX === -1 || Number.isNaN(scrollY) || scrollY === -1) {
+        container.nativeElement.addEventListener(SCROLL, this._onScrollHandler);
+        return;
+      }
 
-    //     this._trackBox.clearDelta();
+      this._trackBox.clearDelta();
 
-    //     if (container) {
-    //       const { displayItems, totalSize } = this._trackBox.updateCollection(items, stickyMap, {
-    //         ...opts, scrollSize, fromItemId: isLastIteration ? undefined : id,
-    //       }), deltaX = this._trackBox.deltaX, deltaY = this._trackBox.deltaY;
+      if (container) {
+        const { displayItems, totalSize, totalHeight, rowDisplayItems, columnsLength } = this._trackBox.updateCollection(items,
+          cellConfigRowsMap, cellConfigColumnsMap, {
+          ...opts, scrollSizeX: scrollX, scrollSizeY: scrollY, fromItemId: isLastIteration ? undefined : id,
+        }), deltaX = this._trackBox.deltaX, deltaY = this._trackBox.deltaY;
 
-    //       this._trackBox.clearDelta();
+        this._trackBox.clearDelta();
 
-    //       let actualScrollSizeX = scrollSizeX + deltaX, actualScrollSizeY = scrollSizeY + deltaY;
+        let actualScrollSizeX = scrollX + deltaX, actualScrollSizeY = scrollY + deltaY;
 
-    //       this.resetBoundsSize(isVertical, totalSize);
+        this.resetBoundsSize(false, totalSize);
+        this.resetBoundsSize(true, totalHeight);
 
-    //       this.createDisplayComponentsIfNeed(displayItems);
+        this.createDisplayComponentsIfNeed(displayItems, rowDisplayItems, columnsLength);
 
-    //       this.tracking();
+        this.tracking();
 
-    //       const _scrollSize = this._trackBox.getItemPosition(id, stickyMap, { ...opts, scrollSize: actualScrollSize, fromItemId: id });
+        const { x: _scrollX, y: _scrollY } = this._trackBox.getItemPosition(id, items, cellConfigRowsMap, cellConfigColumnsMap,
+          { ...opts, scrollSizeX: actualScrollSizeX, scrollSizeY: actualScrollSizeY, fromItemId: id });
 
-    //       if (_scrollSize === -1) {
-    //         container.nativeElement.addEventListener(SCROLL, this._onScrollHandler);
-    //         return;
-    //       }
+        if (Number.isNaN(_scrollX) || _scrollX === -1 || Number.isNaN(_scrollY) || _scrollY === -1) {
+          container.nativeElement.addEventListener(SCROLL, this._onScrollHandler);
+          return;
+        }
 
-    //       const notChanged = actualScrollSize === _scrollSize
+        const notChanged = actualScrollSizeX === _scrollX && actualScrollSizeY === _scrollY;
 
-    //       if (!notChanged || iteration < MAX_SCROLL_TO_ITERATIONS) {
-    //         this.clearScrollToRepeatExecutionTimeout();
-    //         this._scrollToRepeatExecutionTimeout = setTimeout(() => {
-    //           this.scrollToExecutor(id, BEHAVIOR_INSTANT, iteration + 1, notChanged);
-    //         }) as unknown as number;
-    //       } else {
-    //         this._scrollSize.set(actualScrollSize);
+        if (!notChanged || iteration < MAX_SCROLL_TO_ITERATIONS) {
+          this.clearScrollToRepeatExecutionTimeout();
+          this._scrollToRepeatExecutionTimeout = setTimeout(() => {
+            this.scrollToExecutor(id, BEHAVIOR_INSTANT, iteration + 1, notChanged);
+          }) as unknown as number;
+        } else {
+          this._scrollSizeX.set(actualScrollSizeX);
+          this._scrollSizeY.set(actualScrollSizeY);
 
-    //         container.nativeElement.addEventListener(SCROLL, this._onScrollHandler);
-    //       }
-    //     }
+          container.nativeElement.addEventListener(SCROLL, this._onScrollHandler);
+        }
+      }
 
-    //     container.nativeElement.scrollTo(params);
+      container.nativeElement.scrollTo(params);
 
-    //     this._scrollSize.set(scrollSize);
-    // }
+      this._scrollSizeX.set(scrollX);
+      this._scrollSizeY.set(scrollY);
+    }
   }
 
   /**

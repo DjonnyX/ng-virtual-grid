@@ -1,4 +1,5 @@
 import { Id } from "../types";
+import { RowSize } from "../types/row-size";
 
 /**
  * Row size interface
@@ -7,5 +8,5 @@ import { Id } from "../types";
  * @email djonnyx@gmail.com
  */
 export interface IRowsSize {
-    [id: Id]: number | 'auto' | undefined;
+    [id: Id]: RowSize;
 }
