@@ -74,7 +74,7 @@ export interface IRecalculateMetricsOptions<I extends { id: Id }, C extends Arra
 }
 
 export interface IGetItemPositionOptions<I extends { id: Id }, C extends Array<I>>
-    extends Omit<IRecalculateMetricsOptions<I, C>, 'collection' | 'previousTotalSize' | 'crudDetected' | 'deletedItemsMap' | 'isVertical'> {
+    extends Omit<IRecalculateMetricsOptions<I, C>, 'collection' | 'previousTotalSize' | 'crudDetected' | 'deletedItemsMap' | 'isVertical' | 'scrollSize'> {
     scrollSizeX: number;
     scrollSizeY: number;
 }
