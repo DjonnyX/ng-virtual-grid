@@ -42,6 +42,12 @@ export enum CaptureSide {
   BOTTOM,
 };
 
+const CURSOR_COL_RESIZE = 'col-resize',
+  CURSOR_ROW_RESIZE = 'row-resize',
+  CURSOR_INITIAL = 'initial',
+  USER_SELECT_INITIAL = 'initial',
+  USER_SELECT_NONE = 'none';
+
 /**
  * Resize bounds directive
  * @link https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/directives/reasize-bounds.directive.ts
@@ -89,13 +95,13 @@ export class ReasizeBoundsDirective {
         const resizeColumnsEnabled = this.resizeColumnsEnabled(), resizeRowsEnabled = this.resizeRowsEnabled(),
           { x, y, width, height } = element.getBoundingClientRect(),
           cx = event.clientX - x, cy = event.clientY - y;
-        if (resizeColumnsEnabled && cx >= width - threshold && cx <= width) {
+        if (resizeColumnsEnabled && cx >= (width - threshold) && cx <= width) {
           this._pointerDetectService.target = event.target;
           _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
           _$capture.next(CaptureSide.RIGHT);
           _$down.next(true);
-          element.style.cursor = 'col-resize';
-          element.style.userSelect = 'none';
+          element.style.cursor = CURSOR_COL_RESIZE;
+          element.style.userSelect = USER_SELECT_NONE;
           return;
         } else if (this._service.isAjacentResizeCellMode && resizeColumnsEnabled && cx >= 0 && cx <= threshold) {
           if (this._service.isAjacentResizeCellMode) {
@@ -107,24 +113,24 @@ export class ReasizeBoundsDirective {
               _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
               _$capture.next(CaptureSide.LEFT);
               _$down.next(true);
-              element.style.cursor = 'col-resize';
-              element.style.userSelect = 'none';
+              element.style.cursor = CURSOR_COL_RESIZE;
+              element.style.userSelect = USER_SELECT_NONE;
             }
           } else {
             _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
             _$capture.next(CaptureSide.LEFT);
             _$down.next(true);
-            element.style.cursor = 'col-resize';
-            element.style.userSelect = 'none';
+            element.style.cursor = CURSOR_COL_RESIZE;
+            element.style.userSelect = USER_SELECT_NONE;
           }
           return;
-        } else if (resizeRowsEnabled && cy >= height - threshold && cy <= height) {
+        } else if (resizeRowsEnabled && cy >= (height - threshold) && cy <= height) {
           this._pointerDetectService.target = event.target;
           _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
           _$capture.next(CaptureSide.BOTTOM);
           _$down.next(true);
-          element.style.cursor = 'row-resize';
-          element.style.userSelect = 'none';
+          element.style.cursor = CURSOR_ROW_RESIZE;
+          element.style.userSelect = USER_SELECT_NONE;
           return;
         } else if (this._service.isAjacentResizeCellMode && resizeRowsEnabled && cy >= 0 && cy <= threshold) {
           if (this._service.isAjacentResizeCellMode) {
@@ -132,24 +138,24 @@ export class ReasizeBoundsDirective {
               adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
             this._pointerDetectService.target = adjacentTarget;
             if (adjacentTarget) {
-              const adjacentElement = adjacentTarget as HTMLElement, { x, y, width, height } = adjacentElement.getBoundingClientRect();
+              const adjacentElement = adjacentTarget as HTMLElement, { width, height } = adjacentElement.getBoundingClientRect();
               _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
               _$capture.next(CaptureSide.TOP);
               _$down.next(true);
-              element.style.cursor = 'row-resize';
-              element.style.userSelect = 'none';
+              element.style.cursor = CURSOR_ROW_RESIZE;
+              element.style.userSelect = USER_SELECT_NONE;
             }
           } else {
             _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
             _$capture.next(CaptureSide.TOP);
             _$down.next(true);
-            element.style.cursor = 'row-resize';
-            element.style.userSelect = 'none';
+            element.style.cursor = CURSOR_ROW_RESIZE;
+            element.style.userSelect = USER_SELECT_NONE;
           }
           return;
         }
-        element.style.cursor = 'initial';
-        element.style.userSelect = 'initial';
+        element.style.cursor = CURSOR_INITIAL;
+        element.style.userSelect = USER_SELECT_INITIAL;
         this._pointerDetectService.target = null;
         _$capture.next(CaptureSide.NONE);
       }),
@@ -170,25 +176,25 @@ export class ReasizeBoundsDirective {
       tap(({ resizeRowsEnabled, resizeColumnsEnabled, event }) => {
         const { x, y, width, height } = element.getBoundingClientRect(),
           cx = event.clientX - x, cy = event.clientY - y;
-        if (resizeColumnsEnabled && cx >= width - threshold && cx <= width) {
-          element.style.cursor = 'col-resize';
-          element.style.userSelect = 'none';
+        if (resizeColumnsEnabled && cx >= (width - threshold) && cx <= width) {
+          element.style.cursor = CURSOR_COL_RESIZE;
+          element.style.userSelect = USER_SELECT_NONE;
           return;
         } else if (this._service.isAjacentResizeCellMode && resizeColumnsEnabled && cx >= 0 && cx <= threshold) {
-          element.style.cursor = 'col-resize';
-          element.style.userSelect = 'none';
+          element.style.cursor = CURSOR_COL_RESIZE;
+          element.style.userSelect = USER_SELECT_NONE;
           return;
-        } else if (resizeRowsEnabled && cy >= height - threshold && cy <= height) {
-          element.style.cursor = 'row-resize';
-          element.style.userSelect = 'none';
+        } else if (resizeRowsEnabled && cy >= (height - threshold) && cy <= height) {
+          element.style.cursor = CURSOR_ROW_RESIZE;
+          element.style.userSelect = USER_SELECT_NONE;
           return;
         } else if (this._service.isAjacentResizeCellMode && resizeRowsEnabled && cy >= 0 && cy <= threshold) {
-          element.style.cursor = 'row-resize';
-          element.style.userSelect = 'none';
+          element.style.cursor = CURSOR_ROW_RESIZE;
+          element.style.userSelect = USER_SELECT_NONE;
           return;
         }
-        element.style.cursor = 'initial';
-        element.style.userSelect = 'initial';
+        element.style.cursor = CURSOR_INITIAL;
+        element.style.userSelect = USER_SELECT_INITIAL;
       }),
     ).subscribe();
 

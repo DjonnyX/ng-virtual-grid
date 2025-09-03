@@ -639,7 +639,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
             const displayItems = this.generateDisplayCollection(columnsCollection, cellConfigColumnsMap, { ...metrics, rowId }, {
                 prevRowId,
                 rowDisplayObject: item,
-                rowResizable: cellConfigRowsMap[i]?.resizable,
+                rowResizable: cellConfigRowsMap[rowId]?.resizable,
             });
 
             columnsLength = Math.max(displayItems.length, columnsLength);
