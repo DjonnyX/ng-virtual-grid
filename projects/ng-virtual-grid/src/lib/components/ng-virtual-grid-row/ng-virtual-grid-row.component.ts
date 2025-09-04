@@ -6,8 +6,8 @@ import {
 import { IRenderVirtualGridItem } from '../../models/render-item.model';
 import { ISize } from '../../types';
 import {
-  DEFAULT_ZINDEX, HIDDEN_ZINDEX, POSITION_ABSOLUTE, POSITION_STICKY, PX, SIZE_100_PERSENT, SIZE_AUTO,
-  TRANSLATE_3D, VISIBILITY_HIDDEN, VISIBILITY_VISIBLE, ZEROS_TRANSLATE_3D,
+  DEFAULT_ZINDEX, HIDDEN_ZINDEX, POSITION_ABSOLUTE, POSITION_STICKY, PX, SIZE_100_PERSENT, SIZE_AUTO, TRANSLATE_3D, UNSET_VALUE,
+  VISIBILITY_HIDDEN, VISIBILITY_VISIBLE, ZEROS_TRANSLATE_3D,
 } from '../../const';
 import { BaseVirtualGridItemComponent } from '../../models/base-virtual-grid-item-component';
 import { Component$1 } from '../../models/component.model';
@@ -157,11 +157,11 @@ export class NgVirtualGridRowComponent extends BaseVirtualGridItemComponent {
         const rowSizeCache = this.service.getRowSizeById(data.id) ?? data.measures.height;
         if (this._data?.config.customSize) {
           liElement.style.height = `${rowSizeCache}${PX}`;
-          liElement.style.maxHeight = `${rowSizeCache}${PX}`;
-          liElement.style.minHeight = 'unset';
+          liElement.style.maxHeight = `${this.service.maxRowSize}${PX}`;
+          liElement.style.minHeight = UNSET_VALUE;
         } else {
           liElement.style.minHeight = `${rowSizeCache}${PX}`;
-          liElement.style.maxHeight = 'unset';
+          liElement.style.maxHeight = `${this.service.maxRowSize}${PX}`;
           liElement.style.height = SIZE_AUTO;
         }
       }

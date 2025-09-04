@@ -10,11 +10,14 @@ import { NgVirtualGridItemComponent } from './components/ng-virtual-grid-item/ng
 import {
   BEHAVIOR_AUTO, BEHAVIOR_INSTANT,
   DEFAULT_ENABLED_BUFFER_OPTIMIZATION, DEFAULT_BUFFER_SIZE, DEFAULT_GRID_SIZE, DEFAULT_SNAP, HEIGHT_PROP_NAME, LEFT_PROP_NAME,
-  MAX_SCROLL_TO_ITERATIONS, PX, SCROLL, SCROLL_END, TOP_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME,
-  DEFAULT_MAX_BUFFER_SIZE, DEFAULT_ROW_SIZE, DEFAULT_COLUMN_SIZE, DEFAULT_RESIZE_ROWS_ENABLED,
-  DEFAULT_RESIZE_COLUMNS_ENABLED, DEFAULT_MIN_ROW_SIZE, DEFAULT_MIN_COLUMN_SIZE,
+  MAX_SCROLL_TO_ITERATIONS, PX, SCROLL, SCROLL_END, TOP_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME, DEFAULT_MAX_BUFFER_SIZE,
+  DEFAULT_ROW_SIZE, DEFAULT_COLUMN_SIZE, DEFAULT_RESIZE_ROWS_ENABLED, DEFAULT_RESIZE_COLUMNS_ENABLED, DEFAULT_MIN_ROW_SIZE,
+  DEFAULT_MIN_COLUMN_SIZE, DEFAULT_MAX_ROW_SIZE, DEFAULT_MAX_COLUMN_SIZE,
 } from './const';
-import { IColumnsSize, IRenderVirtualGridItem, IRowsSize, IScrollEvent, IVirtualGridCollection, IVirtualGridColumnConfigMap, IVirtualGridRowConfigMap } from './models';
+import {
+  IColumnsSize, IRenderVirtualGridItem, IRowsSize, IScrollEvent, IVirtualGridCollection, IVirtualGridColumnConfigMap,
+  IVirtualGridRowConfigMap,
+} from './models';
 import { Id, ISize } from './types';
 import { RowSize } from './types/row-size';
 import { IRenderVirtualGridCollection } from './models/render-collection.model';
@@ -170,6 +173,21 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
    */
   minColumnSize = input<number>(DEFAULT_MIN_COLUMN_SIZE, { ...this._minColumnSizeOptions });
 
+  private _maxColumnSizeOptions = {
+    transform: (v: number | undefined) => {
+      if (v === undefined) {
+        return DEFAULT_MAX_COLUMN_SIZE;
+      }
+      const val = Number(v);
+      return Number.isNaN(val) || val <= 0 ? DEFAULT_MAX_COLUMN_SIZE : val;
+    },
+  } as any;
+
+  /**
+   * Maximum column size. Default value is 1200.
+   */
+  maxColumnSize = input<number>(DEFAULT_MAX_COLUMN_SIZE, { ...this._maxColumnSizeOptions });
+
   private _rowSizeOptions = {
     transform: (v: number | undefined) => {
       if (v === undefined) {
@@ -199,6 +217,21 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
    * Minimum row size. Default value is 12.
    */
   minRowSize = input<number>(DEFAULT_MIN_ROW_SIZE, { ...this._minRowSizeOptions });
+
+  private _maxRowSizeOptions = {
+    transform: (v: number | undefined) => {
+      if (v === undefined) {
+        return DEFAULT_MAX_ROW_SIZE;
+      }
+      const val = Number(v);
+      return Number.isNaN(val) || val <= 0 ? DEFAULT_MAX_ROW_SIZE : val;
+    },
+  } as any;
+
+  /**
+   * Maximum row size. Default value is 1200.
+   */
+  maxRowSize = input<number>(DEFAULT_MAX_ROW_SIZE, { ...this._maxRowSizeOptions });
 
   /**
    * Cell resize mode. Default value is "self".
@@ -344,7 +377,9 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       $resizeRowsEnabled = toObservable(this.resizeRowsEnabled),
       $resizeColumnsEnabled = toObservable(this.resizeColumnsEnabled),
       $minColumnSize = toObservable(this.minColumnSize),
+      $maxColumnSize = toObservable(this.maxColumnSize),
       $minRowSize = toObservable(this.minRowSize),
+      $maxRowSize = toObservable(this.maxRowSize),
       $cellResizeMode = toObservable(this.cellResizeMode);
 
     $cellResizeMode.pipe(
@@ -363,11 +398,27 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       }),
     ).subscribe();
 
+    $maxColumnSize.pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      tap(v => {
+        this._service.maxColumnSize = this._trackBox.maxColumnSize = v;
+      }),
+    ).subscribe();
+
     $minRowSize.pipe(
       takeUntilDestroyed(),
       distinctUntilChanged(),
       tap(v => {
         this._service.minRowSize = this._trackBox.minRowSize = v;
+      }),
+    ).subscribe();
+
+    $maxRowSize.pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      tap(v => {
+        this._service.maxRowSize = this._trackBox.maxRowSize = v;
       }),
     ).subscribe();
 

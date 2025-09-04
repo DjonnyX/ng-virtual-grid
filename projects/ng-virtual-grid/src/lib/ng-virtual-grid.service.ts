@@ -2,7 +2,10 @@ import { ElementRef, Injectable, signal } from '@angular/core';
 import { Id } from './types';
 import { Subject } from 'rxjs';
 import { ICellResizeEvent } from './models/cell-resize-event.model';
-import { DEFAULT_MIN_COLUMN_SIZE, DEFAULT_MIN_ROW_SIZE, DEFAULT_RESIZE_COLUMNS_ENABLED, DEFAULT_RESIZE_ROWS_ENABLED } from './const';
+import {
+  DEFAULT_MAX_COLUMN_SIZE, DEFAULT_MAX_ROW_SIZE, DEFAULT_MIN_COLUMN_SIZE, DEFAULT_MIN_ROW_SIZE, DEFAULT_RESIZE_COLUMNS_ENABLED,
+  DEFAULT_RESIZE_ROWS_ENABLED,
+} from './const';
 import { TrackBox } from './utils/trackBox';
 import { IRenderVirtualGridItem } from './models';
 
@@ -44,7 +47,11 @@ export class NgVirtualGridService {
 
   minColumnSize = DEFAULT_MIN_COLUMN_SIZE;
 
+  maxColumnSize = DEFAULT_MAX_COLUMN_SIZE;
+
   minRowSize = DEFAULT_MIN_ROW_SIZE;
+
+  maxRowSize = DEFAULT_MAX_ROW_SIZE;
 
   isAjacentResizeCellMode: boolean = false;
 

@@ -2,9 +2,13 @@ export const DEFAULT_COLUMN_SIZE = 24;
 
 export const DEFAULT_MIN_COLUMN_SIZE = 12;
 
+export const DEFAULT_MAX_COLUMN_SIZE = 1200;
+
 export const DEFAULT_ROW_SIZE = 24;
 
 export const DEFAULT_MIN_ROW_SIZE = 12;
+
+export const DEFAULT_MAX_ROW_SIZE = 1200;
 
 export const DEFAULT_BUFFER_SIZE = 2;
 
@@ -53,6 +57,8 @@ export const SIZE_PERSENT = '%';
 export const SIZE_AUTO = 'auto';
 
 export const SIZE_FR = 'fr';
+
+export const UNSET_VALUE = 'unset';
 
 export const POSITION_ABSOLUTE = 'absolute';
 

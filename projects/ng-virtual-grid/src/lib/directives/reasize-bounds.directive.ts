@@ -207,12 +207,12 @@ export class ReasizeBoundsDirective {
         let w = 0, h = 0;
         if (resizeColumnsEnabled) {
           if ((capture === CaptureSide.LEFT || capture === CaptureSide.RIGHT)) {
-            w = width > this._service.minColumnSize ? width : this._service.minColumnSize;
+            w = width > this._service.minColumnSize ? width > this._service.maxColumnSize ? this._service.maxColumnSize : width : this._service.minColumnSize;
           }
         }
         if (resizeRowsEnabled) {
           if (capture === CaptureSide.TOP || capture === CaptureSide.BOTTOM) {
-            h = height > this._service.minRowSize ? height : this._service.minRowSize;
+            h = height > this._service.minRowSize ? height > this._service.maxRowSize ? this._service.maxRowSize : height : this._service.minRowSize;
           }
         }
         const event = new ResizeEvent(w, h, capture);
