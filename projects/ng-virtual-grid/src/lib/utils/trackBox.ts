@@ -144,6 +144,10 @@ const isPercentageColumn = (value: ColumnSize) => {
     return PERCENTAGE_COLUMN_PATTERN.test(value as string);
 };
 
+const parseFlexColumnValue = (value: ColumnSize) => {
+    return parseFloat(String(value).replace(SIZE_FR, CHAR_NONE));
+}
+
 const parseColumnValue = (value: ColumnSize, boundsWidth: number): number => {
     const isFlexible = isFlexibleColumn(value), isPercentage = isPercentageColumn(value);
     if (isFlexible || isPercentage) {
@@ -152,21 +156,6 @@ const parseColumnValue = (value: ColumnSize, boundsWidth: number): number => {
     }
     return value as number;
 }
-
-const getColumnsSizeWithExclude = (v: IColumnsSize, boundsWidth: number, minColumnSize: number, maxColumnSize: number, excludeIds: Array<Id>) => {
-    let result = DIG_0;
-    for (let columnId in v) {
-        if (excludeIds.includes(columnId)) {
-            continue;
-        }
-        const value = v[columnId],
-            // isFlexible = isFlexibleColumn(value),
-            // isPercentage = isFlexibleColumn(value),
-            val = parseColumnValue(value, boundsWidth);
-        result += normalizeValue(val, minColumnSize, maxColumnSize);
-    }
-    return result;
-};
 
 const normalizeValue = (value: number, min: number, max: number) => {
     if (value < min) {
@@ -393,18 +382,48 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
         if (!v) {
             return;
         }
-        const bw = boundsWidth;
+        const bw = boundsWidth, flexibleColumns: IColumnsSize = {};
+        let remainingWidth = bw, flexPartLength = 0;
         for (let columnId in v) {
-            const value = v[columnId], items = this._columnsMap.get(columnId);
+            const value = v[columnId], isFlexible = isFlexibleColumn(value);
+            if (isFlexible) {
+                flexibleColumns[columnId] = value;
+                flexPartLength += parseFlexColumnValue(value);
+                continue;
+            }
+
+            const items = this._columnsMap.get(columnId);
             this._columnsStructureMap.set(columnId, value !== undefined);
-            const isFlexible = isFlexibleColumn(value), /*isPercentage = isFlexibleColumn(value),*/
-                val = parseColumnValue(value, bw) - (isFlexible ? getColumnsSizeWithExclude(v, bw, this._minColumnSize, this._maxColumnSize,
-                    [columnId]) : DIG_0);
+
+            const val = parseColumnValue(value, bw);
             if (value === undefined) {
                 this._customColumnsSizeMap.delete(columnId);
             } else {
                 this._customColumnsSizeMap.set(columnId, val);
             }
+            remainingWidth -= val;
+            if (Array.isArray(items)) {
+                for (let i = DIG_0, l = items.length; i < l; i++) {
+                    const item = items[i], id = item.id;
+                    if (val !== undefined) {
+                        const cacheItem = this.get(id);
+                        this.storeCache(id, { ...cacheItem || {}, width: val, method: ItemDisplayMethods.UPDATE } as ICacheItem, true);
+                    }
+                }
+            }
+        }
+        const flexColumnSize = remainingWidth / flexPartLength;
+        for (let columnId in flexibleColumns) {
+            const value = flexibleColumns[columnId], items = this._columnsMap.get(columnId);
+            this._columnsStructureMap.set(columnId, value !== undefined);
+
+            const flexValue = parseColumnValue(value, flexColumnSize), val = normalizeValue(flexValue, this._minColumnSize, this._maxColumnSize);
+            if (value === undefined) {
+                this._customColumnsSizeMap.delete(columnId);
+            } else {
+                this._customColumnsSizeMap.set(columnId, val);
+            }
+
             if (Array.isArray(items)) {
                 for (let i = DIG_0, l = items.length; i < l; i++) {
                     const item = items[i], id = item.id;

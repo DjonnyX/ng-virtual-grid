@@ -135,7 +135,7 @@ for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
       GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP1[rowId].resizable = false;
     }
   }
-  for (let j = 0, l1 = 3; j < l1; j++) {
+  for (let j = 0, l1 = 5; j < l1; j++) {
     index2++;
     const id = index2;
     GROUP_DYNAMIC_ITEMS_COLUMN_CONFIG_MAP1[j] = { resizable: false };
@@ -144,6 +144,12 @@ for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
     }
     if (j === 1) {
       GROUP_DYNAMIC_COLUMNS_SIZE_MAP1[j] = '1fr';
+    } else 
+    if (j === 2) {
+      GROUP_DYNAMIC_COLUMNS_SIZE_MAP1[j] = '2fr';
+    } else 
+    if (j === 3) {
+      GROUP_DYNAMIC_COLUMNS_SIZE_MAP1[j] = '30%';
     }
     let value: string, isBorderStart: boolean = false, isBorderEnd: boolean = false;
     if ((i === 0 && j === 0) || (i === 0 && j === l1 - 1)) {
