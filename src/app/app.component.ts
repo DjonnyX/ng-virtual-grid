@@ -1,9 +1,10 @@
 import { Component, viewChild, ViewEncapsulation } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { NgVirtualGridComponent } from '../../projects/ng-virtual-grid/src/public-api';
+import {
+  NgVirtualGridComponent, IColumnsSize, IRowsSize, IVirtualGridCollection, IVirtualGridColumnCollection, IVirtualGridColumnConfigMap,
+  IVirtualGridRowConfigMap, IRenderVirtualGridItem, Id, ISize,
+} from '../../projects/ng-virtual-grid/src/public-api';
 import { LOGO } from './const';
-import { IColumnsSize, IRowsSize, IVirtualGridCollection, IVirtualGridColumnCollection, IVirtualGridColumnConfigMap, IVirtualGridRowConfigMap, VirtualGridRow } from '../../projects/ng-virtual-grid/src/lib/models';
-import { Id } from '../../projects/ng-virtual-grid/src/lib/types';
 import { PersistentStore } from './utils';
 
 const ROWS = 1000, COLUMNS = 100, DYNAMIC_ROWS = 2000, DYNAMIC_COLUMNS = 50;
@@ -237,8 +238,10 @@ export class AppComponent {
     }
   }
 
-  onItemClick(data: VirtualGridRow) {
-    // console.info(`Click: Item ${data['name']} (ID: ${data.id})`);
+  onItemClick(item: IRenderVirtualGridItem<IColumnData> | undefined) {
+    if (item) {
+      console.info(`Click: (ID: ${item.data.id}) Item ${item.data.value}`);
+    }
   }
 
   onRowsSizeChangedHandler(data: IRowsSize) {
@@ -261,5 +264,9 @@ export class AppComponent {
     }
 
     PersistentStore.set('columns', data);
+  }
+
+  onViewportChangeHandler(size: ISize) {
+    console.info(`Viewport changed: ${JSON.stringify(size)}`);
   }
 }

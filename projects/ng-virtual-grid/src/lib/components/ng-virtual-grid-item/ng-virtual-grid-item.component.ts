@@ -202,6 +202,10 @@ export class NgVirtualGridItemComponent extends BaseVirtualGridItemComponent {
       );
     }
   }
+
+  onClickHandler() {
+    this.service.itemClick(this._data);
+  }
 }
 
 export const TNgVirtualGridItemComponent = NgVirtualGridItemComponent satisfies Component$1<BaseVirtualGridItemComponent>;

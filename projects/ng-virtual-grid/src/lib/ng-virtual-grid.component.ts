@@ -14,7 +14,7 @@ import {
   DEFAULT_MAX_BUFFER_SIZE, DEFAULT_ROW_SIZE, DEFAULT_COLUMN_SIZE, DEFAULT_RESIZE_ROWS_ENABLED,
   DEFAULT_RESIZE_COLUMNS_ENABLED, DEFAULT_MIN_ROW_SIZE, DEFAULT_MIN_COLUMN_SIZE,
 } from './const';
-import { IColumnsSize, IRowsSize, IScrollEvent, IVirtualGridCollection, IVirtualGridColumnConfigMap, IVirtualGridRowConfigMap } from './models';
+import { IColumnsSize, IRenderVirtualGridItem, IRowsSize, IScrollEvent, IVirtualGridCollection, IVirtualGridColumnConfigMap, IVirtualGridRowConfigMap } from './models';
 import { Id, ISize } from './types';
 import { RowSize } from './types/row-size';
 import { IRenderVirtualGridCollection } from './models/render-collection.model';
@@ -84,6 +84,16 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
    * Fires when the column size is changed.
    */
   onColumnsSizeChanged = output<IColumnsSize>();
+
+  /**
+   * Fires when the viewport size is changed.
+   */
+  onViewportChange = output<ISize>();
+
+  /**
+   * Fires when an element is clicked.
+   */
+  onItemClick = output<IRenderVirtualGridItem<any> | undefined>();
 
   private _itemsOptions = {
     transform: (v: IVirtualGridCollection | undefined) => {
@@ -421,6 +431,21 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       $snap = toObservable(this.snap),
       $enabledBufferOptimization = toObservable(this.enabledBufferOptimization),
       $cacheVersion = toObservable(this._cacheVersion);
+
+    $bounds.pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      tap(value => {
+        this.onViewportChange.emit(value);
+      }),
+    ).subscribe();
+
+    this._service.$itemClick.pipe(
+      takeUntilDestroyed(),
+      tap(v => {
+        this.onItemClick.emit(v);
+      }),
+    ).subscribe();
 
     combineLatest([this.$initialized, $bounds, $columnsSize]).pipe(
       takeUntilDestroyed(),

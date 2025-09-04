@@ -5,14 +5,14 @@
     <p class="l">Animation of elements is supported.</p>
     <p class="l m">&#64;author: djonnyx&#64;gmail.com</p>
     <img class="logo" [src]="logo" />
-    <div class="version"><span>v 19.0.0-beta-28</span></div>
+    <div class="version"><span>v 19.0.0-beta-29</span></div>
   </div>
 
   <div class="vl-section">
     <div class="vl-section__container">
       <h2>Virtual grid</h2>
       <ng-virtual-grid class="grid regular" [items]="groupItems" [itemRenderer]="itemRenderer" [columnSize]="90"
-        [rowSize]="38" [bufferSize]="5"></ng-virtual-grid>
+        [rowSize]="38" [bufferSize]="5" (onItemClick)="onItemClick($event)"></ng-virtual-grid>
     </div>
   </div>
 
@@ -23,7 +23,7 @@
         [columnsSize]="groupDynamicColumnsSize" [rowsSize]="groupDynamicRowsSize" [itemRenderer]="itemRenderer"
         [minColumnSize]="32" [minRowSize]="32" [columnSize]="300" [rowSize]="32" [bufferSize]="5" [snap]="true"
         [cellConfigRowsMap]="groupDynamicItemsRowConfigMap" [cellConfigColumnsMap]="groupDynamicItemsColumnConfigMap"
-        (onRowsSizeChanged)="onRowsSizeChangedHandler($event)"
+        (onRowsSizeChanged)="onRowsSizeChangedHandler($event)" (onItemClick)="onItemClick($event)"
         (onColumnsSizeChanged)="onColumnsSizeChangedHandler($event)"></ng-virtual-grid>
     </div>
   </div>
@@ -40,7 +40,7 @@
         [items]="groupDynamicItems" [columnsSize]="groupDynamicColumnsSize" [rowsSize]="groupDynamicRowsSize"
         [itemRenderer]="itemRenderer" [minColumnSize]="32" [minRowSize]="32" [columnSize]="300" [rowSize]="32"
         [bufferSize]="5" [snap]="true" [cellConfigRowsMap]="groupDynamicItemsRowConfigMap"
-        [cellConfigColumnsMap]="groupDynamicItemsColumnConfigMap"></ng-virtual-grid>
+        (onItemClick)="onItemClick($event)" [cellConfigColumnsMap]="groupDynamicItemsColumnConfigMap"></ng-virtual-grid>
     </div>
   </div>
 
@@ -51,8 +51,8 @@
         [items]="groupDynamicItems1" [columnsSize]="groupDynamicColumnsSize1" [rowsSize]="groupDynamicRowsSize1"
         [itemRenderer]="itemRenderer" [minColumnSize]="32" [minRowSize]="32" [columnSize]="300" [rowSize]="32"
         [bufferSize]="5" [snap]="true" [cellConfigRowsMap]="groupDynamicItemsRowConfigMap1"
-        [cellConfigColumnsMap]="groupDynamicItemsColumnConfigMap1"
-        (onRowsSizeChanged)="onRowsSizeChangedHandler($event)"></ng-virtual-grid>
+        [cellConfigColumnsMap]="groupDynamicItemsColumnConfigMap1" (onViewportChange)="onViewportChangeHandler($event)"
+        (onItemClick)="onItemClick($event)" (onRowsSizeChanged)="onRowsSizeChangedHandler($event)"></ng-virtual-grid>
     </div>
   </div>
 
