@@ -1,4 +1,5 @@
 import { Id } from "../types";
+import { ColumnSize } from "../types/column-size";
 
 /**
  * Column size interface
@@ -10,5 +11,5 @@ export interface IColumnsSize {
     /**
      * Column width by columnId
      */
-    [columnId: Id]: number | undefined;
+    [columnId: Id]: ColumnSize;
 }

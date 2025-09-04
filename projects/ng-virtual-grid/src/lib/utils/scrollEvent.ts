@@ -1,12 +1,14 @@
 import { IScrollEvent, ScrollDirection } from "../models";
 
 interface IScrollEventParams {
-    direction: ScrollDirection;
+    directionX: ScrollDirection;
+    directionY: ScrollDirection;
     container: HTMLElement;
-    list: HTMLElement;
-    delta: number;
-    scrollDelta: number;
-    isVertical: boolean;
+    grid: HTMLElement;
+    deltaX: number;
+    deltaY: number;
+    scrollDeltaX: number;
+    scrollDeltaY: number;
 }
 
 /**
@@ -16,47 +18,79 @@ interface IScrollEventParams {
  * @email djonnyx@gmail.com
  */
 export class ScrollEvent implements IScrollEvent {
-    private _direction: ScrollDirection = 1;
-    get direction() { return this._direction; }
+    private _directionX: ScrollDirection = 1;
+    get directionX() { return this._directionX; }
 
-    private _scrollSize: number = 0;
-    get scrollSize() { return this._scrollSize; }
+    private _directionY: ScrollDirection = 1;
+    get directionY() { return this._directionY; }
 
-    private _scrollWeight: number = 0;
-    get scrollWeight() { return this._scrollWeight; }
+    private _scrollSizeX: number = 0;
+    get scrollSizeX() { return this._scrollSizeX; }
 
-    private _isVertical: boolean = true;
-    get isVertical() { return this._isVertical; }
+    private _scrollSizeY: number = 0;
+    get scrollSizeY() { return this._scrollSizeY; }
 
-    private _listSize: number = 0;
-    get listSize() { return this._listSize; }
+    private _scrollWeightX: number = 0;
+    get scrollWeightX() { return this._scrollWeightX; }
 
-    private _size: number = 0;
-    get size() { return this._size; }
+    private _scrollWeightY: number = 0;
+    get scrollWeightY() { return this._scrollWeightY; }
 
-    private _isStart: boolean = true;
-    get isStart() { return this._isStart; }
+    private _gridWidth: number = 0;
+    get gridWidth() { return this._gridWidth; }
 
-    private _isEnd: boolean = false;
-    get isEnd() { return this._isEnd; }
+    private _gridHeight: number = 0;
+    get gridHeight() { return this._gridHeight; }
 
-    private _delta: number = 0;
-    get delta() { return this._delta; }
+    private _width: number = 0;
+    get width() { return this._width; }
 
-    private _scrollDelta: number = 0;
-    get scrollDelta() { return this._scrollDelta; }
+    private _height: number = 0;
+    get height() { return this._height; }
+
+    private _isStartX: boolean = true;
+    get isStartX() { return this._isStartX; }
+
+    private _isStartY: boolean = true;
+    get isStartY() { return this._isStartY; }
+
+    private _isEndX: boolean = false;
+    get isEndX() { return this._isEndX; }
+
+    private _isEndY: boolean = false;
+    get isEndY() { return this._isEndY; }
+
+    private _deltaX: number = 0;
+    get deltaX() { return this._deltaX; }
+
+    private _deltaY: number = 0;
+    get deltaY() { return this._deltaY; }
+
+    private _scrollDeltaX: number = 0;
+    get scrollDeltaX() { return this._scrollDeltaX; }
+
+    private _scrollDeltaY: number = 0;
+    get scrollDeltaY() { return this._scrollDeltaY; }
 
     constructor(params: IScrollEventParams) {
-        const { direction, isVertical, container, list, delta, scrollDelta } = params;
-        this._direction = direction;
-        this._isVertical = isVertical;
-        this._scrollSize = isVertical ? container.scrollTop : container.scrollLeft;
-        this._scrollWeight = isVertical ? container.scrollHeight : container.scrollWidth;
-        this._listSize = isVertical ? list.offsetHeight : list.offsetWidth;
-        this._size = isVertical ? container.offsetHeight : container.offsetWidth;
-        this._isEnd = (this._scrollSize + this._size) === this._scrollWeight;
-        this._delta = delta;
-        this._scrollDelta = scrollDelta;
-        this._isStart = this._scrollSize === 0;
+        const { directionX, directionY, container, grid, deltaX, deltaY, scrollDeltaX, scrollDeltaY } = params;
+        this._directionX = directionX;
+        this._directionY = directionY;
+        this._scrollSizeX = container.scrollLeft;
+        this._scrollSizeY = container.scrollTop;
+        this._scrollWeightX = container.scrollWidth;
+        this._scrollWeightY = container.scrollHeight;
+        this._gridWidth = grid.offsetWidth;
+        this._gridHeight = grid.offsetHeight;
+        this._width = container.offsetWidth;
+        this._height = container.offsetHeight;
+        this._isEndX = (this._scrollSizeX + this._width) === this._scrollWeightX;
+        this._isEndY = (this._scrollSizeY + this._height) === this._scrollWeightY;
+        this._deltaX = deltaX;
+        this._deltaY = deltaY;
+        this._scrollDeltaX = scrollDeltaX;
+        this._scrollDeltaY = scrollDeltaY;
+        this._isStartX = this._scrollSizeX === 0;
+        this._isStartY = this._scrollSizeY === 0;
     }
 }

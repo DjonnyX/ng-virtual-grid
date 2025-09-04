@@ -17,61 +17,64 @@ input {
 
 // reset ng-virtual-grid-item styles
 .grid::part(grid-item) {
+    font-size: 13px;
     background-color: inherit;
     box-sizing: border-box;
     transition: background-color ease-out 100ms;
 
     &:hover {
-        background-color: #4d4d4d;
+        background-color: rgb(46, 46, 51);
         z-index: 2;
     }
 }
 
 .grid::part(item-row-odd) {
-    background-color: rgb(48, 48, 48);
+    background-color: #1a1a1e;
     box-sizing: border-box;
     transition: background-color ease-out 100ms;
 
     &:hover {
-        background-color: #3f3f3f;
+        background-color: #1f1f24;
         z-index: 2;
     }
 }
 
 .grid::part(item-row-even) {
-    background-color: #363636;
+    background-color: #1d1d21;
     box-sizing: border-box;
     transition: background-color ease-out 100ms;
 
     &:hover {
-        background-color: #3f3f3f;
+        background-color: #232327;
         z-index: 2;
     }
 }
 
 .grid::part(item-sticky) {
-    background-color: #2b2b2b;
+    font-weight: bold;
+    background-color: #25252b;
     box-sizing: border-box;
 
     &:hover {
-        background-color: #242424;
+        background-color: #28282e;
     }
 }
 
 .grid::part(item-row-border) {
-    background-color: #272727;
+    font-weight: bold;
+    background-color: #25252b;
 
     &:hover {
-        background-color: #303030;
+        background-color: #28282e;
     }
 }
 
 .grid::part(grid-item) {
-    outline: 1px solid #2b2b2b;
+    outline: 1px solid #202025;
     transition: outline 10ms linear;
 
     &:hover {
-        outline: 1px solid rgb(114, 87, 46);
+        outline: 1px solid rgb(100, 46, 114);
         z-index: 1;
     }
 }
@@ -225,12 +228,13 @@ input {
 .grid {
     width: 100%;
     border-radius: 3px;
-    box-shadow: 1px 2px 8px 4px rgba(0, 0, 0, 0.075);
-    background-color: #212122;
+    box-shadow: 1px 2px 8px 4px #00000013;
+    border: 1px solid #383844;
+    background-color: #1a1a1e;
 
     &::part(scroller) {
         color: #71718c;
-        background-color: #212122;
+        background-color: #1a1a1e;
         scroll-behavior: auto;
 
         /* custom scrollbar */

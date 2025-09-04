@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, Templat
 import { IRenderVirtualGridItem } from '../../models/render-item.model';
 import { ISize } from '../../types';
 import {
-  DEFAULT_ZINDEX, DISPLAY_BLOCK, DISPLAY_NONE, HIDDEN_ZINDEX, POSITION_ABSOLUTE, POSITION_STICKY, PX, SIZE_100_PERSENT,
+  DEFAULT_ZINDEX, DISPLAY_BLOCK, DISPLAY_NONE, HIDDEN_ZINDEX, POSITION_ABSOLUTE, POSITION_STICKY, PX, UNSET_VALUE,
   SIZE_AUTO, TRANSLATE_3D, VISIBILITY_HIDDEN, VISIBILITY_VISIBLE, ZEROS_TRANSLATE_3D,
 } from '../../const';
 import { BaseVirtualGridItemComponent } from '../../models/base-virtual-grid-item-component';
@@ -52,9 +52,9 @@ export class NgVirtualGridItemComponent extends BaseVirtualGridItemComponent {
     }
 
     const rowId = v?.rowId, colId = Number(v?.columnId);
-    this.liId = `li-${this.service.listId}-${rowId}-${colId}`;
-    this.leftLiId = v?.config.prevColId !== undefined ? `li-${this.service.listId}-${rowId}-${v?.config.prevColId}` : undefined;
-    this.topLiId = v?.config.prevRowId !== undefined ? `li-${this.service.listId}-${v?.config.prevRowId}-${colId}` : undefined;
+    this.liId = `g-${this.service.gridId}-${rowId}-${colId}`;
+    this.leftLiId = v?.config.prevColId !== undefined ? `g-${this.service.gridId}-${rowId}-${v?.config.prevColId}` : undefined;
+    this.topLiId = v?.config.prevRowId !== undefined ? `g-${this.service.gridId}-${v?.config.prevRowId}-${colId}` : undefined;
 
     this.update(v);
 
@@ -104,7 +104,7 @@ export class NgVirtualGridItemComponent extends BaseVirtualGridItemComponent {
     super();
     this._id = this.service.generateComponentId();
 
-    this.liId = `li-${this.service.listId}-${this._id}`;
+    this.liId = `li-${this.service.gridId}-${this._id}`;
   }
 
   private update(data: IRenderVirtualGridItem | undefined) {
@@ -128,11 +128,11 @@ export class NgVirtualGridItemComponent extends BaseVirtualGridItemComponent {
         const liElement = listItem.nativeElement;
         if (this._data?.config.customSize) {
           liElement.style.height = `${data.measures.height}${PX}`;
-          liElement.style.maxHeight = `${data.measures.height}${PX}`;
-          liElement.style.minHeight = 'unset';
+          liElement.style.maxHeight = `${this.service.maxRowSize}${PX}`;
+          liElement.style.minHeight = UNSET_VALUE;
         } else {
           liElement.style.minHeight = `${data.measures.height}${PX}`;
-          liElement.style.maxHeight = 'unset';
+          liElement.style.maxHeight = `${this.service.maxRowSize}${PX}`;
           liElement.style.height = SIZE_AUTO;
         }
       }
@@ -201,6 +201,10 @@ export class NgVirtualGridItemComponent extends BaseVirtualGridItemComponent {
         event.width, event.height,
       );
     }
+  }
+
+  onClickHandler() {
+    this.service.itemClick(this._data);
   }
 }
 

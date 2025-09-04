@@ -10,20 +10,19 @@ import { NgVirtualGridItemComponent } from './components/ng-virtual-grid-item/ng
 import {
   BEHAVIOR_AUTO, BEHAVIOR_INSTANT,
   DEFAULT_ENABLED_BUFFER_OPTIMIZATION, DEFAULT_BUFFER_SIZE, DEFAULT_GRID_SIZE, DEFAULT_SNAP, HEIGHT_PROP_NAME, LEFT_PROP_NAME,
-  MAX_SCROLL_TO_ITERATIONS, PX, SCROLL, SCROLL_END, TOP_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME,
-  DEFAULT_MAX_BUFFER_SIZE,
-  DEFAULT_ROW_SIZE,
-  DEFAULT_COLUMN_SIZE,
-  DEFAULT_RESIZE_ROWS_ENABLED,
-  DEFAULT_RESIZE_COLUMNS_ENABLED,
-  DEFAULT_MIN_ROW_SIZE,
-  DEFAULT_MIN_COLUMN_SIZE,
+  MAX_SCROLL_TO_ITERATIONS, PX, SCROLL, SCROLL_END, TOP_PROP_NAME, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME, DEFAULT_MAX_BUFFER_SIZE,
+  DEFAULT_ROW_SIZE, DEFAULT_COLUMN_SIZE, DEFAULT_RESIZE_ROWS_ENABLED, DEFAULT_RESIZE_COLUMNS_ENABLED, DEFAULT_MIN_ROW_SIZE,
+  DEFAULT_MIN_COLUMN_SIZE, DEFAULT_MAX_ROW_SIZE, DEFAULT_MAX_COLUMN_SIZE,
 } from './const';
-import { IColumnsSize, IRowsSize, IScrollEvent, IVirtualGridCollection, IVirtualGridColumnConfigMap, IVirtualGridRowConfigMap } from './models';
+import {
+  IColumnsSize, IRenderVirtualGridItem, IRowsSize, IScrollEvent, IVirtualGridCollection, IVirtualGridColumnConfigMap,
+  IVirtualGridRowConfigMap,
+} from './models';
 import { Id, ISize } from './types';
+import { RowSize } from './types/row-size';
 import { IRenderVirtualGridCollection } from './models/render-collection.model';
 import { CellResizeMode, CellResizeModes } from './enums';
-import { ScrollEvent, toggleClassName } from './utils';
+import { ScrollEvent } from './utils';
 import { IGetItemPositionOptions, IUpdateCollectionOptions, TRACK_BOX_CHANGE_EVENT_NAME, TrackBox } from './utils/trackBox';
 import { BaseVirtualGridItemComponent } from './models/base-virtual-grid-item-component';
 import { Component$1 } from './models/component.model';
@@ -33,10 +32,10 @@ import { isAdjacentCellMode } from './utils/isAdjacentCellMode';
 import { NgVirtualGridRowComponent } from './components/ng-virtual-grid-row/ng-virtual-grid-row.component';
 
 /**
- * Virtual list component.
- * Maximum performance for extremely large lists.
+ * Virtual grid component.
+ * Maximum performance for extremely large grids.
  * It is based on algorithms for virtualization of screen objects.
- * @link https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/ng-virtual-list.component.ts
+ * @link https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/ng-virtual-grid.component.ts
  * @author Evgenii Grebennikov
  * @email djonnyx@gmail.com
  */
@@ -60,14 +59,14 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
 
   private _service = inject(NgVirtualGridService);
 
-  private _pointerDetectservice = inject(PointerDetectService);
+  private _pointerDetectService = inject(PointerDetectService);
 
   @ViewChild('renderersContainer', { read: ViewContainerRef })
-  private _listContainerRef: ViewContainerRef | undefined;
+  private _gridContainerRef: ViewContainerRef | undefined;
 
   private _container = viewChild<ElementRef<HTMLDivElement>>('container');
 
-  private _list = viewChild<ElementRef<HTMLUListElement>>('list');
+  private _grid = viewChild<ElementRef<HTMLUListElement>>('grid');
 
   /**
    * Fires when the grid has been scrolled.
@@ -88,6 +87,16 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
    * Fires when the column size is changed.
    */
   onColumnsSizeChanged = output<IColumnsSize>();
+
+  /**
+   * Fires when the viewport size is changed.
+   */
+  onViewportChange = output<ISize>();
+
+  /**
+   * Fires when an element is clicked.
+   */
+  onItemClick = output<IRenderVirtualGridItem<any> | undefined>();
 
   private _itemsOptions = {
     transform: (v: IVirtualGridCollection | undefined) => {
@@ -164,6 +173,21 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
    */
   minColumnSize = input<number>(DEFAULT_MIN_COLUMN_SIZE, { ...this._minColumnSizeOptions });
 
+  private _maxColumnSizeOptions = {
+    transform: (v: number | undefined) => {
+      if (v === undefined) {
+        return DEFAULT_MAX_COLUMN_SIZE;
+      }
+      const val = Number(v);
+      return Number.isNaN(val) || val <= 0 ? DEFAULT_MAX_COLUMN_SIZE : val;
+    },
+  } as any;
+
+  /**
+   * Maximum column size. Default value is 1200.
+   */
+  maxColumnSize = input<number>(DEFAULT_MAX_COLUMN_SIZE, { ...this._maxColumnSizeOptions });
+
   private _rowSizeOptions = {
     transform: (v: number | undefined) => {
       if (v === undefined) {
@@ -193,6 +217,21 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
    * Minimum row size. Default value is 12.
    */
   minRowSize = input<number>(DEFAULT_MIN_ROW_SIZE, { ...this._minRowSizeOptions });
+
+  private _maxRowSizeOptions = {
+    transform: (v: number | undefined) => {
+      if (v === undefined) {
+        return DEFAULT_MAX_ROW_SIZE;
+      }
+      const val = Number(v);
+      return Number.isNaN(val) || val <= 0 ? DEFAULT_MAX_ROW_SIZE : val;
+    },
+  } as any;
+
+  /**
+   * Maximum row size. Default value is 1200.
+   */
+  maxRowSize = input<number>(DEFAULT_MAX_ROW_SIZE, { ...this._maxRowSizeOptions });
 
   /**
    * Cell resize mode. Default value is "self".
@@ -254,6 +293,10 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
 
   private _scrollSizeY = signal<number>(0);
 
+  private _scrollBarHorizontalWeight = 0;
+
+  private _scrollBarVerticalWeight = 0;
+
   private _resizeObserver: ResizeObserver | null = null;
 
   private _componentsResizeObserver = new ResizeObserver(() => {
@@ -261,11 +304,13 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   });
 
   private _onResizeHandler = () => {
+    this.calculateScrollBars();
+
     const bounds = this._container()?.nativeElement?.getBoundingClientRect();
     if (bounds) {
-      this._bounds.set({ width: bounds.width, height: bounds.height });
+      this._bounds.set({ width: bounds.width - this._scrollBarHorizontalWeight, height: bounds.height - this._scrollBarVerticalWeight });
     } else {
-      this._bounds.set({ width: DEFAULT_GRID_SIZE, height: DEFAULT_GRID_SIZE });
+      this._bounds.set({ width: DEFAULT_GRID_SIZE - this._scrollBarHorizontalWeight, height: DEFAULT_GRID_SIZE - this._scrollBarVerticalWeight });
     }
   }
 
@@ -317,9 +362,9 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       ? 0 : NgVirtualGridComponent.__nextId + 1;
     this._id = NgVirtualGridComponent.__nextId;
 
-    this._service.listId = this._id;
+    this._service.gridId = this._id;
     this._service.initialize(this._trackBox);
-    this._pointerDetectservice.capture();
+    this._pointerDetectService.capture();
 
     this._initialized = signal<boolean>(false);
     this.$initialized = toObservable(this._initialized);
@@ -332,7 +377,9 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       $resizeRowsEnabled = toObservable(this.resizeRowsEnabled),
       $resizeColumnsEnabled = toObservable(this.resizeColumnsEnabled),
       $minColumnSize = toObservable(this.minColumnSize),
+      $maxColumnSize = toObservable(this.maxColumnSize),
       $minRowSize = toObservable(this.minRowSize),
+      $maxRowSize = toObservable(this.maxRowSize),
       $cellResizeMode = toObservable(this.cellResizeMode);
 
     $cellResizeMode.pipe(
@@ -351,11 +398,27 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       }),
     ).subscribe();
 
+    $maxColumnSize.pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      tap(v => {
+        this._service.maxColumnSize = this._trackBox.maxColumnSize = v;
+      }),
+    ).subscribe();
+
     $minRowSize.pipe(
       takeUntilDestroyed(),
       distinctUntilChanged(),
       tap(v => {
         this._service.minRowSize = this._trackBox.minRowSize = v;
+      }),
+    ).subscribe();
+
+    $maxRowSize.pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      tap(v => {
+        this._service.maxRowSize = this._trackBox.maxRowSize = v;
       }),
     ).subscribe();
 
@@ -380,39 +443,6 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       distinctUntilChanged(),
       tap(v => {
         this._trackBox.updateRowsSize(v);
-      }),
-    ).subscribe();
-
-    $columnsSize.pipe(
-      takeUntilDestroyed(),
-      distinctUntilChanged(),
-      tap(v => {
-        this._trackBox.updateColumnSize(v);
-      }),
-    ).subscribe();
-
-    this._service.$resize.pipe(
-      takeUntilDestroyed(),
-      distinctUntilChanged(),
-      tap(v => {
-        const { rowId, columnId, width, height } = v;
-        if (height !== 0 && rowId !== undefined) {
-          const data: IRowsSize = { [rowId]: height };
-          this._trackBox.updateRowsSize(data);
-          this.onRowsSizeChanged.emit(data);
-        }
-        if (width !== 0 && columnId !== undefined) {
-          const data: IColumnsSize = { [columnId]: width }, items = this.items();
-          let rowData: { [id: Id]: number | 'auto' } = {};
-          for (let i = 0, l = items.length; i < l; i++) {
-            const row = items[i], rowId = row.id;
-            rowData[rowId] = this._trackBox.getCacheByRowId(rowId) ?? 'auto';
-          }
-          this._trackBox.updateRowsSize(rowData);
-          this._trackBox.updateColumnSize(data);
-          this.onRowsSizeChanged.emit(rowData);
-          this.onColumnsSizeChanged.emit(data);
-        }
       }),
     ).subscribe();
 
@@ -453,6 +483,58 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       $enabledBufferOptimization = toObservable(this.enabledBufferOptimization),
       $cacheVersion = toObservable(this._cacheVersion);
 
+    $bounds.pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      tap(value => {
+        this.onViewportChange.emit(value);
+      }),
+    ).subscribe();
+
+    this._service.$itemClick.pipe(
+      takeUntilDestroyed(),
+      tap(v => {
+        this.onItemClick.emit(v);
+      }),
+    ).subscribe();
+
+    combineLatest([this.$initialized, $bounds, $columnsSize]).pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      filter(([init]) => !!init),
+      map(([, bounds, columnsSize]) => ({ bounds, columnsSize })),
+      tap(({ bounds, columnsSize }) => {
+        this._trackBox.updateColumnSize(columnsSize, bounds.width);
+      }),
+    ).subscribe();
+
+    combineLatest([this.$initialized, $bounds, this._service.$resize]).pipe(
+      takeUntilDestroyed(),
+      distinctUntilChanged(),
+      filter(([init]) => !!init),
+      map(([, bounds, resizeValue]) => ({ bounds, resizeValue })),
+      tap(({ bounds, resizeValue }) => {
+        const { rowId, columnId, width, height } = resizeValue;
+        if (height !== 0 && rowId !== undefined) {
+          const data: IRowsSize = { [rowId]: height };
+          this._trackBox.updateRowsSize(data);
+          this.onRowsSizeChanged.emit(data);
+        }
+        if (width !== 0 && columnId !== undefined) {
+          const data: IColumnsSize = { [columnId]: width }, items = this.items();
+          let rowData: { [id: Id]: RowSize } = {};
+          for (let i = 0, l = items.length; i < l; i++) {
+            const row = items[i], rowId = row.id;
+            rowData[rowId] = this._trackBox.getCacheByRowId(rowId);
+          }
+          this._trackBox.updateRowsSize(rowData);
+          this._trackBox.updateColumnSize(data, bounds.width);
+          this.onRowsSizeChanged.emit(rowData);
+          this.onColumnsSizeChanged.emit(data);
+        }
+      }),
+    ).subscribe();
+
     combineLatest([$items, $rowSize, $columnSize]).pipe(
       takeUntilDestroyed(),
       distinctUntilChanged(),
@@ -488,8 +570,6 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
           this.createDisplayComponentsIfNeed(displayItems, rowDisplayItems, columnsLength);
 
           this.tracking();
-
-          this.calculateScrollBars();
 
           const deltaX = this._trackBox.deltaX, deltaY = this._trackBox.deltaY;
           actualScrollSizeX = actualScrollSizeX + deltaX;
@@ -532,23 +612,17 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   }
 
   private onInit() {
-    this._service.host = this._list();
+    this._service.host = this._grid();
     this.listenCacheChangesIfNeed(true);
     this._initialized.set(true);
   }
 
   private calculateScrollBars() {
-    let scrollBarHorizontalWeight = 0;
-    let scrollBarVerticalWeight = 0;
-
     const container = this._container()?.nativeElement;
     if (container) {
-      scrollBarHorizontalWeight = container.offsetWidth - container.clientWidth;
-      scrollBarVerticalWeight = container.offsetHeight - container.clientHeight;
+      this._scrollBarHorizontalWeight = container.offsetWidth - container.clientWidth;
+      this._scrollBarVerticalWeight = container.offsetHeight - container.clientHeight;
     }
-
-    this._trackBox.scrollBarHorizontalWeight = scrollBarHorizontalWeight;
-    this._trackBox.scrollBarVerticalWeight = scrollBarVerticalWeight;
   }
 
   private listenCacheChangesIfNeed(value: boolean) {
@@ -568,7 +642,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
     rowDisplayItems: IRenderVirtualGridCollection | null,
     columnsLength: number,
   ) {
-    if (!displayItems || !rowDisplayItems || !this._listContainerRef) {
+    if (!displayItems || !rowDisplayItems || !this._gridContainerRef) {
       this._trackBox.setDisplayObjectIndexMapById({});
       return;
     }
@@ -577,13 +651,13 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
 
     this._trackBox.rowItems = rowDisplayItems;
 
-    const _listContainerRef = this._listContainerRef;
+    const _gridContainerRef = this._gridContainerRef;
 
     const maxRowsLength = rowDisplayItems.length, rowComponents = this._rowDisplayComponents;
 
     while (rowComponents.length < maxRowsLength) {
-      if (_listContainerRef) {
-        const comp = _listContainerRef.createComponent(this._rowComponentClass);
+      if (_gridContainerRef) {
+        const comp = _gridContainerRef.createComponent(this._rowComponentClass);
         rowComponents.push(comp);
       }
     }
@@ -635,9 +709,9 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   }
 
   private resetBoundsSize(isVertical: boolean, totalSize: number) {
-    const l = this._list();
-    if (l) {
-      l.nativeElement.style[isVertical ? HEIGHT_PROP_NAME : WIDTH_PROP_NAME] = `${totalSize}${PX}`;
+    const g = this._grid();
+    if (g) {
+      g.nativeElement.style[isVertical ? HEIGHT_PROP_NAME : WIDTH_PROP_NAME] = `${totalSize}${PX}`;
     }
   }
 
@@ -649,7 +723,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   }
 
   /**
-   * The method scrolls the list to the element with the given id and returns the value of the scrolled area.
+   * The method scrolls the grid to the element with the given id and returns the value of the scrolled area.
    * Behavior accepts the values ​​"auto", "instant" and "smooth".
    */
   scrollTo(id: Id, behavior: ScrollBehavior = BEHAVIOR_AUTO) {
@@ -663,88 +737,86 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   }
 
   private scrollToExecutor(id: Id, behavior: ScrollBehavior, iteration: number = 0, isLastIteration = false) {
-    // const items = this.items();
-    // if (!items || !items.length) {
-    //   return;
-    // }
+    const items = this.items();
+    if (!items || !items.length) {
+      return;
+    }
 
-    // const dynamicSize = this.dynamicSize(), container = this._container(), columnSize = this.columnSize();
-    // if (container) {
-    //   this.clearScrollToRepeatExecutionTimeout();
+    const container = this._container(), columnSize = this.columnSize();
+    if (container) {
+      this.clearScrollToRepeatExecutionTimeout();
 
-    //   if (dynamicSize) {
-    //     if (container) {
-    //       container.nativeElement.removeEventListener(SCROLL, this._onScrollHandler);
-    //     }
+      if (container) {
+        container.nativeElement.removeEventListener(SCROLL, this._onScrollHandler);
+      }
 
-    //     const { width, height } = this._bounds() || { width: DEFAULT_GRID_SIZE, height: DEFAULT_GRID_SIZE },
-    //       stickyMap = this.stickyMap(), items = this.items(), isVertical = this._isVertical, deltaX = this._trackBox.deltaX,
-    //       deltaY = this._trackBox.deltaY,
-    //       opts: IGetItemPositionOptions<any, IVirtualGridCollection> = {
-    //         bounds: { width, height }, collection: items, dynamicSize, isVertical: this._isVertical, columnSize,
-    //         bufferSize: this.bufferSize(), maxBufferSize: this.maxBufferSize(),
-    //         scrollSizeX: container.nativeElement.scrollLeft + deltaX,
-    //         scrollSizeY: container.nativeElement.scrollTop + deltaY,
-    //         snap: this.snap(), fromItemId: id, enabledBufferOptimization: this.enabledBufferOptimization(),
-    //       },
-    //       scrollSize = this._trackBox.getItemPosition(id, stickyMap, opts),
-    //       params: ScrollToOptions = { [isVertical ? TOP_PROP_NAME : LEFT_PROP_NAME]: scrollSize, behavior };
+      const { width, height } = this._bounds() || { width: DEFAULT_GRID_SIZE, height: DEFAULT_GRID_SIZE },
+        items = this.items(), deltaX = this._trackBox.deltaX,
+        cellConfigRowsMap = this.cellConfigRowsMap(),
+        cellConfigColumnsMap = this.cellConfigColumnsMap(),
+        deltaY = this._trackBox.deltaY,
+        opts: IGetItemPositionOptions<any, IVirtualGridCollection> = {
+          bounds: { width, height }, itemSize: columnSize, rowSize: this.rowSize(),
+          bufferSize: this.bufferSize(), maxBufferSize: this.maxBufferSize(),
+          scrollSizeX: container.nativeElement.scrollLeft + deltaX,
+          scrollSizeY: container.nativeElement.scrollTop + deltaY,
+          snap: this.snap(), fromItemId: id, enabledBufferOptimization: this.enabledBufferOptimization(),
+        },
+        { x: scrollX, y: scrollY } = this._trackBox.getItemPosition(id, items, cellConfigRowsMap, cellConfigColumnsMap, opts),
+        params: ScrollToOptions = { [LEFT_PROP_NAME]: scrollX, [TOP_PROP_NAME]: scrollY, behavior };
 
-    //     if (scrollSize === -1) {
-    //       container.nativeElement.addEventListener(SCROLL, this._onScrollHandler);
-    //       return;
-    //     }
+      if (Number.isNaN(scrollX) || scrollX === -1 || Number.isNaN(scrollY) || scrollY === -1) {
+        container.nativeElement.addEventListener(SCROLL, this._onScrollHandler);
+        return;
+      }
 
-    //     this._trackBox.clearDelta();
+      this._trackBox.clearDelta();
 
-    //     if (container) {
-    //       const { displayItems, totalSize } = this._trackBox.updateCollection(items, stickyMap, {
-    //         ...opts, scrollSize, fromItemId: isLastIteration ? undefined : id,
-    //       }), deltaX = this._trackBox.deltaX, deltaY = this._trackBox.deltaY;
+      if (container) {
+        const { displayItems, totalSize, totalHeight, rowDisplayItems, columnsLength } = this._trackBox.updateCollection(items,
+          cellConfigRowsMap, cellConfigColumnsMap, {
+          ...opts, scrollSizeX: scrollX, scrollSizeY: scrollY, fromItemId: isLastIteration ? undefined : id,
+        }), deltaX = this._trackBox.deltaX, deltaY = this._trackBox.deltaY;
 
-    //       this._trackBox.clearDelta();
+        this._trackBox.clearDelta();
 
-    //       let actualScrollSizeX = scrollSizeX + deltaX, actualScrollSizeY = scrollSizeY + deltaY;
+        let actualScrollSizeX = scrollX + deltaX, actualScrollSizeY = scrollY + deltaY;
 
-    //       this.resetBoundsSize(isVertical, totalSize);
+        this.resetBoundsSize(false, totalSize);
+        this.resetBoundsSize(true, totalHeight);
 
-    //       this.createDisplayComponentsIfNeed(displayItems);
+        this.createDisplayComponentsIfNeed(displayItems, rowDisplayItems, columnsLength);
 
-    //       this.tracking();
+        this.tracking();
 
-    //       const _scrollSize = this._trackBox.getItemPosition(id, stickyMap, { ...opts, scrollSize: actualScrollSize, fromItemId: id });
+        const { x: _scrollX, y: _scrollY } = this._trackBox.getItemPosition(id, items, cellConfigRowsMap, cellConfigColumnsMap,
+          { ...opts, scrollSizeX: actualScrollSizeX, scrollSizeY: actualScrollSizeY, fromItemId: id });
 
-    //       if (_scrollSize === -1) {
-    //         container.nativeElement.addEventListener(SCROLL, this._onScrollHandler);
-    //         return;
-    //       }
+        if (Number.isNaN(_scrollX) || _scrollX === -1 || Number.isNaN(_scrollY) || _scrollY === -1) {
+          container.nativeElement.addEventListener(SCROLL, this._onScrollHandler);
+          return;
+        }
 
-    //       const notChanged = actualScrollSize === _scrollSize
+        const notChanged = actualScrollSizeX === _scrollX && actualScrollSizeY === _scrollY;
 
-    //       if (!notChanged || iteration < MAX_SCROLL_TO_ITERATIONS) {
-    //         this.clearScrollToRepeatExecutionTimeout();
-    //         this._scrollToRepeatExecutionTimeout = setTimeout(() => {
-    //           this.scrollToExecutor(id, BEHAVIOR_INSTANT, iteration + 1, notChanged);
-    //         }) as unknown as number;
-    //       } else {
-    //         this._scrollSize.set(actualScrollSize);
+        if (!notChanged || iteration < MAX_SCROLL_TO_ITERATIONS) {
+          this.clearScrollToRepeatExecutionTimeout();
+          this._scrollToRepeatExecutionTimeout = setTimeout(() => {
+            this.scrollToExecutor(id, BEHAVIOR_INSTANT, iteration + 1, notChanged);
+          }) as unknown as number;
+        } else {
+          this._scrollSizeX.set(actualScrollSizeX);
+          this._scrollSizeY.set(actualScrollSizeY);
 
-    //         container.nativeElement.addEventListener(SCROLL, this._onScrollHandler);
-    //       }
-    //     }
+          container.nativeElement.addEventListener(SCROLL, this._onScrollHandler);
+        }
+      }
 
-    //     container.nativeElement.scrollTo(params);
+      container.nativeElement.scrollTo(params);
 
-    //     this._scrollSize.set(scrollSize);
-    //   } else {
-    //     const index = items.findIndex(item => item.id === id);
-    //     if (index > -1) {
-    //       const scrollSize = index * this.columnSize();
-    //       const params: ScrollToOptions = { [this._isVertical ? TOP_PROP_NAME : LEFT_PROP_NAME]: scrollSize, behavior };
-    //       container.nativeElement.scrollTo(params);
-    //     }
-    //   }
-    // }
+      this._scrollSizeX.set(scrollX);
+      this._scrollSizeY.set(scrollY);
+    }
   }
 
   /**
@@ -756,35 +828,39 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   }
 
   private _onContainerScrollHandler = (e: Event) => {
-    // const containerEl = this._container();
-    // if (containerEl) {
-    //   const scrollSize = (this._isVertical ? containerEl.nativeElement.scrollTop : containerEl.nativeElement.scrollLeft);
-    //   this._trackBox.deltaDirection = this._scrollSize() > scrollSize ? -1 : this._scrollSize() < scrollSize ? 1 : 0;
+    const containerEl = this._container();
+    if (containerEl) {
+      const scrollSizeX = containerEl.nativeElement.scrollTop, scrollSizeY = containerEl.nativeElement.scrollLeft,
+        actualScrollSizeX = this._scrollSizeX(), actualScrollSizeY = this._scrollSizeY();
+      this._trackBox.deltaDirectionX = actualScrollSizeX > scrollSizeX ? -1 : actualScrollSizeX < scrollSizeX ? 1 : 0;
+      this._trackBox.deltaDirectionY = actualScrollSizeY > scrollSizeY ? -1 : actualScrollSizeY < scrollSizeY ? 1 : 0;
 
-    //   const event = new ScrollEvent({
-    //     direction: this._trackBox.scrollDirection, container: containerEl.nativeElement,
-    //     list: this._list()!.nativeElement, delta: this._trackBox.delta,
-    //     scrollDelta: this._trackBox.scrollDelta, isVertical: this._isVertical,
-    //   });
+      const event = new ScrollEvent({
+        directionX: this._trackBox.scrollDirectionX, directionY: this._trackBox.scrollDirectionY,
+        container: containerEl.nativeElement, grid: this._grid()!.nativeElement, deltaX: this._trackBox.deltaX,
+        deltaY: this._trackBox.deltaY, scrollDeltaX: this._trackBox.scrollDeltaX, scrollDeltaY: this._trackBox.scrollDeltaY,
+      });
 
-    //   this.onScroll.emit(event);
-    // }
+      this.onScroll.emit(event);
+    }
   }
 
   private _onContainerScrollEndHandler = (e: Event) => {
-    // const containerEl = this._container();
-    // if (containerEl) {
-    //   const scrollSize = (this._isVertical ? containerEl.nativeElement.scrollTop : containerEl.nativeElement.scrollLeft);
-    //   this._trackBox.deltaDirection = this._scrollSize() > scrollSize ? -1 : 0;
+    const containerEl = this._container();
+    if (containerEl) {
+      const scrollSizeX = containerEl.nativeElement.scrollTop, scrollSizeY = containerEl.nativeElement.scrollLeft,
+        actualScrollSizeX = this._scrollSizeX(), actualScrollSizeY = this._scrollSizeY();
+      this._trackBox.deltaDirectionX = actualScrollSizeX > scrollSizeX ? -1 : actualScrollSizeX < scrollSizeX ? 1 : 0;
+      this._trackBox.deltaDirectionY = actualScrollSizeY > scrollSizeY ? -1 : actualScrollSizeY < scrollSizeY ? 1 : 0;
 
-    //   const event = new ScrollEvent({
-    //     direction: this._trackBox.scrollDirection, container: containerEl.nativeElement,
-    //     list: this._list()!.nativeElement, delta: this._trackBox.delta,
-    //     scrollDelta: this._trackBox.scrollDelta, isVertical: this._isVertical,
-    //   });
+      const event = new ScrollEvent({
+        directionX: this._trackBox.scrollDirectionX, directionY: this._trackBox.scrollDirectionY,
+        container: containerEl.nativeElement, grid: this._grid()!.nativeElement, deltaX: this._trackBox.deltaX,
+        deltaY: this._trackBox.deltaY, scrollDeltaX: this._trackBox.scrollDeltaX, scrollDeltaY: this._trackBox.scrollDeltaY,
+      });
 
-    //   this.onScrollEnd.emit(event);
-    // }
+      this.onScrollEnd.emit(event);
+    }
   }
 
   /** @internal */

@@ -1,9 +1,10 @@
 import { Component, viewChild, ViewEncapsulation } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { NgVirtualGridComponent } from '../../projects/ng-virtual-grid/src/public-api';
+import {
+  NgVirtualGridComponent, IColumnsSize, IRowsSize, IVirtualGridCollection, IVirtualGridColumnCollection, IVirtualGridColumnConfigMap,
+  IVirtualGridRowConfigMap, IRenderVirtualGridItem, Id, ISize,
+} from '../../projects/ng-virtual-grid/src/public-api';
 import { LOGO } from './const';
-import { IColumnsSize, IRowsSize, IVirtualGridCollection, IVirtualGridColumnCollection, IVirtualGridColumnConfigMap, IVirtualGridRowConfigMap, VirtualGridRow } from '../../projects/ng-virtual-grid/src/lib/models';
-import { Id } from '../../projects/ng-virtual-grid/src/lib/types';
 import { PersistentStore } from './utils';
 
 const ROWS = 1000, COLUMNS = 100, DYNAMIC_ROWS = 2000, DYNAMIC_COLUMNS = 50;
@@ -57,6 +58,12 @@ const GROUP_DYNAMIC_ITEMS: IVirtualGridCollection<IRowData, IColumnData> = [],
   GROUP_DYNAMIC_COLUMNS_SIZE_MAP: IColumnsSize = {},
   GROUP_DYNAMIC_ROWS_SIZE_MAP: IRowsSize = {};
 
+const GROUP_DYNAMIC_ITEMS1: IVirtualGridCollection<IRowData, IColumnData> = [],
+  GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP1: IVirtualGridRowConfigMap = {},
+  GROUP_DYNAMIC_ITEMS_COLUMN_CONFIG_MAP1: IVirtualGridColumnConfigMap = {},
+  GROUP_DYNAMIC_COLUMNS_SIZE_MAP1: IColumnsSize = {},
+  GROUP_DYNAMIC_ROWS_SIZE_MAP1: IRowsSize = {};
+
 const GROUP_ITEMS: IVirtualGridCollection<IRowData, IColumnData> = [],
   GROUP_ITEMS_STICKY_MAP: IVirtualGridRowConfigMap = {};
 
@@ -70,9 +77,6 @@ for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
       GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId] = {};
     }
     if (i === 0) {
-      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId].sticky = 1;
-      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId].resizable = false;
-    } else if (i === l - 20) {
       GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId].sticky = 1;
       GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP[rowId].resizable = false;
     } else if (i === l - 1) {
@@ -104,7 +108,7 @@ for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
     } else if (j === 0 || j === l1 - 1) {
       value = String(i);
     } else {
-      value = generateText();
+      value = `${id} ${generateText()}`;
     }
     columns.push({ id: id, value, isBorderStart, isBorderEnd });
   }
@@ -112,6 +116,53 @@ for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
     GROUP_DYNAMIC_ROWS_SIZE_MAP[rowId] = 40;
   }
   GROUP_DYNAMIC_ITEMS.push({ id: rowId, columns });
+}
+
+let index2 = 0;
+for (let i = 0, l = DYNAMIC_ROWS; i < l; i++) {
+  const columns: IVirtualGridColumnCollection<IColumnData> = [];
+  const rowId = index2;
+  index2++;
+  if (i === 0 || i === l - 20 || i === l - 1) {
+    if (!GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP1[rowId]) {
+      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP1[rowId] = {};
+    }
+    if (i === 0) {
+      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP1[rowId].sticky = 1;
+      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP1[rowId].resizable = false;
+    } else if (i === l - 1) {
+      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP1[rowId].sticky = 2;
+      GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP1[rowId].resizable = false;
+    }
+  }
+  for (let j = 0, l1 = 3; j < l1; j++) {
+    index2++;
+    const id = index2;
+    GROUP_DYNAMIC_ITEMS_COLUMN_CONFIG_MAP1[j] = { resizable: false };
+    if (j === 0 || j === l1 - 1) {
+      GROUP_DYNAMIC_COLUMNS_SIZE_MAP1[j] = 36;
+    }
+    if (j === 1) {
+      GROUP_DYNAMIC_COLUMNS_SIZE_MAP1[j] = '1fr';
+    }
+    let value: string, isBorderStart: boolean = false, isBorderEnd: boolean = false;
+    if ((i === 0 && j === 0) || (i === 0 && j === l1 - 1)) {
+      value = '№';
+    } else if ((i === l - 1 && j === 0) || (i === l - 1 && j === l1 - 1)) {
+      value = '';
+    } else if (i === 0 || i === l - 1) {
+      value = String(j);
+    } else if (j === 0 || j === l1 - 1) {
+      value = String(i);
+    } else {
+      value = `${id} ${generateText()}`;
+    }
+    columns.push({ id: id, value, isBorderStart, isBorderEnd });
+  }
+  if (i === 0 || i === l - 1) {
+    GROUP_DYNAMIC_ROWS_SIZE_MAP1[rowId] = 40;
+  }
+  GROUP_DYNAMIC_ITEMS1.push({ id: rowId, columns });
 }
 
 let index1 = 0;
@@ -155,9 +206,7 @@ const getDynamicColumnsSize = () => {
 export class AppComponent {
   readonly logo = LOGO;
 
-  protected _listContainerRef = viewChild('virtualList', { read: NgVirtualGridComponent });
-
-  protected _dynamicListContainerRef = viewChild('dynamicList', { read: NgVirtualGridComponent });
+  protected _gridContainerRef = viewChild('grid', { read: NgVirtualGridComponent });
 
   groupItems = GROUP_ITEMS;
   groupItemsStickyMap = GROUP_ITEMS_STICKY_MAP;
@@ -168,6 +217,12 @@ export class AppComponent {
   groupDynamicColumnsSize = getDynamicColumnsSize();
   groupDynamicRowsSize = getDynamicRowsSize();
 
+  groupDynamicItems1 = GROUP_DYNAMIC_ITEMS1;
+  groupDynamicItemsRowConfigMap1 = GROUP_DYNAMIC_ITEMS_ROW_CONFIG_MAP1;
+  groupDynamicItemsColumnConfigMap1 = GROUP_DYNAMIC_ITEMS_COLUMN_CONFIG_MAP1;
+  groupDynamicColumnsSize1 = { ...GROUP_DYNAMIC_COLUMNS_SIZE_MAP1 };
+  groupDynamicRowsSize1 = { ...GROUP_DYNAMIC_ROWS_SIZE_MAP1 };
+
   private _minId: Id = this.groupDynamicItems.length > 0 ? this.groupDynamicItems[0].id : 0;
   get minId() { return this._minId; };
 
@@ -176,30 +231,17 @@ export class AppComponent {
 
   itemId: Id = this._minId;
 
-  private _minDlId: Id = this.groupDynamicItems.length > 0 ? this.groupDynamicItems[0].id : 0;
-  get minDlId() { return this._minDlId; };
-
-  private _maxDlId: Id = this.groupDynamicItems.length > 0 ? this.groupDynamicItems[this.groupDynamicItems.length - 1].id : 0;
-  get maxDlId() { return this._maxDlId; };
-
-  dlItemId: Id = this._minDlId;
-
   onButtonScrollToIdClickHandler = (e: Event) => {
-    const list = this._listContainerRef();
-    if (list && this.itemId !== undefined) {
-      list.scrollTo(this.itemId, 'smooth');
+    const grid = this._gridContainerRef();
+    if (grid && this.itemId !== undefined) {
+      grid.scrollTo(this.itemId, 'instant');
     }
   }
 
-  onButtonScrollDLToIdClickHandler = (e: Event) => {
-    const list = this._dynamicListContainerRef();
-    if (list && this.dlItemId !== undefined) {
-      list.scrollTo(this.dlItemId, 'instant');
+  onItemClick(item: IRenderVirtualGridItem<IColumnData> | undefined) {
+    if (item) {
+      console.info(`Click: (ID: ${item.data.id}) Item ${item.data.value}`);
     }
-  }
-
-  onItemClick(data: VirtualGridRow) {
-    // console.info(`Click: Item ${data['name']} (ID: ${data.id})`);
   }
 
   onRowsSizeChangedHandler(data: IRowsSize) {
@@ -222,5 +264,9 @@ export class AppComponent {
     }
 
     PersistentStore.set('columns', data);
+  }
+
+  onViewportChangeHandler(size: ISize) {
+    console.info(`Viewport changed: ${JSON.stringify(size)}`);
   }
 }

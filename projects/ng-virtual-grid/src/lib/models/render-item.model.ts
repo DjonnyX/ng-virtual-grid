@@ -9,7 +9,7 @@ import { IRenderVirtualGridItemConfig } from "./render-item-config.model";
  * @author Evgenii Grebennikov
  * @email djonnyx@gmail.com
  */
-export interface IRenderVirtualGridItem {
+export interface IRenderVirtualGridItem<E = Object> {
     /**
      * Element index.
      */
@@ -38,7 +38,7 @@ export interface IRenderVirtualGridItem {
     /**
      * Element data.
      */
-    data: IVirtualGridItem;
+    data: IVirtualGridItem<E>;
     /**
      * Object with configuration parameters for IRenderVirtualGridItem.
      */
