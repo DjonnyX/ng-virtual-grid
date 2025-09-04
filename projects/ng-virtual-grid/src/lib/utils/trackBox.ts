@@ -6,9 +6,9 @@ import { CacheMap, CMap } from "./cacheMap";
 import { Tracker } from "./tracker";
 import { IPoint, ISize } from "../types";
 import {
-    DEFAULT_BUFFER_SIZE, DEFAULT_COLUMN_SIZE, DEFAULT_MIN_COLUMN_SIZE, DEFAULT_MIN_ROW_SIZE, DEFAULT_ROW_SIZE,
-    HEIGHT_PROP_NAME, SIZE_AUTO, SIZE_PERSENT, SIZE_FR, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME, X_PROP_NAME, Y_PROP_NAME,
-    DIG_M_1, DIG_0, DIG_1, DIG_2,
+    DEFAULT_BUFFER_SIZE, DEFAULT_COLUMN_SIZE, DEFAULT_MIN_COLUMN_SIZE, DEFAULT_MIN_ROW_SIZE, DEFAULT_ROW_SIZE, HEIGHT_PROP_NAME, SIZE_AUTO,
+    SIZE_PERSENT, SIZE_FR, TRACK_BY_PROPERTY_NAME, WIDTH_PROP_NAME, X_PROP_NAME, Y_PROP_NAME, DIG_M_1, DIG_0, DIG_1, DIG_2,
+    DEFAULT_MAX_COLUMN_SIZE, DEFAULT_MAX_ROW_SIZE,
 } from "../const";
 import { IColumnsSize, IRowsSize, IVirtualGridColumnCollection, IVirtualGridRowConfigMap, VirtualGridRow } from "../models";
 import { bufferInterpolation } from "./buffer-interpolation";
@@ -153,7 +153,7 @@ const parseColumnValue = (value: ColumnSize, boundsWidth: number): number => {
     return value as number;
 }
 
-const getColumnsSizeWithExclude = (v: IColumnsSize, boundsWidth: number, minColumnSize: number, excludeIds: Array<Id>) => {
+const getColumnsSizeWithExclude = (v: IColumnsSize, boundsWidth: number, minColumnSize: number, maxColumnSize: number, excludeIds: Array<Id>) => {
     let result = DIG_0;
     for (let columnId in v) {
         if (excludeIds.includes(columnId)) {
@@ -163,10 +163,34 @@ const getColumnsSizeWithExclude = (v: IColumnsSize, boundsWidth: number, minColu
             // isFlexible = isFlexibleColumn(value),
             // isPercentage = isFlexibleColumn(value),
             val = parseColumnValue(value, boundsWidth);
-        result += val < minColumnSize ? minColumnSize : val;
+        result += normalizeValue(val, minColumnSize, maxColumnSize);
     }
     return result;
 };
+
+const normalizeValue = (value: number, min: number, max: number) => {
+    if (value < min) {
+        return min;
+    } else if (value > max) {
+        return max;
+    }
+    return value;
+}
+
+const setCahce = (id: Id, value: ICacheItem, cacheMap: CMap<Id, ICacheItem>,
+    minRowSize: number, maxRowSize: number, minColumnSize: number, maxColumnSize: number,
+): CMap<Id, ICacheItem> => {
+    const { width, height, method } = value;
+    return cacheMap.set(id, {
+        method,
+        width: normalizeValue(width, minColumnSize, maxColumnSize),
+        height: normalizeValue(height, minRowSize, maxRowSize),
+    });
+}
+
+interface ICacheItem extends ISize {
+    method: ItemDisplayMethods | undefined;
+}
 
 /**
  * An object that performs tracking, calculations and caching.
@@ -175,7 +199,7 @@ const getColumnsSizeWithExclude = (v: IColumnsSize, boundsWidth: number, minColu
  * @email djonnyx@gmail.com
  */
 export class TrackBox<C extends BaseVirtualGridItemComponent = any>
-    extends CacheMap<Id, ISize & { method?: ItemDisplayMethods }, CacheMapEvents, CacheMapListeners> {
+    extends CacheMap<Id, ICacheItem, CacheMapEvents, CacheMapListeners> {
 
     protected _tracker!: Tracker<C>;
 
@@ -230,18 +254,26 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
         this._tracker = new Tracker(this._trackingPropertyName);
     }
 
-    override set(id: Id, bounds: ISize): CMap<Id, ISize> {
-        if (this._map.has(id)) {
-            const b = this._map.get(id);
-            if (b?.width === bounds.width && b.height === bounds.height) {
-                return this._map;
+    protected storeCache(id: Id, value: ICacheItem, checkVersion: boolean = false): CMap<Id, ICacheItem> {
+        if (checkVersion) {
+            if (this._map.has(id)) {
+                const b = this._map.get(id);
+                if (b?.width === value.width && b.height === value.height) {
+                    return this._map;
+                }
             }
+
+            const v = setCahce(id, value, this._map, this._minRowSize, this._maxRowSize,
+                this._minColumnSize, this._maxColumnSize,
+            );
+
+            this.bumpVersion();
+            return v;
         }
 
-        const v = this._map.set(id, bounds);
-
-        this.bumpVersion();
-        return v;
+        return setCahce(id, value, this._map, this._minRowSize, this._maxRowSize,
+            this._minColumnSize, this._maxColumnSize,
+        );
     }
 
     protected _previousCollection: Array<{ id: Id; }> | null | undefined;
@@ -305,9 +337,33 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
 
     protected _rowByCellMap = new CMap<Id, Id>();
 
-    minColumnSize = DEFAULT_MIN_COLUMN_SIZE;
+    protected _minColumnSize = DEFAULT_MIN_COLUMN_SIZE;
+    set minColumnSize(v: number) {
+        if (this._minColumnSize !== v) {
+            this._minColumnSize = v;
+        }
+    }
 
-    minRowSize = DEFAULT_MIN_ROW_SIZE;
+    protected _maxColumnSize = DEFAULT_MAX_COLUMN_SIZE;
+    set maxColumnSize(v: number) {
+        if (this._maxColumnSize !== v) {
+            this._maxColumnSize = v;
+        }
+    }
+
+    protected _minRowSize = DEFAULT_MIN_ROW_SIZE;
+    set minRowSize(v: number) {
+        if (this._minRowSize !== v) {
+            this._minRowSize = v;
+        }
+    }
+
+    protected _maxRowSize = DEFAULT_MAX_ROW_SIZE;
+    set maxRowSize(v: number) {
+        if (this._maxRowSize !== v) {
+            this._maxRowSize = v;
+        }
+    }
 
     updateRowsSize(v: IRowsSize) {
         if (!v) {
@@ -323,7 +379,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
             if (value !== undefined) {
                 const cacheItem = this.get(rowId) || {};
                 if (value !== SIZE_AUTO) {
-                    this.set(rowId, { ...cacheItem, height: value, method: ItemDisplayMethods.UPDATE } as any);
+                    this.storeCache(rowId, { ...cacheItem, height: value, method: ItemDisplayMethods.UPDATE } as ICacheItem, true);
                 }
             }
         }
@@ -342,7 +398,8 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
             const value = v[columnId], items = this._columnsMap.get(columnId);
             this._columnsStructureMap.set(columnId, value !== undefined);
             const isFlexible = isFlexibleColumn(value), /*isPercentage = isFlexibleColumn(value),*/
-                val = parseColumnValue(value, bw) - (isFlexible ? getColumnsSizeWithExclude(v, bw, this.minColumnSize, [columnId]) : DIG_0);
+                val = parseColumnValue(value, bw) - (isFlexible ? getColumnsSizeWithExclude(v, bw, this._minColumnSize, this._maxColumnSize,
+                    [columnId]) : DIG_0);
             if (value === undefined) {
                 this._customColumnsSizeMap.delete(columnId);
             } else {
@@ -353,7 +410,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                     const item = items[i], id = item.id;
                     if (val !== undefined) {
                         const cacheItem = this.get(id);
-                        this.set(id, { ...cacheItem || {}, width: val, method: ItemDisplayMethods.UPDATE } as any);
+                        this.storeCache(id, { ...cacheItem || {}, width: val, method: ItemDisplayMethods.UPDATE } as ICacheItem, true);
                     }
                 }
             }
@@ -388,7 +445,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
             for (let i = DIG_0, l = currentCollection.length; i < l; i++) {
                 const item = currentCollection[i], subCollection = item.columns as IVirtualGridColumnCollection, rowId = item.id,
                     rowHeight = this._customRowsSizeMap.get(rowId) ?? rowSize;
-                this._map.set(rowId, {
+                this.storeCache(rowId, {
                     width: itemSize, height: rowHeight === SIZE_AUTO ? rowSize : rowHeight,
                     method: ItemDisplayMethods.NOT_CHANGED
                 });
@@ -439,7 +496,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                     const item = currentCollection[i], id = item.id, rowId = item.rowId, columnId = item.columnId,
                         rowHeight = rowId !== undefined ? this._customRowsSizeMap.get(rowId) ?? rowSize : rowSize,
                         itemWidth = columnId !== undefined ? this._customColumnsSizeMap.get(columnId) ?? itemSize : itemSize;
-                    this._map.set(id, {
+                    this.storeCache(id, {
                         width: itemWidth, height: rowHeight === SIZE_AUTO ? rowSize : rowHeight,
                         method: ItemDisplayMethods.CREATE
                     });
@@ -465,7 +522,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                     if (item === collectionDict[id]) {
                         // not changed
                         notChangedMap[item.id] = item;
-                        this._map.set(id, {
+                        this.storeCache(id, {
                             ...(this._map.get(id) || { width: itemWidth, height: rowHeight === SIZE_AUTO ? rowSize : rowHeight }),
                             method: ItemDisplayMethods.NOT_CHANGED,
                         });
@@ -474,7 +531,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                         // updated
                         crudDetected = true;
                         updatedMap[item.id] = item;
-                        this._map.set(id, {
+                        this.storeCache(id, {
                             ...(this._map.get(id) || { width: itemWidth, height: rowHeight === SIZE_AUTO ? rowSize : rowHeight }),
                             method: ItemDisplayMethods.UPDATE,
                         });
@@ -497,7 +554,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
             if (item && !deletedMap.hasOwnProperty(id) && !updatedMap.hasOwnProperty(id) && !notChangedMap.hasOwnProperty(id)) {
                 // added
                 crudDetected = true;
-                this._map.set(id, {
+                this.storeCache(id, {
                     width: itemWidth, height: rowHeight === SIZE_AUTO ? rowSize : rowHeight,
                     method: ItemDisplayMethods.CREATE,
                 });
@@ -1322,7 +1379,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                 }
                 const bounds = component.instance.getBounds();
                 this._isRenderedMap.set(itemId, true);
-                this._map.set(itemId, { ...itemCache, height: bounds.height } as any);
+                this.storeCache(itemId, { ...itemCache, height: bounds.height } as ICacheItem);
                 if (rowId !== undefined) {
                     if (!rowDict.hasOwnProperty(rowId)) {
                         rowDict[rowId] = {};
@@ -1337,13 +1394,13 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
             if (customRowSize !== undefined && customRowSize !== SIZE_AUTO) {
                 continue;
             }
-            let maxSize = this.minRowSize;
+            let maxSize = this._minRowSize;
             for (let colId in row) {
                 maxSize = Math.max(maxSize, row[colId]);
             }
             const rowBounds = this.get(rowId);
             this._isRenderedMap.set(rowId, true);
-            this._map.set(rowId, { ...rowBounds, width: rowBounds?.width, height: maxSize } as any);
+            this.storeCache(rowId, { ...rowBounds, width: rowBounds!.width, height: maxSize } as ICacheItem);
         }
     }
 
