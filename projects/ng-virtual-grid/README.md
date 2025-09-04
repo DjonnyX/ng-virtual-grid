@@ -537,9 +537,9 @@ Inputs
 | columnSize | number? = 24 | Typical column size. Default value is 24. |
 | rowSize | number? = 24 | Typical row size. Default value is 24. |
 | minColumnSize | number? = 12 | Minimum column size. Default value is 12. |
-| maxColumnSize | number? = 1200 | Maximum column size. Default value is 300. |
+| maxColumnSize | number? = 1200 | Maximum column size. Default value is 1200. |
 | minRowSize | number? = 12 | Minimum row size. Default value is 12. |
-| maxRowSize | number? = 300 | Maximum row size. Default value is 300. |
+| maxRowSize | number? = 1200 | Maximum row size. Default value is 1200. |
 | bufferSize | number? = 2 | Number of elements outside the scope of visibility. Default value is 2. |
 | maxBufferSize | number? = 2 | Maximum number of elements outside the scope of visibility. Default value is 2. If maxBufferSize is set to be greater than bufferSize, then adaptive buffer mode is enabled. The greater the scroll size, the more elements are allocated for rendering. |
 | itemRenderer | TemplateRef | Rendering element template. |
