@@ -4,6 +4,7 @@ import { Subject } from 'rxjs';
 import { ICellResizeEvent } from './models/cell-resize-event.model';
 import { DEFAULT_MIN_COLUMN_SIZE, DEFAULT_MIN_ROW_SIZE, DEFAULT_RESIZE_COLUMNS_ENABLED, DEFAULT_RESIZE_ROWS_ENABLED } from './const';
 import { TrackBox } from './utils/trackBox';
+import { IRenderVirtualGridItem } from './models';
 
 @Injectable({
   providedIn: 'root'
@@ -13,6 +14,9 @@ export class NgVirtualGridService {
 
   private _$resize = new Subject<ICellResizeEvent>();
   $resize = this._$resize.asObservable();
+
+  private _$itemClick = new Subject<IRenderVirtualGridItem<any> | undefined>();
+  $itemClick = this._$itemClick.asObservable();
 
   private _resizeRowsEnabled: boolean = DEFAULT_RESIZE_ROWS_ENABLED;
 
@@ -51,6 +55,10 @@ export class NgVirtualGridService {
   private _trackBox: TrackBox | undefined;
 
   constructor() { }
+
+  itemClick(data: IRenderVirtualGridItem | undefined) {
+    this._$itemClick.next(data);
+  }
 
   initialize(trackBox: TrackBox) {
     this._trackBox = trackBox;

@@ -551,10 +551,12 @@ Outputs
 
 | Event | Type | Description |
 |---|---|---|
+| onItemClick | [IRenderVirtualGridItem](https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/models/render-item.model.ts) \| undefined | Fires when an element is clicked. |
 | onScroll | ([IScrollEvent](https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/models/scroll-event.model.ts)) => void | Fires when the grid has been scrolled. |
 | onScrollEnd | ([IScrollEvent](https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/models/scroll-event.model.ts)) => void | Fires when the grid has completed scrolling. |
 | onRowsSizeChanged | [IRowsSize](https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/models/rows-size.model.ts) | Fires when the row size is changed. |
 | onColumnsSizeChanged | [IColumnsSize](https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/models/columns-size.model.ts) | Fires when the column size is changed. |
+| onViewportChange | [ISize](https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/types/size.ts) | Fires when the viewport size is changed. |
 
 <br/>
 

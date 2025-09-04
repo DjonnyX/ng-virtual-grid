@@ -8,6 +8,7 @@ import { IVirtualGridCollection } from './collection.model';
 import { IVirtualGridColumnCollection } from './collection-columns.model';
 import { IColumnsSize } from './columns-size.model';
 import { IRowsSize } from './rows-size.model';
+import { IRenderVirtualGridItem } from './render-item.model';
 
 export type {
     IColumnsSize,
@@ -20,4 +21,5 @@ export type {
     IVirtualGridColumnCollection,
     ScrollDirection,
     IScrollEvent,
+    IRenderVirtualGridItem,
 }
