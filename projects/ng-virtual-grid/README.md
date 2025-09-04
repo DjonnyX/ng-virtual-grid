@@ -93,7 +93,7 @@ Template:
 ```html
 <ng-virtual-grid class="grid" [resizeRowsEnabled]="true" [resizeColumnsEnabled]="true" [items]="groupDynamicItems"
         [columnsSize]="groupDynamicColumnsSize" [rowsSize]="groupDynamicRowsSize" [itemRenderer]="itemRenderer"
-        cellResizeMode="adjacent" [minColumnSize]="32" [minRowSize]="32" [columnSize]="300" [rowSize]="32"
+        [minColumnSize]="32" [minRowSize]="32" [columnSize]="300" [rowSize]="32"
         [bufferSize]="0" [snap]="true" [cellConfigRowsMap]="groupDynamicItemsRowConfigMap"
         (onRowsSizeChanged)="onRowsSizeChangedHandler($event)"
         (onColumnsSizeChanged)="onColumnsSizeChangedHandler($event)"></ng-virtual-grid>
@@ -269,7 +269,7 @@ Template:
 </div>
 <ng-virtual-grid class="grid" [resizeRowsEnabled]="true" [resizeColumnsEnabled]="true" [items]="groupDynamicItems"
         [columnsSize]="groupDynamicColumnsSize" [rowsSize]="groupDynamicRowsSize" [itemRenderer]="itemRenderer"
-        cellResizeMode="adjacent" [minColumnSize]="32" [minRowSize]="32" [columnSize]="300" [rowSize]="32"
+        [minColumnSize]="32" [minRowSize]="32" [columnSize]="300" [rowSize]="32"
         [bufferSize]="0" [snap]="true" [cellConfigRowsMap]="groupDynamicItemsRowConfigMap"
         (onRowsSizeChanged)="onRowsSizeChangedHandler($event)"
         (onColumnsSizeChanged)="onColumnsSizeChangedHandler($event)"></ng-virtual-grid>
@@ -533,7 +533,6 @@ Inputs
 |---|---|---|
 | id | number | Readonly. Returns the unique identifier of the component. | 
 | items | [IVirtualGridCollection](https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/models/collection.model.ts) | Collection of grid items. The collection of elements must be immutable. |
-| cellResizeMode | [CellResizeMode](https://github.com/DjonnyX/ng-virtual-grid/blob/19.x/projects/ng-virtual-grid/src/lib/enums/cell-resize-mode.ts) = "self" | Cell resize mode. Default value is "self". |
 | columnSize | number? = 24 | Typical column size. Default value is 24. |
 | rowSize | number? = 24 | Typical row size. Default value is 24. |
 | minColumnSize | number? = 12 | Minimum column size. Default value is 12. |
