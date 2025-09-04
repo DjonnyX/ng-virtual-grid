@@ -688,7 +688,8 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
 
         let prevRowId: Id | undefined;
         for (let i = DIG_0, l = rowDisplayItems.length; i < l; i++) {
-            const item = rowDisplayItems[i], rowId = item.id, columnsCollection = (item.data as VirtualGridRow).columns,
+            const item = rowDisplayItems[i], rowId = item.id,
+                columnsCollection = (item.data as VirtualGridRow).columns,
                 customRowSize = this._customRowsSizeMap.get(item.id);
             const metrics = this.recalculateMetrics({
                 ...opt,
@@ -713,7 +714,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
             this._bufferSizeX = bufferSize;
 
             const displayItems = this.generateDisplayCollection(columnsCollection, cellConfigColumnsMap, { ...metrics, rowId }, {
-                prevRowId,
+                prevRowId: prevRowId,
                 rowDisplayObject: item,
                 rowResizable: cellConfigRowsMap[rowId]?.resizable,
             });
@@ -722,7 +723,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
 
             displayItemCollection.push(displayItems);
 
-            prevRowId = item.id;
+            prevRowId = rowId;
         }
 
         const deltaX = normalizeDeltaX(deltaXSequence);
@@ -1149,7 +1150,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                 renderItems = renderItemsLength,
                 stickyItem: IRenderVirtualGridItem | undefined, nextSticky: IRenderVirtualGridItem | undefined, stickyItemIndex = DIG_M_1,
                 stickyItemSize = DIG_0, endStickyItem: IRenderVirtualGridItem | undefined, nextEndSticky: IRenderVirtualGridItem | undefined,
-                endStickyItemIndex = DIG_M_1, endStickyItemSize = DIG_0;
+                endStickyItemIndex = DIG_M_1, endStickyItemSize = DIG_0, prevColId: Id | undefined;
 
             if (snap) {
                 for (let i = Math.min(itemsFromStartToScrollEnd > DIG_0 ? itemsFromStartToScrollEnd : DIG_0, totalLength - DIG_1); i >= DIG_0; i--) {
@@ -1179,7 +1180,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                             snapped: true,
                             snappedOut: false,
                             zIndex: stickyWithRow && sticky ? Z_INDEX_4 : Z_INDEX_2,
-                            prevColId: i > DIG_0 ? i - DIG_1 : undefined,
+                            prevColId,
                             prevRowId,
                             border: i === DIG_0 || i === totalLength - DIG_1,
                         };
@@ -1191,6 +1192,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                         stickyItemSize = size;
 
                         displayItems.push(stickyItem!);
+                        prevColId = i;
                         break;
                     }
                 }
@@ -1225,13 +1227,14 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                             snapped: true,
                             snappedOut: false,
                             zIndex: stickyWithRow && sticky ? Z_INDEX_4 : Z_INDEX_2,
-                            prevColId: i > DIG_0 ? i - DIG_1 : undefined,
+                            prevColId,
                             prevRowId,
                             border: i === DIG_0 || i === totalLength - DIG_1,
                         };
 
                         const itemData: I = items[i];
 
+                        prevColId = i;
                         endStickyItem = { index: i, id, rowId, columnId, measures, data: itemData, config };
                         endStickyItemIndex = i;
                         endStickyItemSize = size;
@@ -1276,7 +1279,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                             snapped: false,
                             snappedOut: false,
                             zIndex: sticky || stickyWithRow ? String(sticky || stickyWithRow) : Z_INDEX_0,
-                            prevColId: i > DIG_0 ? i - DIG_1 : undefined,
+                            prevColId,
                             prevRowId,
                             border: i === DIG_0 || i === totalLength - DIG_1,
                         };
@@ -1308,6 +1311,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                     displayItems.push(item);
                 }
 
+                prevColId = i;
                 renderItems -= DIG_1;
                 pos += size;
                 i++;

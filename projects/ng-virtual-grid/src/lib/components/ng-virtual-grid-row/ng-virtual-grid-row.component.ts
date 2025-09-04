@@ -49,7 +49,7 @@ export class NgVirtualGridRowComponent extends BaseVirtualGridItemComponent {
   private _listContainerRef: ViewContainerRef | undefined;
   get listContainerRef() { return this._listContainerRef; }
 
-  service = inject(NgVirtualGridService);
+  protected _service = inject(NgVirtualGridService);
 
   private _id!: number;
   get id() {
@@ -113,7 +113,7 @@ export class NgVirtualGridRowComponent extends BaseVirtualGridItemComponent {
 
   constructor() {
     super();
-    this._id = this.service.generateComponentId();
+    this._id = this._service.generateComponentId();
   }
 
   createComponent(componentClass: Component$1<BaseVirtualGridItemComponent>): ComponentRef<BaseVirtualGridItemComponent> | null {
@@ -154,14 +154,14 @@ export class NgVirtualGridRowComponent extends BaseVirtualGridItemComponent {
       const listItem = this._listItemRef();
       if (listItem) {
         const liElement = listItem.nativeElement;
-        const rowSizeCache = this.service.getRowSizeById(data.id) ?? data.measures.height;
+        const rowSizeCache = this._service.getRowSizeById(data.id) ?? data.measures.height;
         if (this._data?.config.customSize) {
           liElement.style.height = `${rowSizeCache}${PX}`;
-          liElement.style.maxHeight = `${this.service.maxRowSize}${PX}`;
+          liElement.style.maxHeight = `${this._service.maxRowSize}${PX}`;
           liElement.style.minHeight = UNSET_VALUE;
         } else {
           liElement.style.minHeight = `${rowSizeCache}${PX}`;
-          liElement.style.maxHeight = `${this.service.maxRowSize}${PX}`;
+          liElement.style.maxHeight = `${this._service.maxRowSize}${PX}`;
           liElement.style.height = SIZE_AUTO;
         }
       }
@@ -194,19 +194,11 @@ export class NgVirtualGridRowComponent extends BaseVirtualGridItemComponent {
   }
 
   protected onResizeHandler(event: ResizeEvent) {
-    if (this.service.isAjacentResizeCellMode) {
-      this.service.onResize(
-        event.method === CaptureSide.TOP ? this.prevRowId! : this.rowId!,
-        event.method === CaptureSide.LEFT ? this.prevColumnId! : this.columnId!,
-        event.width, event.height,
-      );
-    } else {
-      this.service.onResize(
-        this.rowId!,
-        this.columnId!,
-        event.width, event.height,
-      );
-    }
+    this._service.onResize(
+      event.method === CaptureSide.TOP ? this.prevRowId! : this.rowId!,
+      event.method === CaptureSide.LEFT ? this.prevColumnId! : this.columnId!,
+      event.width, event.height,
+    );
   }
 }
 

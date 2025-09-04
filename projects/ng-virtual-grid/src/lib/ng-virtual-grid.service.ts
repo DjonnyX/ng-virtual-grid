@@ -53,8 +53,6 @@ export class NgVirtualGridService {
 
   maxRowSize = DEFAULT_MAX_ROW_SIZE;
 
-  isAjacentResizeCellMode: boolean = false;
-
   gridId = 0;
 
   host: ElementRef<HTMLUListElement> | undefined;
