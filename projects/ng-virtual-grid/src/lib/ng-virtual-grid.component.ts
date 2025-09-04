@@ -21,14 +21,12 @@ import {
 import { Id, ISize } from './types';
 import { RowSize } from './types/row-size';
 import { IRenderVirtualGridCollection } from './models/render-collection.model';
-import { CellResizeMode, CellResizeModes } from './enums';
 import { ScrollEvent } from './utils';
 import { IGetItemPositionOptions, IUpdateCollectionOptions, TRACK_BOX_CHANGE_EVENT_NAME, TrackBox } from './utils/trackBox';
 import { BaseVirtualGridItemComponent } from './models/base-virtual-grid-item-component';
 import { Component$1 } from './models/component.model';
 import { NgVirtualGridService } from './ng-virtual-grid.service';
 import { PointerDetectService } from './service/pointer-detect.service';
-import { isAdjacentCellMode } from './utils/isAdjacentCellMode';
 import { NgVirtualGridRowComponent } from './components/ng-virtual-grid-row/ng-virtual-grid-row.component';
 
 /**
@@ -234,11 +232,6 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
   maxRowSize = input<number>(DEFAULT_MAX_ROW_SIZE, { ...this._maxRowSizeOptions });
 
   /**
-   * Cell resize mode. Default value is "self".
-   */
-  cellResizeMode = input<CellResizeMode>(CellResizeModes.SELF);
-
-  /**
    * Number of elements outside the scope of visibility. Default value is 2.
    */
   bufferSize = input<number>(DEFAULT_BUFFER_SIZE);
@@ -379,16 +372,7 @@ export class NgVirtualGridComponent implements AfterViewInit, OnInit, OnDestroy 
       $minColumnSize = toObservable(this.minColumnSize),
       $maxColumnSize = toObservable(this.maxColumnSize),
       $minRowSize = toObservable(this.minRowSize),
-      $maxRowSize = toObservable(this.maxRowSize),
-      $cellResizeMode = toObservable(this.cellResizeMode);
-
-    $cellResizeMode.pipe(
-      takeUntilDestroyed(),
-      distinctUntilChanged(),
-      tap(v => {
-        this._service.isAjacentResizeCellMode = isAdjacentCellMode(v, CellResizeModes.ADJACENT);
-      }),
-    ).subscribe();
+      $maxRowSize = toObservable(this.maxRowSize);
 
     $minColumnSize.pipe(
       takeUntilDestroyed(),

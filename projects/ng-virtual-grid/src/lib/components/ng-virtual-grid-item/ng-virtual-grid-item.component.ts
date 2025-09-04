@@ -10,6 +10,8 @@ import { BaseVirtualGridItemComponent } from '../../models/base-virtual-grid-ite
 import { Component$1 } from '../../models/component.model';
 import { CaptureSide, ReasizeBoundsDirective, ResizeEvent } from '../../directives/reasize-bounds.directive';
 import { NgVirtualGridService } from '../../ng-virtual-grid.service';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { tap } from 'rxjs';
 
 /**
  * Virtual grid item component
@@ -29,9 +31,7 @@ import { NgVirtualGridService } from '../../ng-virtual-grid.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NgVirtualGridItemComponent extends BaseVirtualGridItemComponent {
-  private static __nextId: number = 0;
-
-  service = inject(NgVirtualGridService);
+  protected _service = inject(NgVirtualGridService);
 
   private _id!: number;
   get id() {
@@ -52,9 +52,12 @@ export class NgVirtualGridItemComponent extends BaseVirtualGridItemComponent {
     }
 
     const rowId = v?.rowId, colId = Number(v?.columnId);
-    this.liId = `g-${this.service.gridId}-${rowId}-${colId}`;
-    this.leftLiId = v?.config.prevColId !== undefined ? `g-${this.service.gridId}-${rowId}-${v?.config.prevColId}` : undefined;
-    this.topLiId = v?.config.prevRowId !== undefined ? `g-${this.service.gridId}-${v?.config.prevRowId}-${colId}` : undefined;
+    this.liId = `g-${this._service.gridId}-${rowId}-${colId}`;
+    this.leftLiId = v?.config.prevColId !== undefined ? `g-${this._service.gridId}-${rowId}-${v?.config.prevColId}` : undefined;
+    this.topLiId = v?.config.prevRowId !== undefined ? `g-${this._service.gridId}-${v?.config.prevRowId}-${colId}` : undefined;
+
+    this.columnResizable.set(v && v.config.columnResizable !== undefined ? v.config.columnResizable : this._service.resizeColumns());
+    this.rowResizable.set(v && v.config.rowResizable !== undefined ? v.config.rowResizable : this._service.resizeRows());
 
     this.update(v);
 
@@ -85,6 +88,10 @@ export class NgVirtualGridItemComponent extends BaseVirtualGridItemComponent {
     return this._data?.config.prevColId;
   }
 
+  rowResizable = signal<boolean>(this._service.resizeRows());
+
+  columnResizable = signal<boolean>(this._service.resizeColumns());
+
   itemRenderer = signal<TemplateRef<any> | undefined>(undefined);
 
   set renderer(v: TemplateRef<any> | undefined) {
@@ -102,9 +109,26 @@ export class NgVirtualGridItemComponent extends BaseVirtualGridItemComponent {
 
   constructor() {
     super();
-    this._id = this.service.generateComponentId();
+    this._id = this._service.generateComponentId();
 
-    this.liId = `li-${this.service.gridId}-${this._id}`;
+    this.liId = `li-${this._service.gridId}-${this._id}`;
+
+    const $rowResizable = toObservable(this._service.resizeRows),
+      $columnResizable = toObservable(this._service.resizeColumns);
+
+    $rowResizable.pipe(
+      takeUntilDestroyed(),
+      tap(v => {
+        this.rowResizable.set(v);
+      }),
+    ).subscribe();
+
+    $columnResizable.pipe(
+      takeUntilDestroyed(),
+      tap(v => {
+        this.columnResizable.set(v);
+      }),
+    ).subscribe();
   }
 
   private update(data: IRenderVirtualGridItem | undefined) {
@@ -128,11 +152,11 @@ export class NgVirtualGridItemComponent extends BaseVirtualGridItemComponent {
         const liElement = listItem.nativeElement;
         if (this._data?.config.customSize) {
           liElement.style.height = `${data.measures.height}${PX}`;
-          liElement.style.maxHeight = `${this.service.maxRowSize}${PX}`;
+          liElement.style.maxHeight = `${this._service.maxRowSize}${PX}`;
           liElement.style.minHeight = UNSET_VALUE;
         } else {
           liElement.style.minHeight = `${data.measures.height}${PX}`;
-          liElement.style.maxHeight = `${this.service.maxRowSize}${PX}`;
+          liElement.style.maxHeight = `${this._service.maxRowSize}${PX}`;
           liElement.style.height = SIZE_AUTO;
         }
       }
@@ -152,7 +176,7 @@ export class NgVirtualGridItemComponent extends BaseVirtualGridItemComponent {
       const { width, height } = el.getBoundingClientRect();
       return { width, height };
     }
-    return { width: this.service.minColumnSize, height: this.service.minRowSize };
+    return { width: this._service.minColumnSize, height: this._service.minRowSize };
   }
 
   getContentBounds(): ISize {
@@ -162,7 +186,7 @@ export class NgVirtualGridItemComponent extends BaseVirtualGridItemComponent {
         { width, height } = el.getBoundingClientRect();
       return { width: width, height: height };
     }
-    return { width: this.service.minColumnSize, height: this.service.minRowSize };
+    return { width: this._service.minColumnSize, height: this._service.minRowSize };
   }
 
   show() {
@@ -188,23 +212,15 @@ export class NgVirtualGridItemComponent extends BaseVirtualGridItemComponent {
   }
 
   protected onResizeHandler(event: ResizeEvent) {
-    if (this.service.isAjacentResizeCellMode) {
-      this.service.onResize(
-        event.method === CaptureSide.TOP ? this.prevRowId! : this.rowId!,
-        event.method === CaptureSide.LEFT ? this.prevColumnId! : this.columnId!,
-        event.width, event.height,
-      );
-    } else {
-      this.service.onResize(
-        this.rowId!,
-        this.columnId!,
-        event.width, event.height,
-      );
-    }
+    this._service.onResize(
+      event.method === CaptureSide.TOP ? this.prevRowId! : this.rowId!,
+      event.method === CaptureSide.LEFT ? this.prevColumnId! : this.columnId!,
+      event.width, event.height,
+    );
   }
 
   onClickHandler() {
-    this.service.itemClick(this._data);
+    this._service.itemClick(this._data);
   }
 }
 

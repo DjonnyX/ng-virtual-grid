@@ -46,7 +46,9 @@ const CURSOR_COL_RESIZE = 'col-resize',
   CURSOR_ROW_RESIZE = 'row-resize',
   CURSOR_INITIAL = 'initial',
   USER_SELECT_INITIAL = 'initial',
-  USER_SELECT_NONE = 'none';
+  USER_SELECT_NONE = 'none',
+  ROW_RESIZABLE = 'row-resizable',
+  COL_RESIZABLE = 'col-resizable';
 
 /**
  * Resize bounds directive
@@ -103,25 +105,22 @@ export class ReasizeBoundsDirective {
           element.style.cursor = CURSOR_COL_RESIZE;
           element.style.userSelect = USER_SELECT_NONE;
           return;
-        } else if (this._service.isAjacentResizeCellMode && resizeColumnsEnabled && cx >= 0 && cx <= threshold) {
-          if (this._service.isAjacentResizeCellMode) {
-            const hostElement = this._service.host?.nativeElement, adjacentId = this.leftLiId(),
-              adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
-            this._pointerDetectService.target = adjacentTarget;
-            if (adjacentTarget) {
-              const adjacentElement = adjacentTarget as HTMLElement, { x, y, width, height } = adjacentElement.getBoundingClientRect();
+        } else if (resizeColumnsEnabled && cx >= 0 && cx <= threshold) {
+          const hostElement = this._service.host?.nativeElement, adjacentId = this.leftLiId(),
+            adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
+          this._pointerDetectService.target = adjacentTarget;
+          if (adjacentTarget) {
+            const adjacentElement = adjacentTarget as HTMLElement,
+              adjacentElementColResizable = adjacentElement.classList.contains(COL_RESIZABLE);
+
+            if (adjacentElementColResizable) {
+              const { width, height } = adjacentElement.getBoundingClientRect();
               _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
               _$capture.next(CaptureSide.LEFT);
               _$down.next(true);
               element.style.cursor = CURSOR_COL_RESIZE;
               element.style.userSelect = USER_SELECT_NONE;
             }
-          } else {
-            _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
-            _$capture.next(CaptureSide.LEFT);
-            _$down.next(true);
-            element.style.cursor = CURSOR_COL_RESIZE;
-            element.style.userSelect = USER_SELECT_NONE;
           }
           return;
         } else if (resizeRowsEnabled && cy >= (height - threshold) && cy <= height) {
@@ -132,25 +131,22 @@ export class ReasizeBoundsDirective {
           element.style.cursor = CURSOR_ROW_RESIZE;
           element.style.userSelect = USER_SELECT_NONE;
           return;
-        } else if (this._service.isAjacentResizeCellMode && resizeRowsEnabled && cy >= 0 && cy <= threshold) {
-          if (this._service.isAjacentResizeCellMode) {
-            const hostElement = this._service.host?.nativeElement, adjacentId = this.topLiId(),
-              adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
-            this._pointerDetectService.target = adjacentTarget;
-            if (adjacentTarget) {
-              const adjacentElement = adjacentTarget as HTMLElement, { width, height } = adjacentElement.getBoundingClientRect();
+        } else if (resizeRowsEnabled && cy >= 0 && cy <= threshold) {
+          const hostElement = this._service.host?.nativeElement, adjacentId = this.topLiId(),
+            adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
+          this._pointerDetectService.target = adjacentTarget;
+          if (adjacentTarget) {
+            const adjacentElement = adjacentTarget as HTMLElement,
+              adjacentElementColResizable = adjacentElement.classList.contains(ROW_RESIZABLE);
+
+            if (adjacentElementColResizable) {
+              const { width, height } = adjacentElement.getBoundingClientRect();
               _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
               _$capture.next(CaptureSide.TOP);
               _$down.next(true);
               element.style.cursor = CURSOR_ROW_RESIZE;
               element.style.userSelect = USER_SELECT_NONE;
             }
-          } else {
-            _$start.next({ clientX: event.clientX, clientY: event.clientY, width, height });
-            _$capture.next(CaptureSide.TOP);
-            _$down.next(true);
-            element.style.cursor = CURSOR_ROW_RESIZE;
-            element.style.userSelect = USER_SELECT_NONE;
           }
           return;
         }
@@ -176,20 +172,44 @@ export class ReasizeBoundsDirective {
       tap(({ resizeRowsEnabled, resizeColumnsEnabled, event }) => {
         const { x, y, width, height } = element.getBoundingClientRect(),
           cx = event.clientX - x, cy = event.clientY - y;
-        if (resizeColumnsEnabled && cx >= (width - threshold) && cx <= width) {
-          element.style.cursor = CURSOR_COL_RESIZE;
+        if (cx >= (width - threshold) && cx <= width) {
+          if (resizeColumnsEnabled) {
+            element.style.cursor = CURSOR_COL_RESIZE;
+            element.style.userSelect = USER_SELECT_NONE;
+          }
+          return;
+        } else if (cx >= 0 && cx <= threshold) {
+          const hostElement = this._service.host?.nativeElement, adjacentId = this.leftLiId(),
+            adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
+          if (adjacentTarget) {
+            const adjacentElement = adjacentTarget as HTMLElement,
+              adjacentElementColResizable = adjacentElement.classList.contains(COL_RESIZABLE);
+
+            element.style.cursor = adjacentElementColResizable ? CURSOR_COL_RESIZE : CURSOR_INITIAL;
+            element.style.userSelect = USER_SELECT_NONE;
+            return;
+          }
+          element.style.cursor = resizeColumnsEnabled ? CURSOR_COL_RESIZE : CURSOR_INITIAL;
           element.style.userSelect = USER_SELECT_NONE;
           return;
-        } else if (this._service.isAjacentResizeCellMode && resizeColumnsEnabled && cx >= 0 && cx <= threshold) {
-          element.style.cursor = CURSOR_COL_RESIZE;
-          element.style.userSelect = USER_SELECT_NONE;
+        } else if (cy >= (height - threshold) && cy <= height) {
+          if (resizeRowsEnabled) {
+            element.style.cursor = CURSOR_ROW_RESIZE;
+            element.style.userSelect = USER_SELECT_NONE;
+          }
           return;
-        } else if (resizeRowsEnabled && cy >= (height - threshold) && cy <= height) {
-          element.style.cursor = CURSOR_ROW_RESIZE;
-          element.style.userSelect = USER_SELECT_NONE;
-          return;
-        } else if (this._service.isAjacentResizeCellMode && resizeRowsEnabled && cy >= 0 && cy <= threshold) {
-          element.style.cursor = CURSOR_ROW_RESIZE;
+        } else if (cy >= 0 && cy <= threshold) {
+          const hostElement = this._service.host?.nativeElement, adjacentId = this.topLiId(),
+            adjacentTarget = (adjacentId && hostElement ? hostElement.querySelector(`#${adjacentId}`) : null) as EventTarget;
+          if (adjacentTarget) {
+            const adjacentElement = adjacentTarget as HTMLElement,
+              adjacentElementRowResizable = adjacentElement.classList.contains(ROW_RESIZABLE);
+
+            element.style.cursor = adjacentElementRowResizable ? CURSOR_ROW_RESIZE : CURSOR_INITIAL;
+            element.style.userSelect = USER_SELECT_NONE;
+            return;
+          }
+          element.style.cursor = resizeRowsEnabled ? CURSOR_ROW_RESIZE : CURSOR_INITIAL;
           element.style.userSelect = USER_SELECT_NONE;
           return;
         }
