@@ -1211,7 +1211,7 @@ export class TrackBox<C extends BaseVirtualGridItemComponent = any>
                         size = this.get(id)?.[sizeProperty] || typicalItemSize;
                     if (sticky === DIG_2) {
                         const w = isVertical ? normalizedItemWidth : size, h = isVertical ? size : normalizedItemHeight, measures = {
-                            x: isVertical ? DIG_0 : actualSnippedPosition + actualEndSnippedPosition - w,
+                            x: isVertical ? DIG_0 : (actualSnippedPosition + actualEndSnippedPosition - w) - size,
                             y: isVertical ? actualEndSnippedPosition - h : DIG_0,
                             width: w,
                             height: isVertical ? size : rowSize,

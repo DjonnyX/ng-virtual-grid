@@ -5,6 +5,14 @@
     top: 0;
     box-sizing: border-box;
     overflow: hidden;
+
+    // &.snapped:hover, &.snapped-out:hover {
+    //     z-index: 2 !important;
+    // }
+
+    // &:not(.snapped):hover, &:not(.snapped-out):hover {
+    //     z-index: 2 !important;
+    // }
 }
 
 .ngvg-item__container {

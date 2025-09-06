@@ -3,7 +3,7 @@
 @let cResizable = columnResizable();
 @let rResizable = rowResizable();
 
-<li [id]="liId" #listItem part="item" [part]="item && item.config.sticky > 0 ? 'item-sticky' : 'item'" reasizeBounds
+<div [id]="liId" #listItem part="item" [part]="item && item.config.sticky > 0 ? 'item-sticky' : 'item'" reasizeBounds
     [resizeRowsEnabled]="rResizable" [resizeColumnsEnabled]="cResizable" [leftLiId]="leftLiId" [topLiId]="topLiId"
     class="ngvg-item__container" [ngClass]="{'snapped': item ? item.config.snapped : false,
         'snapped-out': item ? item.config.snappedOut : false, 'snap': item ? item.config.snapped : false, 
@@ -15,4 +15,4 @@
                 [ngTemplateOutletContext]="{data: item.data, config: item.config, measures: item.measures}" />
         </div>
     }
-</li>
+</div>

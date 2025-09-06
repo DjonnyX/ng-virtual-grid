@@ -24,7 +24,6 @@ input {
 
     &:hover {
         background-color: rgb(46, 46, 51);
-        z-index: 2;
     }
 }
 
@@ -35,7 +34,6 @@ input {
 
     &:hover {
         background-color: #1f1f24;
-        z-index: 2;
     }
 }
 
@@ -46,7 +44,6 @@ input {
 
     &:hover {
         background-color: #232327;
-        z-index: 2;
     }
 }
 
@@ -60,22 +57,21 @@ input {
     }
 }
 
-.grid::part(item-row-border) {
-    font-weight: bold;
-    background-color: #25252b;
-
-    &:hover {
-        background-color: #28282e;
-    }
-}
-
 .grid::part(grid-item) {
     outline: 1px solid #202025;
     transition: outline 10ms linear;
 
     &:hover {
         outline: 1px solid rgb(100, 46, 114);
-        z-index: 1;
+    }
+}
+
+.grid::part(item-row-border) {
+    font-weight: bold;
+    background-color: #25252b;
+
+    &:hover {
+        background-color: #28282e;
     }
 }
 
